@@ -1361,7 +1361,7 @@ class DocumentService:
             redis_client.setex(retry_indexing_cache_key, 600, 1)
         # trigger async task
         document_ids = [document.id for document in documents]
-        retry_document_indexing_task.delay(dataset_id, document_ids)
+        retry_document_indexing_task.delay(dataset_id, document_ids, current_user.id)
 
     @staticmethod
     def sync_website_document(dataset_id: str, document: Document):
