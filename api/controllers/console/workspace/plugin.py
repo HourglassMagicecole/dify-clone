@@ -107,6 +107,7 @@ class PluginIconApi(Resource):
         icon_cache_max_age = dify_config.TOOL_ICON_CACHE_MAX_AGE
         return send_file(io.BytesIO(icon_bytes), mimetype=mimetype, max_age=icon_cache_max_age)
 
+
 class PluginAssetApi(Resource):
     @setup_required
     @login_required
@@ -123,6 +124,7 @@ class PluginAssetApi(Resource):
             return send_file(io.BytesIO(binary), mimetype="application/octet-stream")
         except PluginDaemonClientSideError as e:
             raise ValueError(e)
+
 
 class PluginUploadFromPkgApi(Resource):
     @setup_required
@@ -672,9 +674,7 @@ class PluginReadmeApi(Resource):
         return jsonable_encoder(
             {
                 "readme": PluginService.fetch_plugin_readme(
-                    tenant_id,
-                    args["plugin_unique_identifier"],
-                    args.get("language", "en-US")
+                    tenant_id, args["plugin_unique_identifier"], args.get("language", "en-US")
                 )
             }
         )
