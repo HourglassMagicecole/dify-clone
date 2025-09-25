@@ -1340,3 +1340,18 @@ def cleanup_orphaned_draft_variables(
                 continue
 
     logger.info("Cleanup completed. Total deleted: %s variables across %s apps", total_deleted, processed_apps)
+
+
+@click.command("seed-education-data", help="Generate seed data for education platform testing.")
+def seed_education_data():
+    """Generate test data for the education platform."""
+    try:
+        from fixtures.education_seed_data import seed_education_data
+        seed_education_data()
+        click.echo("✅ Education seed data generated successfully!")
+    except ImportError as e:
+        click.echo(f"❌ Error importing seed data module: {e}")
+        click.echo("Make sure the fixtures/education_seed_data.py file exists.")
+    except Exception as e:
+        click.echo(f"❌ Error generating seed data: {e}")
+        raise

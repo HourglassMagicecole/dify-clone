@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and platform_python_implementation != 'PyPy' and sys_platform == 'linux'",
@@ -1272,6 +1272,8 @@ dependencies = [
     { name = "cachetools" },
     { name = "celery" },
     { name = "chardet" },
+    { name = "cryptography" },
+    { name = "faker" },
     { name = "flask" },
     { name = "flask-compress" },
     { name = "flask-cors" },
@@ -1462,6 +1464,8 @@ requires-dist = [
     { name = "cachetools", specifier = "~=5.3.0" },
     { name = "celery", specifier = "~=5.5.2" },
     { name = "chardet", specifier = "~=5.1.0" },
+    { name = "cryptography", specifier = ">=45.0.5" },
+    { name = "faker", specifier = ">=32.1.0" },
     { name = "flask", specifier = "~=3.1.2" },
     { name = "flask-compress", specifier = "~=1.17" },
     { name = "flask-cors", specifier = "~=6.0.0" },

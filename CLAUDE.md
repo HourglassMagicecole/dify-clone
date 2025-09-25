@@ -87,3 +87,4 @@ pnpm test                         # Run Jest tests
 
 - All async tasks use Celery with Redis as broker
 - **Internationalization**: Frontend supports multiple languages with English (`web/i18n/en-US/`) as the source. All user-facing text must use i18n keys, no hardcoded strings. Edit corresponding module files in `en-US/` directory for translations.
+- @docs/architecture/ 폴더와 @docs/prd/ 폴더에 있는 파일의 파일명은 한글로 되어있어

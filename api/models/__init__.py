@@ -26,6 +26,19 @@ from .dataset import (
     TidbAuthBinding,
     Whitelist,
 )
+from .education import (
+    EducationAchievement,
+    EducationActivityLog,
+    EducationApiKey,
+    EducationEnrollment,
+    EducationSession,
+    EducationTemplate,
+    EducationUsageLimit,
+    EducationUsageStats,
+    LearningProgress,
+    ResourceTag,
+    UserEducationRole,
+)
 from .engine import db
 from .enums import CreatorUserRole, UserFrom, WorkflowRunTriggeredFrom
 from .model import (
@@ -126,6 +139,14 @@ __all__ = [
     "DifySetup",
     "Document",
     "DocumentSegment",
+    "EducationAchievement",
+    "EducationActivityLog",
+    "EducationApiKey",
+    "EducationEnrollment",
+    "EducationSession",
+    "EducationTemplate",
+    "EducationUsageLimit",
+    "EducationUsageStats",
     "Embedding",
     "EndUser",
     "ExternalKnowledgeApis",
@@ -133,6 +154,7 @@ __all__ = [
     "IconType",
     "InstalledApp",
     "InvitationCode",
+    "LearningProgress",
     "LoadBalancingModelConfig",
     "Message",
     "MessageAgentThought",
@@ -149,6 +171,7 @@ __all__ = [
     "ProviderQuotaType",
     "ProviderType",
     "RecommendedApp",
+    "ResourceTag",
     "SavedMessage",
     "Site",
     "Tag",
@@ -166,6 +189,7 @@ __all__ = [
     "ToolModelInvoke",
     "TraceAppConfig",
     "UploadFile",
+    "UserEducationRole",
     "UserFrom",
     "Whitelist",
     "Workflow",
