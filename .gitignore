@@ -220,3 +220,6 @@ mise.toml
 .roo/
 api/.env.backup
 /clickzetta
+
+# Backup files
+backups/
