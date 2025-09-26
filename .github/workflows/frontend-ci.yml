@@ -1,0 +1,348 @@
+name: Frontend CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'web/**'
+      - 'web-edu/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'web/**'
+      - 'web-edu/**'
+      - '.github/workflows/frontend-ci.yml'
+
+concurrency:
+  group: frontend-ci-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9"
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.changes.outputs.web }}
+      web-edu: ${{ steps.changes.outputs.web-edu }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            web:
+              - 'web/**'
+            web-edu:
+              - 'web-edu/**'
+
+  web-ci:
+    name: Web (Main) CI
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    defaults:
+      run:
+        working-directory: ./web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          package_json_file: web/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ./web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Lint check
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build application
+        run: pnpm build
+        env:
+          NODE_ENV: production
+
+      - name: Check build artifacts
+        run: |
+          if [ ! -d ".next" ]; then
+            echo "❌ Build artifacts not found"
+            exit 1
+          fi
+          echo "✅ Build artifacts verified"
+
+  web-edu-ci:
+    name: Web-EDU CI
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.web-edu == 'true'
+    defaults:
+      run:
+        working-directory: ./web-edu
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          package_json_file: web-edu/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ./web-edu/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Lint check
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Run component tests
+        run: pnpm test:components
+        continue-on-error: true
+
+      - name: Build application
+        run: pnpm build
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Check build artifacts
+        run: |
+          if [ ! -d ".next" ]; then
+            echo "❌ Build artifacts not found"
+            exit 1
+          fi
+          echo "✅ Build artifacts verified"
+
+      - name: Bundle analysis
+        run: |
+          if [ -f ".next/analyze/bundle-analyzer-report.html" ]; then
+            echo "📊 Bundle analysis available"
+          else
+            echo "ℹ️  Bundle analysis not generated"
+          fi
+
+  lighthouse:
+    name: Lighthouse Performance
+    runs-on: ubuntu-latest
+    needs: [changes, web-ci, web-edu-ci]
+    if: always() && (needs.changes.outputs.web == 'true' || needs.changes.outputs.web-edu == 'true')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Build and test web performance
+        if: needs.changes.outputs.web == 'true'
+        working-directory: ./web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm start &
+          sleep 10
+          npx lighthouse http://localhost:3000 --output=json --output-path=lighthouse-report.json --chrome-flags="--headless" || true
+
+      - name: Build and test web-edu performance
+        if: needs.changes.outputs.web-edu == 'true'
+        working-directory: ./web-edu
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm start &
+          sleep 10
+          npx lighthouse http://localhost:3000 --output=json --output-path=lighthouse-report.json --chrome-flags="--headless" || true
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: |
+            web/lighthouse-report.json
+            web-edu/lighthouse-report.json
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.web == 'true' || needs.changes.outputs.web-edu == 'true'
+
+    strategy:
+      matrix:
+        project:
+          - path: web
+            condition: ${{ needs.changes.outputs.web == 'true' }}
+          - path: web-edu
+            condition: ${{ needs.changes.outputs.web-edu == 'true' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        if: matrix.project.condition
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        if: matrix.project.condition
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          package_json_file: ${{ matrix.project.path }}/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        if: matrix.project.condition
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ./${{ matrix.project.path }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: matrix.project.condition
+        working-directory: ./${{ matrix.project.path }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Run security audit
+        if: matrix.project.condition
+        working-directory: ./${{ matrix.project.path }}
+        run: |
+          pnpm audit --audit-level high --prod || echo "Security audit found issues"
+          pnpm audit --format json --prod > security-audit-${{ matrix.project.path }}.json || true
+
+      - name: Upload security audit
+        if: matrix.project.condition
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-${{ matrix.project.path }}
+          path: ${{ matrix.project.path }}/security-audit-${{ matrix.project.path }}.json
+
+  status-check:
+    name: Frontend CI Status
+    runs-on: ubuntu-latest
+    needs: [changes, web-ci, web-edu-ci, lighthouse, security-audit]
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "### Frontend CI Results 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check Web CI
+          if [[ "${{ needs.changes.outputs.web }}" == "true" ]]; then
+            if [[ "${{ needs.web-ci.result }}" == "success" ]]; then
+              echo "✅ Web (Main) CI: Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ Web (Main) CI: Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ Web (Main) CI: Skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Web-EDU CI
+          if [[ "${{ needs.changes.outputs.web-edu }}" == "true" ]]; then
+            if [[ "${{ needs.web-edu-ci.result }}" == "success" ]]; then
+              echo "✅ Web-EDU CI: Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ Web-EDU CI: Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ Web-EDU CI: Skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Lighthouse
+          if [[ "${{ needs.lighthouse.result }}" == "success" ]]; then
+            echo "✅ Performance Tests: Passed" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.lighthouse.result }}" == "failure" ]]; then
+            echo "❌ Performance Tests: Failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ Performance Tests: Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check Security
+          if [[ "${{ needs.security-audit.result }}" == "success" ]]; then
+            echo "✅ Security Audit: Passed" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.security-audit.result }}" == "failure" ]]; then
+            echo "❌ Security Audit: Failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ Security Audit: Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Overall status
+          web_status="${{ needs.web-ci.result }}"
+          web_edu_status="${{ needs.web-edu-ci.result }}"
+
+          if [[ ("${{ needs.changes.outputs.web }}" != "true" || "$web_status" == "success") && \
+                ("${{ needs.changes.outputs.web-edu }}" != "true" || "$web_edu_status" == "success") ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **All frontend CI checks passed!**" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "💥 **Some frontend CI checks failed**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

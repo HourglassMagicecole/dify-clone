@@ -145,7 +145,7 @@ class ApiKeysAPI(Resource):
                     return {"error": f"Field {field} is required"}, 400
 
             # Get creator from authenticated user
-            created_by = g.current_user.id if hasattr(g, 'current_user') else None
+            created_by = g.current_user.id if hasattr(g, "current_user") else None
 
             # Parse expiration date if provided
             expires_at = None

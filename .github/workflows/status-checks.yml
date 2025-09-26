@@ -1,0 +1,609 @@
+name: GitHub Status Checks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [ opened, synchronize, reopened ]
+  push:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  statuses: write
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: status-checks-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  create-status-checks:
+    name: Create Status Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create pending status checks
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sha = context.payload.pull_request?.head?.sha || context.sha;
+
+            const statusChecks = [
+              {
+                context: 'ci/backend-quality',
+                description: 'Backend code quality and security checks'
+              },
+              {
+                context: 'ci/frontend-quality',
+                description: 'Frontend code quality and build checks'
+              },
+              {
+                context: 'ci/docker-security',
+                description: 'Docker image security scanning'
+              },
+              {
+                context: 'ci/deployment-readiness',
+                description: 'Deployment readiness verification'
+              }
+            ];
+
+            for (const check of statusChecks) {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: sha,
+                state: 'pending',
+                context: check.context,
+                description: check.description,
+                target_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`
+              });
+            }
+
+            console.log(`Created ${statusChecks.length} pending status checks for commit ${sha}`);
+
+  backend-quality-check:
+    name: Backend Quality Gate
+    runs-on: ubuntu-latest
+    needs: create-status-checks
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup UV and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.12"
+          cache-dependency-glob: api/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --project api --dev
+
+      - name: Run quality checks
+        id: quality-check
+        run: |
+          cd api
+
+          # Initialize results
+          ISSUES=0
+          RESULTS=""
+
+          # Ruff format check
+          echo "🔍 Checking code formatting..."
+          if ! uv run ruff format --check . > /tmp/format_check.log 2>&1; then
+            ISSUES=$((ISSUES + 1))
+            RESULTS+="\n❌ Code formatting issues found"
+          else
+            RESULTS+="\n✅ Code formatting is correct"
+          fi
+
+          # Ruff lint check
+          echo "🔍 Running linting checks..."
+          if ! uv run ruff check . --output-format=json > /tmp/lint_results.json 2>/dev/null; then
+            LINT_COUNT=$(cat /tmp/lint_results.json | jq '. | length' 2>/dev/null || echo "0")
+            if [[ "$LINT_COUNT" -gt 0 ]]; then
+              ISSUES=$((ISSUES + LINT_COUNT))
+              RESULTS+="\n❌ Found $LINT_COUNT linting issues"
+            fi
+          else
+            RESULTS+="\n✅ No linting issues found"
+          fi
+
+          # Type checking
+          echo "🔍 Running type checks..."
+          if ! uv run basedpyright > /tmp/type_check.log 2>&1; then
+            TYPE_ERRORS=$(grep -c "error:" /tmp/type_check.log 2>/dev/null || echo "0")
+            if [[ "$TYPE_ERRORS" -gt 0 ]]; then
+              ISSUES=$((ISSUES + TYPE_ERRORS))
+              RESULTS+="\n❌ Found $TYPE_ERRORS type errors"
+            fi
+          else
+            RESULTS+="\n✅ No type errors found"
+          fi
+
+          # Security check
+          echo "🔍 Running security scan..."
+          uv add --dev bandit[toml]
+          if ! uv run bandit -r . -f json -o /tmp/security_results.json > /dev/null 2>&1; then
+            SECURITY_ISSUES=$(cat /tmp/security_results.json | jq '.results | length' 2>/dev/null || echo "0")
+            HIGH_SEVERITY=$(cat /tmp/security_results.json | jq '.results[] | select(.issue_severity=="HIGH" or .issue_severity=="CRITICAL") | .issue_severity' | wc -l 2>/dev/null || echo "0")
+            if [[ "$HIGH_SEVERITY" -gt 0 ]]; then
+              ISSUES=$((ISSUES + HIGH_SEVERITY))
+              RESULTS+="\n🚨 Found $HIGH_SEVERITY high/critical security issues"
+            elif [[ "$SECURITY_ISSUES" -gt 0 ]]; then
+              RESULTS+="\n⚠️ Found $SECURITY_ISSUES minor security issues"
+            fi
+          else
+            RESULTS+="\n✅ No security issues found"
+          fi
+
+          echo "total_issues=$ISSUES" >> $GITHUB_OUTPUT
+          echo "results<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$RESULTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update backend quality status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sha = context.payload.pull_request?.head?.sha || context.sha;
+            const issues = parseInt('${{ steps.quality-check.outputs.total_issues }}');
+            const results = `${{ steps.quality-check.outputs.results }}`;
+
+            const state = issues === 0 ? 'success' : 'failure';
+            const description = issues === 0
+              ? 'All quality checks passed'
+              : `${issues} issues found - check logs for details`;
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: state,
+              context: 'ci/backend-quality',
+              description: description,
+              target_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`
+            });
+
+            // Add PR comment if there are issues
+            if (issues > 0 && context.payload.pull_request) {
+              const comment = `## 🔍 Backend Quality Check Results
+
+              Found **${issues}** issues that need attention:
+
+              ${results}
+
+              Please fix these issues before merging.`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: comment
+              });
+            }
+
+  frontend-quality-check:
+    name: Frontend Quality Gate
+    runs-on: ubuntu-latest
+    needs: create-status-checks
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for frontend changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            web:
+              - 'web/**'
+            web-edu:
+              - 'web-edu/**'
+
+      - name: Install pnpm
+        if: steps.changes.outputs.web == 'true' || steps.changes.outputs.web-edu == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9"
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.web == 'true' || steps.changes.outputs.web-edu == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Run Web quality checks
+        if: steps.changes.outputs.web == 'true'
+        id: web-quality
+        working-directory: ./web
+        run: |
+          ISSUES=0
+          RESULTS=""
+
+          pnpm install --frozen-lockfile
+
+          # Type checking
+          echo "🔍 Running TypeScript checks..."
+          if ! pnpm type-check > /tmp/type_check.log 2>&1; then
+            TYPE_ERRORS=$(grep -c "error" /tmp/type_check.log 2>/dev/null || echo "0")
+            ISSUES=$((ISSUES + TYPE_ERRORS))
+            RESULTS+="\n❌ Found $TYPE_ERRORS TypeScript errors"
+          else
+            RESULTS+="\n✅ No TypeScript errors"
+          fi
+
+          # Linting
+          echo "🔍 Running ESLint..."
+          if ! pnpm lint > /tmp/lint_check.log 2>&1; then
+            LINT_ERRORS=$(grep -c "error" /tmp/lint_check.log 2>/dev/null || echo "0")
+            ISSUES=$((ISSUES + LINT_ERRORS))
+            RESULTS+="\n❌ Found $LINT_ERRORS linting errors"
+          else
+            RESULTS+="\n✅ No linting errors"
+          fi
+
+          # Build check
+          echo "🔍 Testing build..."
+          if ! pnpm build > /tmp/build_check.log 2>&1; then
+            ISSUES=$((ISSUES + 1))
+            RESULTS+="\n❌ Build failed"
+          else
+            RESULTS+="\n✅ Build successful"
+          fi
+
+          echo "web_issues=$ISSUES" >> $GITHUB_OUTPUT
+          echo "web_results<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$RESULTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Run Web-EDU quality checks
+        if: steps.changes.outputs.web-edu == 'true'
+        id: web-edu-quality
+        working-directory: ./web-edu
+        run: |
+          ISSUES=0
+          RESULTS=""
+
+          # Check if web-edu directory exists
+          if [[ ! -d "." ]]; then
+            echo "web_edu_issues=0" >> $GITHUB_OUTPUT
+            echo "web_edu_results=⏭️ Web-EDU not found, skipping checks" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          pnpm install --frozen-lockfile
+
+          # Type checking
+          echo "🔍 Running TypeScript checks..."
+          if ! pnpm type-check > /tmp/type_check.log 2>&1; then
+            TYPE_ERRORS=$(grep -c "error" /tmp/type_check.log 2>/dev/null || echo "0")
+            ISSUES=$((ISSUES + TYPE_ERRORS))
+            RESULTS+="\n❌ Found $TYPE_ERRORS TypeScript errors"
+          else
+            RESULTS+="\n✅ No TypeScript errors"
+          fi
+
+          # Linting
+          echo "🔍 Running ESLint..."
+          if ! pnpm lint > /tmp/lint_check.log 2>&1; then
+            LINT_ERRORS=$(grep -c "error" /tmp/lint_check.log 2>/dev/null || echo "0")
+            ISSUES=$((ISSUES + LINT_ERRORS))
+            RESULTS+="\n❌ Found $LINT_ERRORS linting errors"
+          else
+            RESULTS+="\n✅ No linting errors"
+          fi
+
+          # Build check
+          echo "🔍 Testing build..."
+          if ! pnpm build > /tmp/build_check.log 2>&1; then
+            ISSUES=$((ISSUES + 1))
+            RESULTS+="\n❌ Build failed"
+          else
+            RESULTS+="\n✅ Build successful"
+          fi
+
+          echo "web_edu_issues=$ISSUES" >> $GITHUB_OUTPUT
+          echo "web_edu_results<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$RESULTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update frontend quality status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sha = context.payload.pull_request?.head?.sha || context.sha;
+
+            const webIssues = parseInt('${{ steps.web-quality.outputs.web_issues }}' || '0');
+            const webEduIssues = parseInt('${{ steps.web-edu-quality.outputs.web_edu_issues }}' || '0');
+            const totalIssues = webIssues + webEduIssues;
+
+            const webResults = `${{ steps.web-quality.outputs.web_results }}` || '';
+            const webEduResults = `${{ steps.web-edu-quality.outputs.web_edu_results }}` || '';
+
+            const hasChanges = '${{ steps.changes.outputs.web }}' === 'true' || '${{ steps.changes.outputs.web-edu }}' === 'true';
+
+            let state, description;
+            if (!hasChanges) {
+              state = 'success';
+              description = 'No frontend changes detected';
+            } else if (totalIssues === 0) {
+              state = 'success';
+              description = 'All frontend quality checks passed';
+            } else {
+              state = 'failure';
+              description = `${totalIssues} issues found in frontend code`;
+            }
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: state,
+              context: 'ci/frontend-quality',
+              description: description,
+              target_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`
+            });
+
+            // Add PR comment if there are issues
+            if (totalIssues > 0 && context.payload.pull_request) {
+              let comment = `## 🔍 Frontend Quality Check Results\n\nFound **${totalIssues}** issues that need attention:\n\n`;
+
+              if (webResults) {
+                comment += `### Web Application\n${webResults}\n\n`;
+              }
+
+              if (webEduResults) {
+                comment += `### Web-EDU Application\n${webEduResults}\n\n`;
+              }
+
+              comment += 'Please fix these issues before merging.';
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: comment
+              });
+            }
+
+  docker-security-check:
+    name: Docker Security Gate
+    runs-on: ubuntu-latest
+    needs: create-status-checks
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Docker changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            docker:
+              - 'api/Dockerfile'
+              - 'web/Dockerfile'
+              - 'web-edu/Dockerfile'
+              - 'docker/**'
+
+      - name: Set up Docker Buildx
+        if: steps.changes.outputs.docker == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and scan Docker images
+        if: steps.changes.outputs.docker == 'true'
+        id: docker-scan
+        run: |
+          TOTAL_VULNERABILITIES=0
+          CRITICAL_VULNERABILITIES=0
+          RESULTS=""
+
+          # Services to scan
+          services=("api" "web")
+
+          # Add web-edu if it exists
+          if [[ -f "web-edu/Dockerfile" ]]; then
+            services+=("web-edu")
+          fi
+
+          for service in "${services[@]}"; do
+            echo "🔍 Scanning $service..."
+
+            # Build image for scanning
+            docker build -t "${service}:scan" "$service/" || continue
+
+            # Run Trivy scan
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              -v ${{ github.workspace }}:/workspace \
+              aquasec/trivy:latest image \
+              --format json \
+              --output "/workspace/${service}-scan-results.json" \
+              "${service}:scan" || true
+
+            if [[ -f "${service}-scan-results.json" ]]; then
+              # Count vulnerabilities
+              HIGH_CRIT=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL")] | length' "${service}-scan-results.json" 2>/dev/null || echo "0")
+              CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' "${service}-scan-results.json" 2>/dev/null || echo "0")
+
+              TOTAL_VULNERABILITIES=$((TOTAL_VULNERABILITIES + HIGH_CRIT))
+              CRITICAL_VULNERABILITIES=$((CRITICAL_VULNERABILITIES + CRITICAL))
+
+              if [[ "$HIGH_CRIT" -gt 0 ]]; then
+                RESULTS+="\n❌ $service: $HIGH_CRIT high/critical vulnerabilities"
+              else
+                RESULTS+="\n✅ $service: No high/critical vulnerabilities"
+              fi
+            fi
+          done
+
+          echo "total_vulnerabilities=$TOTAL_VULNERABILITIES" >> $GITHUB_OUTPUT
+          echo "critical_vulnerabilities=$CRITICAL_VULNERABILITIES" >> $GITHUB_OUTPUT
+          echo "results<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$RESULTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update docker security status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sha = context.payload.pull_request?.head?.sha || context.sha;
+            const hasChanges = '${{ steps.changes.outputs.docker }}' === 'true';
+
+            let state, description;
+
+            if (!hasChanges) {
+              state = 'success';
+              description = 'No Docker changes detected';
+            } else {
+              const totalVulns = parseInt('${{ steps.docker-scan.outputs.total_vulnerabilities }}' || '0');
+              const criticalVulns = parseInt('${{ steps.docker-scan.outputs.critical_vulnerabilities }}' || '0');
+
+              if (criticalVulns > 0) {
+                state = 'failure';
+                description = `${criticalVulns} critical vulnerabilities found`;
+              } else if (totalVulns > 0) {
+                state = 'failure';
+                description = `${totalVulns} high/critical vulnerabilities found`;
+              } else {
+                state = 'success';
+                description = 'No high/critical vulnerabilities found';
+              }
+            }
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: state,
+              context: 'ci/docker-security',
+              description: description,
+              target_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`
+            });
+
+  deployment-readiness-check:
+    name: Deployment Readiness Gate
+    runs-on: ubuntu-latest
+    needs: [backend-quality-check, frontend-quality-check, docker-security-check]
+
+    steps:
+      - name: Evaluate deployment readiness
+        id: readiness
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sha = context.payload.pull_request?.head?.sha || context.sha;
+
+            // Get the status of other checks
+            const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha
+            });
+
+            const relevantStatuses = statuses.filter(status =>
+              ['ci/backend-quality', 'ci/frontend-quality', 'ci/docker-security'].includes(status.context)
+            );
+
+            const failedChecks = relevantStatuses.filter(status => status.state === 'failure');
+            const pendingChecks = relevantStatuses.filter(status => status.state === 'pending');
+
+            let state, description;
+
+            if (pendingChecks.length > 0) {
+              state = 'pending';
+              description = `Waiting for ${pendingChecks.length} checks to complete`;
+            } else if (failedChecks.length > 0) {
+              state = 'failure';
+              description = `${failedChecks.length} quality gates failed`;
+            } else {
+              state = 'success';
+              description = 'Ready for deployment';
+            }
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: state,
+              context: 'ci/deployment-readiness',
+              description: description,
+              target_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`
+            });
+
+            return {
+              state: state,
+              failedChecks: failedChecks.length,
+              description: description
+            };
+
+      - name: Comment on PR with readiness status
+        if: context.payload.pull_request && steps.readiness.outputs.result
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const result = ${{ steps.readiness.outputs.result }};
+            const prNumber = context.payload.pull_request.number;
+
+            let emoji, status, message;
+
+            if (result.state === 'success') {
+              emoji = '🚀';
+              status = 'Ready for Deployment';
+              message = 'All quality gates have passed! This PR is ready to be merged and deployed.';
+            } else if (result.state === 'failure') {
+              emoji = '🚫';
+              status = 'Not Ready for Deployment';
+              message = `${result.failedChecks} quality gate(s) failed. Please address the issues before merging.`;
+            } else {
+              emoji = '⏳';
+              status = 'Deployment Readiness Pending';
+              message = 'Quality checks are still running. Please wait for all checks to complete.';
+            }
+
+            const comment = `## ${emoji} ${status}
+
+            ${message}
+
+            **Status:** ${result.description}
+
+            ---
+            *This comment will be updated automatically as checks complete.*`;
+
+            // Find existing readiness comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const readinessComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Deployment Readiness')
+            );
+
+            if (readinessComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: readinessComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: comment
+              });
+            }

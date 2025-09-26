@@ -324,10 +324,7 @@ class EducationService:
             try:
                 expired_keys = (
                     db.session.query(EducationApiKey)
-                    .filter(
-                        EducationApiKey.expires_at < datetime.now(UTC),
-                        EducationApiKey.is_active.is_(True)
-                    )
+                    .filter(EducationApiKey.expires_at < datetime.now(UTC), EducationApiKey.is_active.is_(True))
                     .all()
                 )
 
@@ -356,10 +353,7 @@ class EducationService:
             try:
                 completed_sessions = (
                     db.session.query(EducationSession)
-                    .filter(
-                        EducationSession.end_date < datetime.now(UTC),
-                        EducationSession.status != "completed"
-                    )
+                    .filter(EducationSession.end_date < datetime.now(UTC), EducationSession.status != "completed")
                     .all()
                 )
 
@@ -440,10 +434,7 @@ class EducationService:
             try:
                 expired_count = (
                     db.session.query(EducationApiKey)
-                    .filter(
-                        EducationApiKey.expires_at < datetime.now(UTC),
-                        EducationApiKey.is_active.is_(True)
-                    )
+                    .filter(EducationApiKey.expires_at < datetime.now(UTC), EducationApiKey.is_active.is_(True))
                     .count()
                 )
 

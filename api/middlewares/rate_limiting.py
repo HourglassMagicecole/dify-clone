@@ -13,6 +13,7 @@ from flask import g, jsonify, request
 # Try to import Redis, fallback to in-memory if not available
 try:
     import redis
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
@@ -27,19 +28,19 @@ class RedisRateLimiter:
     preventing memory leaks and supporting distributed systems.
     """
 
-    def __init__(self, redis_client: Optional['redis.Redis'] = None):
+    def __init__(self, redis_client: Optional["redis.Redis"] = None):
         """Initialize the rate limiter with Redis client."""
         if redis_client:
             self.redis = redis_client
         else:
             # Try to connect to Redis using environment variables
             try:
-                redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+                redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
                 self.redis = redis.from_url(redis_url, decode_responses=True)
                 # Test connection
                 self.redis.ping()
             except Exception as e:
-                logging.exception(f"Failed to connect to Redis: {e}")
+                logging.exception("Failed to connect to Redis")
                 self.redis = None
 
     def is_allowed(self, key: str, limit: int, window: int) -> tuple[bool, dict[str, Any]]:
@@ -57,11 +58,7 @@ class RedisRateLimiter:
         if not self.redis:
             # Fallback: always allow if Redis is not available (log warning)
             logging.warning("Redis not available for rate limiting - allowing request")
-            return True, {
-                'limit': limit,
-                'remaining': limit,
-                'reset': int(time.time() + window)
-            }
+            return True, {"limit": limit, "remaining": limit, "reset": int(time.time() + window)}
 
         try:
             now = time.time()
@@ -71,7 +68,7 @@ class RedisRateLimiter:
             redis_key = f"rate_limit:{key}"
 
             # Remove old entries outside the window
-            pipeline.zremrangebyscore(redis_key, '-inf', now - window)
+            pipeline.zremrangebyscore(redis_key, "-inf", now - window)
 
             # Count current requests in the window
             pipeline.zcard(redis_key)
@@ -100,27 +97,14 @@ class RedisRateLimiter:
                 # Remove the current request we just added since it's not allowed
                 self.redis.zrem(redis_key, str(now))
 
-                return False, {
-                    'limit': limit,
-                    'remaining': 0,
-                    'reset': int(now + window),
-                    'retry_after': retry_after
-                }
+                return False, {"limit": limit, "remaining": 0, "reset": int(now + window), "retry_after": retry_after}
 
-            return True, {
-                'limit': limit,
-                'remaining': limit - current_requests - 1,
-                'reset': int(now + window)
-            }
+            return True, {"limit": limit, "remaining": limit - current_requests - 1, "reset": int(now + window)}
 
         except Exception as e:
-            logging.exception(f"Redis rate limiting error: {e}")
+            logging.exception("Redis rate limiting error")
             # Fallback: allow request but log the error
-            return True, {
-                'limit': limit,
-                'remaining': limit,
-                'reset': int(time.time() + window)
-            }
+            return True, {"limit": limit, "remaining": limit, "reset": int(time.time() + window)}
 
 
 class InMemoryRateLimiter:
@@ -171,20 +155,16 @@ class InMemoryRateLimiter:
             retry_after = int(oldest_request + window - now)
 
             return False, {
-                'limit': limit,
-                'remaining': 0,
-                'reset': int(oldest_request + window),
-                'retry_after': retry_after
+                "limit": limit,
+                "remaining": 0,
+                "reset": int(oldest_request + window),
+                "retry_after": retry_after,
             }
 
         # Add current request
         self.requests[key].append(now)
 
-        return True, {
-            'limit': limit,
-            'remaining': limit - len(self.requests[key]),
-            'reset': int(now + window)
-        }
+        return True, {"limit": limit, "remaining": limit - len(self.requests[key]), "reset": int(now + window)}
 
     def _cleanup_old_entries(self, cutoff: float) -> None:
         """Remove old entries from all keys to prevent memory growth."""
@@ -216,11 +196,12 @@ def rate_limit(requests_per_minute: int = 50):
     Args:
         requests_per_minute: Maximum requests allowed per minute (default: 50)
     """
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             # Get rate limit key (user_id if authenticated, else IP)
-            if hasattr(g, 'current_user') and g.current_user:
+            if hasattr(g, "current_user") and g.current_user:
                 key = f"user:{g.current_user.id}"
             else:
                 # Use IP address for unauthenticated requests
@@ -232,34 +213,39 @@ def rate_limit(requests_per_minute: int = 50):
             # Add rate limit headers to response
             @wraps(f)
             def add_headers(response):
-                response.headers['X-RateLimit-Limit'] = str(info['limit'])
-                response.headers['X-RateLimit-Remaining'] = str(info['remaining'])
-                response.headers['X-RateLimit-Reset'] = str(info['reset'])
+                response.headers["X-RateLimit-Limit"] = str(info["limit"])
+                response.headers["X-RateLimit-Remaining"] = str(info["remaining"])
+                response.headers["X-RateLimit-Reset"] = str(info["reset"])
 
                 if not is_allowed:
-                    response.headers['Retry-After'] = str(info['retry_after'])
+                    response.headers["Retry-After"] = str(info["retry_after"])
 
                 return response
 
             if not is_allowed:
-                return add_headers(jsonify({
-                    'error': 'Rate limit exceeded',
-                    'message': f'Too many requests. Please retry after {info["retry_after"]} seconds',
-                    'retry_after': info['retry_after']
-                })), 429
+                return add_headers(
+                    jsonify(
+                        {
+                            "error": "Rate limit exceeded",
+                            "message": f"Too many requests. Please retry after {info['retry_after']} seconds",
+                            "retry_after": info["retry_after"],
+                        }
+                    )
+                ), 429
 
             # Execute the original function
             result = f(*args, **kwargs)
 
             # Add headers to successful response
-            if hasattr(result, 'headers'):
-                result.headers['X-RateLimit-Limit'] = str(info['limit'])
-                result.headers['X-RateLimit-Remaining'] = str(info['remaining'])
-                result.headers['X-RateLimit-Reset'] = str(info['reset'])
+            if hasattr(result, "headers"):
+                result.headers["X-RateLimit-Limit"] = str(info["limit"])
+                result.headers["X-RateLimit-Remaining"] = str(info["remaining"])
+                result.headers["X-RateLimit-Reset"] = str(info["reset"])
 
             return result
 
         return decorated_function
+
     return decorator
 
 
@@ -272,6 +258,7 @@ def rate_limit_by_key(key_func, limit: int = 50, window: int = 60):
         limit: Maximum requests allowed
         window: Time window in seconds
     """
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -282,13 +269,16 @@ def rate_limit_by_key(key_func, limit: int = 50, window: int = 60):
             is_allowed, info = rate_limiter.is_allowed(key, limit, window)
 
             if not is_allowed:
-                return jsonify({
-                    'error': 'Rate limit exceeded',
-                    'message': f'Too many requests. Please retry after {info["retry_after"]} seconds',
-                    'retry_after': info['retry_after']
-                }), 429
+                return jsonify(
+                    {
+                        "error": "Rate limit exceeded",
+                        "message": f"Too many requests. Please retry after {info['retry_after']} seconds",
+                        "retry_after": info["retry_after"],
+                    }
+                ), 429
 
             return f(*args, **kwargs)
 
         return decorated_function
+
     return decorator

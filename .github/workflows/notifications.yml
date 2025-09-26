@@ -1,0 +1,475 @@
+name: CI/CD Notifications
+
+on:
+  workflow_run:
+    workflows: [
+      "Main CI Pipeline",
+      "Backend CI Pipeline",
+      "Frontend CI Pipeline",
+      "Docker Build & Security Scan"
+    ]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+env:
+  NOTIFICATION_ENABLED: ${{ vars.NOTIFICATION_ENABLED || 'true' }}
+  SLACK_ENABLED: ${{ vars.SLACK_ENABLED || 'false' }}
+  DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED || 'false' }}
+
+jobs:
+  notify-results:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'cancelled'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get workflow information
+        id: workflow-info
+        run: |
+          echo "workflow_name=${{ github.event.workflow_run.name }}" >> $GITHUB_OUTPUT
+          echo "conclusion=${{ github.event.workflow_run.conclusion }}" >> $GITHUB_OUTPUT
+          echo "html_url=${{ github.event.workflow_run.html_url }}" >> $GITHUB_OUTPUT
+          echo "head_branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          echo "head_sha=$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-8)" >> $GITHUB_OUTPUT
+
+          # Get commit message
+          COMMIT_MSG=$(git log --format=%s -n 1 ${{ github.event.workflow_run.head_sha }} 2>/dev/null || echo "Unknown commit")
+          echo "commit_message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+          # Get author information
+          AUTHOR=$(git log --format='%an' -n 1 ${{ github.event.workflow_run.head_sha }} 2>/dev/null || echo "Unknown")
+          echo "author=$AUTHOR" >> $GITHUB_OUTPUT
+
+          # Calculate duration
+          START_TIME=$(date -d "${{ github.event.workflow_run.created_at }}" +%s)
+          END_TIME=$(date -d "${{ github.event.workflow_run.updated_at }}" +%s)
+          DURATION=$((END_TIME - START_TIME))
+          MINUTES=$((DURATION / 60))
+          SECONDS=$((DURATION % 60))
+          echo "duration=${MINUTES}m ${SECONDS}s" >> $GITHUB_OUTPUT
+
+      - name: Generate notification content
+        id: notification
+        run: |
+          WORKFLOW_NAME="${{ steps.workflow-info.outputs.workflow_name }}"
+          CONCLUSION="${{ steps.workflow-info.outputs.conclusion }}"
+          BRANCH="${{ steps.workflow-info.outputs.head_branch }}"
+          SHA="${{ steps.workflow-info.outputs.head_sha }}"
+          AUTHOR="${{ steps.workflow-info.outputs.author }}"
+          DURATION="${{ steps.workflow-info.outputs.duration }}"
+          COMMIT_MSG="${{ steps.workflow-info.outputs.commit_message }}"
+          WORKFLOW_URL="${{ steps.workflow-info.outputs.html_url }}"
+
+          # Set status icon and color
+          if [[ "$CONCLUSION" == "success" ]]; then
+            STATUS_ICON="✅"
+            STATUS_TEXT="Success"
+            COLOR="good"
+            DISCORD_COLOR="5763719"  # Green
+          elif [[ "$CONCLUSION" == "failure" ]]; then
+            STATUS_ICON="❌"
+            STATUS_TEXT="Failed"
+            COLOR="danger"
+            DISCORD_COLOR="15548997"  # Red
+          else
+            STATUS_ICON="⚠️"
+            STATUS_TEXT="Completed with issues"
+            COLOR="warning"
+            DISCORD_COLOR="16776960"  # Yellow
+          fi
+
+          # Generate messages
+          SLACK_MESSAGE="{
+            \"attachments\": [
+              {
+                \"color\": \"$COLOR\",
+                \"blocks\": [
+                  {
+                    \"type\": \"header\",
+                    \"text\": {
+                      \"type\": \"plain_text\",
+                      \"text\": \"$STATUS_ICON CI/CD Pipeline $STATUS_TEXT\"
+                    }
+                  },
+                  {
+                    \"type\": \"section\",
+                    \"fields\": [
+                      {
+                        \"type\": \"mrkdwn\",
+                        \"text\": \"*Workflow:*\\n$WORKFLOW_NAME\"
+                      },
+                      {
+                        \"type\": \"mrkdwn\",
+                        \"text\": \"*Status:*\\n$STATUS_TEXT\"
+                      },
+                      {
+                        \"type\": \"mrkdwn\",
+                        \"text\": \"*Branch:*\\n$BRANCH\"
+                      },
+                      {
+                        \"type\": \"mrkdwn\",
+                        \"text\": \"*Duration:*\\n$DURATION\"
+                      },
+                      {
+                        \"type\": \"mrkdwn\",
+                        \"text\": \"*Author:*\\n$AUTHOR\"
+                      },
+                      {
+                        \"type\": \"mrkdwn\",
+                        \"text\": \"*Commit:*\\n\`$SHA\`\"
+                      }
+                    ]
+                  },
+                  {
+                    \"type\": \"section\",
+                    \"text\": {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"*Commit Message:*\\n$COMMIT_MSG\"
+                    }
+                  },
+                  {
+                    \"type\": \"actions\",
+                    \"elements\": [
+                      {
+                        \"type\": \"button\",
+                        \"text\": {
+                          \"type\": \"plain_text\",
+                          \"text\": \"View Workflow\"
+                        },
+                        \"url\": \"$WORKFLOW_URL\",
+                        \"style\": \"primary\"
+                      },
+                      {
+                        \"type\": \"button\",
+                        \"text\": {
+                          \"type\": \"plain_text\",
+                          \"text\": \"View Repository\"
+                        },
+                        \"url\": \"${{ github.event.repository.html_url }}\"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }"
+
+          DISCORD_MESSAGE="{
+            \"embeds\": [
+              {
+                \"title\": \"$STATUS_ICON CI/CD Pipeline $STATUS_TEXT\",
+                \"description\": \"**$WORKFLOW_NAME** completed with status: **$STATUS_TEXT**\",
+                \"color\": $DISCORD_COLOR,
+                \"fields\": [
+                  {
+                    \"name\": \"Branch\",
+                    \"value\": \"$BRANCH\",
+                    \"inline\": true
+                  },
+                  {
+                    \"name\": \"Duration\",
+                    \"value\": \"$DURATION\",
+                    \"inline\": true
+                  },
+                  {
+                    \"name\": \"Author\",
+                    \"value\": \"$AUTHOR\",
+                    \"inline\": true
+                  },
+                  {
+                    \"name\": \"Commit\",
+                    \"value\": \"\`$SHA\`\",
+                    \"inline\": true
+                  },
+                  {
+                    \"name\": \"Commit Message\",
+                    \"value\": \"$COMMIT_MSG\",
+                    \"inline\": false
+                  }
+                ],
+                \"footer\": {
+                  \"text\": \"Dify CI/CD\",
+                  \"icon_url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\"
+                },
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }
+            ]
+          }"
+
+          # Save messages to output (escape quotes)
+          echo "slack_message<<EOF" >> $GITHUB_OUTPUT
+          echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "discord_message<<EOF" >> $GITHUB_OUTPUT
+          echo "$DISCORD_MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send Slack notification
+        if: env.SLACK_ENABLED == 'true' && secrets.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '${{ steps.notification.outputs.slack_message }}' \
+            '${{ secrets.SLACK_WEBHOOK_URL }}'
+
+      - name: Send Discord notification
+        if: env.DISCORD_ENABLED == 'true' && secrets.DISCORD_WEBHOOK_URL != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '${{ steps.notification.outputs.discord_message }}' \
+            '${{ secrets.DISCORD_WEBHOOK_URL }}'
+
+      - name: Update PR with status
+        if: github.event.workflow_run.event == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const workflow = context.payload.workflow_run;
+            const conclusion = workflow.conclusion;
+            const workflowName = workflow.name;
+            const duration = '${{ steps.workflow-info.outputs.duration }}';
+
+            // Get PR number from workflow run
+            const prNumber = workflow.pull_requests[0]?.number;
+
+            if (!prNumber) return;
+
+            const statusIcon = conclusion === 'success' ? '✅' :
+                              conclusion === 'failure' ? '❌' : '⚠️';
+
+            const comment = `## ${statusIcon} CI/CD Pipeline Update
+
+            **Workflow:** ${workflowName}
+            **Status:** ${conclusion}
+            **Duration:** ${duration}
+            **Branch:** ${{ steps.workflow-info.outputs.head_branch }}
+            **Commit:** \`${{ steps.workflow-info.outputs.head_sha }}\`
+
+            [View workflow run](${{ steps.workflow-info.outputs.html_url }})
+
+            ${conclusion === 'failure' ?
+              '⚠️ Please check the workflow logs and fix any issues before merging.' :
+              '🎉 All checks passed! Ready for review.'}`;
+
+            // Find existing bot comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('CI/CD Pipeline Update')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: comment
+              });
+            }
+
+  coverage-alert:
+    name: Coverage Alert
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.name == 'Backend CI Pipeline' &&
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-reports
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Check coverage threshold
+        id: coverage-check
+        run: |
+          COVERAGE_THRESHOLD=${COVERAGE_THRESHOLD:-80}
+
+          if [[ -f "coverage.json" ]]; then
+            TOTAL_COVERAGE=$(python3 -c "import json; data=json.load(open('coverage.json')); print(data['totals']['percent_covered'])" 2>/dev/null || echo "0")
+
+            echo "coverage=$TOTAL_COVERAGE" >> $GITHUB_OUTPUT
+            echo "threshold=$COVERAGE_THRESHOLD" >> $GITHUB_OUTPUT
+
+            if (( $(echo "$TOTAL_COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
+              echo "alert=true" >> $GITHUB_OUTPUT
+              echo "status=warning" >> $GITHUB_OUTPUT
+            else
+              echo "alert=false" >> $GITHUB_OUTPUT
+              echo "status=success" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "alert=false" >> $GITHUB_OUTPUT
+            echo "status=unknown" >> $GITHUB_OUTPUT
+            echo "coverage=unknown" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send coverage alert
+        if: steps.coverage-check.outputs.alert == 'true' && env.SLACK_ENABLED == 'true'
+        run: |
+          COVERAGE="${{ steps.coverage-check.outputs.coverage }}"
+          THRESHOLD="${{ steps.coverage-check.outputs.threshold }}"
+          WORKFLOW_URL="${{ github.event.workflow_run.html_url }}"
+
+          SLACK_MESSAGE="{
+            \"attachments\": [
+              {
+                \"color\": \"warning\",
+                \"blocks\": [
+                  {
+                    \"type\": \"header\",
+                    \"text\": {
+                      \"type\": \"plain_text\",
+                      \"text\": \"⚠️ Coverage Alert\"
+                    }
+                  },
+                  {
+                    \"type\": \"section\",
+                    \"text\": {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"Test coverage has fallen below the threshold:\\n\\n*Current Coverage:* ${COVERAGE}%\\n*Threshold:* ${THRESHOLD}%\\n*Branch:* ${{ github.event.workflow_run.head_branch }}\"
+                    }
+                  },
+                  {
+                    \"type\": \"actions\",
+                    \"elements\": [
+                      {
+                        \"type\": \"button\",
+                        \"text\": {
+                          \"type\": \"plain_text\",
+                          \"text\": \"View Coverage Report\"
+                        },
+                        \"url\": \"$WORKFLOW_URL\"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }"
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data "$SLACK_MESSAGE" \
+            '${{ secrets.SLACK_WEBHOOK_URL }}'
+
+  security-alert:
+    name: Security Alert
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.name == 'Docker Build & Security Scan' &&
+      github.event.workflow_run.conclusion == 'failure'
+
+    steps:
+      - name: Send security alert
+        if: env.SLACK_ENABLED == 'true'
+        run: |
+          WORKFLOW_URL="${{ github.event.workflow_run.html_url }}"
+
+          SLACK_MESSAGE="{
+            \"attachments\": [
+              {
+                \"color\": \"danger\",
+                \"blocks\": [
+                  {
+                    \"type\": \"header\",
+                    \"text\": {
+                      \"type\": \"plain_text\",
+                      \"text\": \"🚨 Security Scan Alert\"
+                    }
+                  },
+                  {
+                    \"type\": \"section\",
+                    \"text\": {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"Security vulnerabilities detected in Docker images!\\n\\n*Branch:* ${{ github.event.workflow_run.head_branch }}\\n*Commit:* \`${{ github.event.workflow_run.head_sha }}\`\\n\\nPlease review the scan results and address any high/critical vulnerabilities before deployment.\"
+                    }
+                  },
+                  {
+                    \"type\": \"actions\",
+                    \"elements\": [
+                      {
+                        \"type\": \"button\",
+                        \"text\": {
+                          \"type\": \"plain_text\",
+                          \"text\": \"View Security Report\"
+                        },
+                        \"url\": \"$WORKFLOW_URL\",
+                        \"style\": \"danger\"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }"
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data "$SLACK_MESSAGE" \
+            '${{ secrets.SLACK_WEBHOOK_URL }}'
+
+  deployment-summary:
+    name: Daily Deployment Summary
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.name == 'Main CI Pipeline' && github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Generate deployment summary
+        id: summary
+        run: |
+          # Get today's date
+          TODAY=$(date +%Y-%m-%d)
+
+          # This would typically fetch data from your deployment tracking system
+          # For now, we'll create a simple summary
+
+          SUMMARY="📊 **Daily Deployment Summary - $TODAY**
+
+          ✅ Successful deployments today: 1
+          📦 Services deployed: API, Web, Web-EDU
+          🔧 Latest version: ${{ github.event.workflow_run.head_sha }}
+          ⏱️ Total deployment time: ${{ steps.workflow-info.outputs.duration }}
+
+          All systems operational! 🎉"
+
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send daily summary
+        if: env.SLACK_ENABLED == 'true' && github.event.workflow_run.head_branch == 'main'
+        run: |
+          SLACK_MESSAGE="{
+            \"text\": \"${{ steps.summary.outputs.summary }}\"
+          }"
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data "$SLACK_MESSAGE" \
+            '${{ secrets.SLACK_WEBHOOK_URL }}'

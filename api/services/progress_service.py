@@ -190,9 +190,7 @@ class ProgressService:
                     Account.name,
                     Account.email,
                     func.count(LearningProgress.id).label("total_activities"),
-                    func.sum(case((LearningProgress.status == "completed", 1), else_=0)).label(
-                        "completed_activities"
-                    ),
+                    func.sum(case((LearningProgress.status == "completed", 1), else_=0)).label("completed_activities"),
                     func.avg(LearningProgress.progress_percentage).label("avg_completion"),
                 )
                 .join(EducationEnrollment, Account.id == EducationEnrollment.user_id)
@@ -323,9 +321,7 @@ class ProgressService:
                 db.session.query(
                     func.date(LearningProgress.created_at).label("date"),
                     func.count(LearningProgress.id).label("activities_started"),
-                    func.sum(case((LearningProgress.status == "completed", 1), else_=0)).label(
-                        "activities_completed"
-                    ),
+                    func.sum(case((LearningProgress.status == "completed", 1), else_=0)).label("activities_completed"),
                 )
                 .filter(LearningProgress.session_id == session_id, LearningProgress.created_at >= start_date)
                 .group_by(func.date(LearningProgress.created_at))

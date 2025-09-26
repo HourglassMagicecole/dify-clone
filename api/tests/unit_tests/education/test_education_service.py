@@ -38,6 +38,7 @@ class TestEducationService:
 
         # Configure query to return different mock objects for different model types
         call_count = 0
+
         def query_side_effect(model):
             nonlocal call_count
             call_count += 1
@@ -302,7 +303,13 @@ class TestEducationService:
     @patch("services.education_service.datetime")
     @patch("services.education_service.db")
     def test_health_check_unhealthy_database(
-        self, mock_db, mock_datetime, mock_session_service, mock_progress_service, mock_template_service, mock_group_service
+        self,
+        mock_db,
+        mock_datetime,
+        mock_session_service,
+        mock_progress_service,
+        mock_template_service,
+        mock_group_service,
     ):
         """Test health check when database is unhealthy."""
         # Mock datetime
