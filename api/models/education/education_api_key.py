@@ -6,7 +6,7 @@ import os
 import uuid
 from base64 import b64decode, b64encode
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar, Optional
 
 import sqlalchemy as sa
 from cryptography.fernet import Fernet
@@ -28,7 +28,7 @@ class EducationApiKey(Base):
     __tablename__ = "education_api_keys"
 
     # Encryption key from environment variable
-    _cipher_suite: Optional[Fernet] = None
+    _cipher_suite: ClassVar[Optional[Fernet]] = None
 
     @classmethod
     def _get_cipher_suite(cls) -> Fernet:

@@ -1347,6 +1347,7 @@ def seed_education_data():
     """Generate test data for the education platform."""
     try:
         from fixtures.education_seed_data import seed_education_data
+
         seed_education_data()
         click.echo("✅ Education seed data generated successfully!")
     except ImportError as e:

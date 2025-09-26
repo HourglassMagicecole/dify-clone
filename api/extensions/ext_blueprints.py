@@ -8,6 +8,7 @@ def init_app(app: DifyApp):
     from flask_cors import CORS
 
     from controllers.console import bp as console_app_bp
+    from controllers.edu import bp as edu_bp
     from controllers.files import bp as files_bp
     from controllers.inner_api import bp as inner_api_bp
     from controllers.mcp import bp as mcp_bp
@@ -47,6 +48,16 @@ def init_app(app: DifyApp):
         methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
     )
     app.register_blueprint(files_bp)
+
+    CORS(
+        edu_bp,
+        resources={r"/*": {"origins": dify_config.CONSOLE_CORS_ALLOW_ORIGINS}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+        expose_headers=["X-Version", "X-Env"],
+    )
+    app.register_blueprint(edu_bp)
 
     app.register_blueprint(inner_api_bp)
     app.register_blueprint(mcp_bp)
