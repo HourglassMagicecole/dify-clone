@@ -296,43 +296,69 @@ install_project_dependencies() {
 setup_environment_variables() {
     progress "환경 변수 설정 중..."
 
-    local env_file="docker/.env.edu"
+    local env_file=".env.development"
 
     if [[ ! -f "$env_file" ]]; then
-        log_info ".env.edu 파일 생성 중..."
+        log_info ".env.development 파일 생성 중..."
 
         cat > "$env_file" << EOF
-# 교육용 환경 변수 설정
-EDU_SESSION_SECRET=$(openssl rand -hex 32)
-EDU_MAX_USERS=50
-EDU_MAX_CONCURRENT_REQUESTS=50
-EDU_API_RATE_LIMIT=1000
-EDU_CORS_ORIGINS=http://localhost:3001
-EDU_MONITORING_ENABLED=true
-EDU_LOG_LEVEL=info
+# 개발 환경 설정
+ENVIRONMENT=development
+NODE_ENV=development
+FLASK_ENV=development
+DEBUG=true
+FLASK_DEBUG=true
 
 # 데이터베이스 설정
+DB_HOST=localhost
+DB_PORT=5432
+DB_DATABASE=dify_dev
 DB_USERNAME=postgres
 DB_PASSWORD=difyai123456
-DB_HOST=db
-DB_PORT=5432
-DB_DATABASE=dify
 
 # Redis 설정
-REDIS_HOST=redis
+REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=difyai123456
 REDIS_DB=0
+REDIS_PASSWORD=
 
-# API 설정
-API_URL=http://localhost:5001
-WEB_URL=http://localhost:3000
-EDU_WEB_URL=http://localhost:3001
+# 보안
+SECRET_KEY=$(openssl rand -hex 32)
+INIT_PASSWORD=password123
+
+# API URLs
+CONSOLE_API_URL=http://localhost:5001
+CONSOLE_WEB_URL=http://localhost:3000
+SERVICE_API_URL=http://localhost:5001
+APP_API_URL=http://localhost:5001/api
+APP_WEB_URL=http://localhost:3000
+FILES_URL=http://localhost:5001/files
+
+# OpenAI (선택사항 - 실제 키로 변경 필요)
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_API_BASE=https://api.openai.com/v1
+
+# Storage
+STORAGE_TYPE=local
+STORAGE_LOCAL_PATH=/app/storage
+
+# Celery
+CELERY_BROKER_URL=redis://localhost:6379/1
+
+# 로깅
+LOG_LEVEL=DEBUG
+ENABLE_REQUEST_LOGGING=true
+
+# 마이그레이션
+MIGRATION_ENABLED=true
 EOF
 
-        log_success ".env.edu 파일 생성 완료"
+        log_success ".env.development 파일 생성 완료"
+        log_info "중요: .env.development 파일의 다음 값들을 실제 값으로 변경하세요:"
+        log_info "  - DB_PASSWORD: PostgreSQL 비밀번호"
+        log_info "  - OPENAI_API_KEY: OpenAI API 키 (선택사항)"
     else
-        log_info ".env.edu 파일이 이미 존재합니다"
+        log_info ".env.development 파일이 이미 존재합니다"
     fi
 
     # 셸 환경 변수 추가

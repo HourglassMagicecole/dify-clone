@@ -398,47 +398,73 @@ function Install-ProjectDependencies {
 function Set-EnvironmentVariables {
     Write-Progress "환경 변수 설정 중..."
 
-    $envFile = "docker\.env.edu"
+    $envFile = ".env.development"
 
     if (-not (Test-Path $envFile)) {
-        Write-Info ".env.edu 파일 생성 중..."
+        Write-Info ".env.development 파일 생성 중..."
 
         # 랜덤 시크릿 키 생성
         $secretKey = -join ((1..64) | ForEach {'{0:X}' -f (Get-Random -Maximum 16)})
 
         $envContent = @"
-# 교육용 환경 변수 설정
-EDU_SESSION_SECRET=$secretKey
-EDU_MAX_USERS=50
-EDU_MAX_CONCURRENT_REQUESTS=50
-EDU_API_RATE_LIMIT=1000
-EDU_CORS_ORIGINS=http://localhost:3001
-EDU_MONITORING_ENABLED=true
-EDU_LOG_LEVEL=info
+# 개발 환경 설정
+ENVIRONMENT=development
+NODE_ENV=development
+FLASK_ENV=development
+DEBUG=true
+FLASK_DEBUG=true
 
 # 데이터베이스 설정
+DB_HOST=localhost
+DB_PORT=5432
+DB_DATABASE=dify_dev
 DB_USERNAME=postgres
 DB_PASSWORD=difyai123456
-DB_HOST=db
-DB_PORT=5432
-DB_DATABASE=dify
 
 # Redis 설정
-REDIS_HOST=redis
+REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=difyai123456
 REDIS_DB=0
+REDIS_PASSWORD=
 
-# API 설정
-API_URL=http://localhost:5001
-WEB_URL=http://localhost:3000
-EDU_WEB_URL=http://localhost:3001
+# 보안
+SECRET_KEY=$secretKey
+INIT_PASSWORD=password123
+
+# API URLs
+CONSOLE_API_URL=http://localhost:5001
+CONSOLE_WEB_URL=http://localhost:3000
+SERVICE_API_URL=http://localhost:5001
+APP_API_URL=http://localhost:5001/api
+APP_WEB_URL=http://localhost:3000
+FILES_URL=http://localhost:5001/files
+
+# OpenAI (선택사항 - 실제 키로 변경 필요)
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_API_BASE=https://api.openai.com/v1
+
+# Storage
+STORAGE_TYPE=local
+STORAGE_LOCAL_PATH=/app/storage
+
+# Celery
+CELERY_BROKER_URL=redis://localhost:6379/1
+
+# 로깅
+LOG_LEVEL=DEBUG
+ENABLE_REQUEST_LOGGING=true
+
+# 마이그레이션
+MIGRATION_ENABLED=true
 "@
 
         $envContent | Out-File -FilePath $envFile -Encoding UTF8
-        Write-Success ".env.edu 파일 생성 완료"
+        Write-Success ".env.development 파일 생성 완료"
+        Write-Info "중요: .env.development 파일의 다음 값들을 실제 값으로 변경하세요:"
+        Write-Info "  - DB_PASSWORD: PostgreSQL 비밀번호"
+        Write-Info "  - OPENAI_API_KEY: OpenAI API 키 (선택사항)"
     } else {
-        Write-Info ".env.edu 파일이 이미 존재합니다"
+        Write-Info ".env.development 파일이 이미 존재합니다"
     }
 
     # 사용자 환경 변수 설정

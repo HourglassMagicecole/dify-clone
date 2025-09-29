@@ -384,24 +384,32 @@ check_environment_variables() {
         log_detail "export UV_PYTHON=\$(which python3)을 ~/.bashrc에 추가하세요"
     fi
 
-    # .env.edu 파일 확인
+    # .env.development 파일 확인
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
-    log_check ".env.edu 파일 확인"
-    if [[ -f "docker/.env.edu" ]]; then
-        log_pass ".env.edu 파일 존재"
+    log_check ".env.development 파일 확인"
+    if [[ -f ".env.development" ]]; then
+        log_pass ".env.development 파일 존재"
 
         # 필수 환경 변수 확인
-        local required_vars=("EDU_SESSION_SECRET" "DB_USERNAME" "DB_PASSWORD" "REDIS_HOST")
+        local required_vars=("DB_USERNAME" "DB_PASSWORD" "DB_HOST" "DB_PORT" "DB_DATABASE" "REDIS_HOST" "SECRET_KEY")
         for var in "${required_vars[@]}"; do
-            if grep -q "^$var=" "docker/.env.edu"; then
+            if grep -q "^$var=" ".env.development"; then
                 log_detail "✓ $var 설정됨"
             else
-                log_warn "$var가 .env.edu에 설정되지 않았습니다"
+                log_warn "$var가 .env.development에 설정되지 않았습니다"
             fi
         done
+
+        # 실제 값으로 변경해야 하는 항목 체크
+        if grep -q "^DB_PASSWORD=your_password_here" ".env.development" 2>/dev/null; then
+            log_warn "DB_PASSWORD를 실제 PostgreSQL 비밀번호로 변경하세요"
+        fi
+        if grep -q "^OPENAI_API_KEY=your-openai-api-key-here" ".env.development" 2>/dev/null; then
+            log_info "OPENAI_API_KEY를 실제 API 키로 변경하세요 (선택사항)"
+        fi
     else
-        log_warn ".env.edu 파일이 존재하지 않습니다"
-        log_detail "setup-dev-env.sh 스크립트를 실행하여 생성하세요"
+        log_warn ".env.development 파일이 존재하지 않습니다"
+        log_detail "setup-dev-env.sh 스크립트를 실행하거나 .env.example을 복사하여 생성하세요"
     fi
 
     echo

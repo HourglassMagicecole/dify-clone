@@ -148,19 +148,44 @@ cd web && pnpm install && cd ..
 ### 환경 변수 설정
 
 ```bash
-# .env.edu 파일이 없다면 자동 생성됩니다
-# 또는 직접 생성:
-cp docker/.env.edu.template docker/.env.edu
+# 개발용 환경 파일 생성 (처음 한 번만)
+# 방법 1: 최소 설정으로 시작 (권장)
+cat > .env.development << 'EOF'
+# 개발 환경
+FLASK_ENV=development
+DEBUG=true
+
+# 데이터베이스 (PostgreSQL 필요)
+DB_HOST=localhost
+DB_PORT=5432
+DB_DATABASE=dify_dev
+DB_USERNAME=postgres
+DB_PASSWORD=your_password_here  # ← 실제 비밀번호로 변경!
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# 보안
+SECRET_KEY=dev-secret-key-change-in-production
+
+# URLs
+CONSOLE_API_URL=http://localhost:5001
+CONSOLE_WEB_URL=http://localhost:3000
+
+# OpenAI (선택사항)
+OPENAI_API_KEY=sk-...  # ← OpenAI 사용시 실제 키 입력
+EOF
+
+# 방법 2: 전체 템플릿에서 시작
+cp .env.example .env.development
+# 그 다음 편집기로 열어서 필요한 값만 수정
 ```
 
-기본 환경 변수:
-```env
-EDU_SESSION_SECRET=your-secret-key
-EDU_MAX_USERS=50
-EDU_MAX_CONCURRENT_REQUESTS=50
-EDU_API_RATE_LIMIT=1000
-EDU_CORS_ORIGINS=http://localhost:3001
-```
+**중요**: 실제 비밀번호와 API 키를 설정하세요:
+- `DB_PASSWORD`: PostgreSQL 비밀번호
+- `OPENAI_API_KEY`: OpenAI API 키 (있는 경우)
+- `SECRET_KEY`: 보안을 위해 고유한 값으로 변경
 
 ---
 
