@@ -1,0 +1,23 @@
+{
+  "name": "dify-clone-load-tests",
+  "version": "1.0.0",
+  "description": "k6 Load Testing Suite for Dify Clone Education API",
+  "scripts": {
+    "test:load": "k6 run -e API_URL=http://localhost:5001 education-session.js",
+    "test:concurrent": "k6 run -e API_URL=http://localhost:5001 concurrent-users.js",
+    "test:websocket": "k6 run -e API_URL=http://localhost:5001 websocket-test.js",
+    "test:stress": "k6 run -e API_URL=http://localhost:5001 stress-test.js",
+    "test:all": "npm run test:load && npm run test:concurrent && npm run test:websocket",
+    "report:html": "k6 run --out html=reports/load-test-results.html education-session.js",
+    "install:k6:mac": "brew install k6",
+    "install:k6:linux": "curl -s https://get.k6.io | bash",
+    "verify:k6": "which k6 && k6 version || echo 'k6 is not installed. Run npm run install:k6:mac (for macOS) or npm run install:k6:linux (for Linux)'"
+  },
+  "keywords": [
+    "k6",
+    "load-testing",
+    "performance",
+    "dify",
+    "education-api"
+  ]
+}

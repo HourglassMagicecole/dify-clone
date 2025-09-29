@@ -155,9 +155,12 @@ class TestProgressService:
         mock_result.completed_activities = 3
         mock_result.avg_completion = 75.0
 
-        mock_db.session.query.return_value.join.return_value.outerjoin.return_value.filter.return_value.group_by.return_value.all.return_value = [
-            mock_result
-        ]
+        (mock_db.session.query.return_value
+         .join.return_value
+         .outerjoin.return_value
+         .filter.return_value
+         .group_by.return_value
+         .all.return_value) = [mock_result]
 
         result = ProgressService.get_session_progress("session123")
 

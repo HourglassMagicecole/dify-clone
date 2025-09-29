@@ -54,7 +54,7 @@ class EducationSeedData:
             users.append(user_id)
 
             # Assign random education roles
-            role_type = random.choice(["student", "instructor", "admin", "moderator"])
+            role_type = random.choice(["student", "instructor", "admin", "moderator"])  # noqa: S311
             if i < 5:  # First 5 users are instructors
                 role_type = "instructor"
             elif i < 8:  # Next 3 users are admins
@@ -83,7 +83,7 @@ class EducationSeedData:
 
         for i in range(count):
             session_id = uuid.uuid4()
-            session_type = random.choice(session_types)
+            session_type = random.choice(session_types)  # noqa: S311
 
             session = EducationSession(
                 id=session_id,
@@ -91,16 +91,16 @@ class EducationSeedData:
                 title=f"{session_type} 교육 #{i + 1}",
                 description=self.fake.paragraph(nb_sentences=3),
                 config={
-                    "duration_hours": random.randint(2, 8),
-                    "difficulty": random.choice(["beginner", "intermediate", "advanced"]),
+                    "duration_hours": random.randint(2, 8),  # noqa: S311
+                    "difficulty": random.choice(["beginner", "intermediate", "advanced"]),  # noqa: S311
                     "prerequisites": [],
-                    "materials": [f"material_{j}.pdf" for j in range(1, random.randint(2, 5))],
-                    "hands_on": random.choice([True, False]),
+                    "materials": [f"material_{j}.pdf" for j in range(1, random.randint(2, 5))],  # noqa: S311
+                    "hands_on": random.choice([True, False]),  # noqa: S311
                 },
-                status=random.choice(["draft", "active", "completed"]),
-                max_participants=random.randint(10, 30),
-                start_date=datetime.utcnow() + timedelta(days=random.randint(-30, 30)),
-                end_date=datetime.utcnow() + timedelta(days=random.randint(31, 90)),
+                status=random.choice(["draft", "active", "completed"]),  # noqa: S311
+                max_participants=random.randint(10, 30),  # noqa: S311
+                start_date=datetime.utcnow() + timedelta(days=random.randint(-30, 30)),  # noqa: S311
+                end_date=datetime.utcnow() + timedelta(days=random.randint(31, 90)),  # noqa: S311
                 created_by=random.choice(self.created_users) if self.created_users else uuid.uuid4(),
             )
             sessions.append(session_id)

@@ -34,9 +34,8 @@ def require_auth(f):
                 import logging
 
                 logging.warning(
-                    "Using X-User-ID header authentication for user %s. "
-                    "This should only be used in development.",
-                    user_id
+                    "Using X-User-ID header authentication for user %s. This should only be used in development.",
+                    user_id,
                 )
 
         # Check for Bearer token (preferred method)
