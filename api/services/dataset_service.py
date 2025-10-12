@@ -92,7 +92,17 @@ logger = logging.getLogger(__name__)
 
 class DatasetService:
     @staticmethod
-    def get_datasets(page, per_page, tenant_id=None, user=None, search=None, tag_ids=None, include_all=False):
+    def get_datasets(
+        page,
+        per_page,
+        tenant_id=None,
+        user=None,
+        search=None,
+        tag_ids=None,
+        include_all=False,
+        session_id=None,
+        edu_account_id=None,
+    ):
         query = select(Dataset).where(Dataset.tenant_id == tenant_id).order_by(Dataset.created_at.desc())
 
         if user:
@@ -154,6 +164,21 @@ class DatasetService:
                 target_ids = []
             if target_ids and len(target_ids) > 0:
                 query = query.where(Dataset.id.in_(target_ids))
+            else:
+                return [], 0
+
+        # Education session-based filtering
+        if session_id:
+            from services.edu.resource_tagging_service import ResourceTaggingService
+
+            tagging_service = ResourceTaggingService()
+            edu_resource_ids = tagging_service.get_resources_by_tag(
+                session_id=session_id,
+                resource_type="dataset",
+                account_id=edu_account_id,
+            )
+            if edu_resource_ids and len(edu_resource_ids) > 0:
+                query = query.where(Dataset.id.in_(edu_resource_ids))
             else:
                 return [], 0
 

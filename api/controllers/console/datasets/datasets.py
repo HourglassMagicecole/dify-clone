@@ -75,11 +75,21 @@ class DatasetListApi(Resource):
         search = request.args.get("keyword", default=None, type=str)
         tag_ids = request.args.getlist("tag_ids")
         include_all = request.args.get("include_all", default="false").lower() == "true"
+        session_id = request.args.get("session_id", default=None, type=str)
+        edu_account_id = request.args.get("edu_account_id", default=None, type=str)
         if ids:
             datasets, total = DatasetService.get_datasets_by_ids(ids, current_user.current_tenant_id)
         else:
             datasets, total = DatasetService.get_datasets(
-                page, limit, current_user.current_tenant_id, current_user, search, tag_ids, include_all
+                page,
+                limit,
+                current_user.current_tenant_id,
+                current_user,
+                search,
+                tag_ids,
+                include_all,
+                session_id,
+                edu_account_id,
             )
 
         # check embedding setting

@@ -65,6 +65,21 @@ class AppService:
             else:
                 return None
 
+        # Education session-based filtering
+        if args.get("session_id"):
+            from services.edu.resource_tagging_service import ResourceTaggingService
+
+            tagging_service = ResourceTaggingService()
+            edu_resource_ids = tagging_service.get_resources_by_tag(
+                session_id=args["session_id"],
+                resource_type="app",
+                account_id=args.get("edu_account_id"),
+            )
+            if edu_resource_ids and len(edu_resource_ids) > 0:
+                filters.append(App.id.in_(edu_resource_ids))
+            else:
+                return None
+
         app_models = db.paginate(
             sa.select(App).where(*filters).order_by(App.created_at.desc()),
             page=args["page"],

@@ -26,6 +26,12 @@ from .dataset import (
     TidbAuthBinding,
     Whitelist,
 )
+from .education import (
+    AdminAPIKeyConfig,
+    EducationSession,
+    SessionMonitoring,
+    SessionResourceTag,
+)
 from .enums import CreatorUserRole, UserFrom, WorkflowRunTriggeredFrom
 from .model import (
     ApiRequest,
@@ -98,6 +104,7 @@ __all__ = [
     "Account",
     "AccountIntegrate",
     "AccountStatus",
+    "AdminAPIKeyConfig",
     "ApiRequest",
     "ApiToken",
     "ApiToolProvider",
@@ -129,6 +136,7 @@ __all__ = [
     "DifySetup",
     "Document",
     "DocumentSegment",
+    "EducationSession",
     "Embedding",
     "EndUser",
     "ExternalKnowledgeApis",
@@ -153,6 +161,8 @@ __all__ = [
     "ProviderType",
     "RecommendedApp",
     "SavedMessage",
+    "SessionMonitoring",
+    "SessionResourceTag",
     "Site",
     "Tag",
     "TagBinding",

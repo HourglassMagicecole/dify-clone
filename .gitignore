@@ -235,3 +235,7 @@ scripts/stress-test/reports/
 # mcp
 .playwright-mcp/
 .serena/
+
+.bmad-core
+.claude
+docs/
