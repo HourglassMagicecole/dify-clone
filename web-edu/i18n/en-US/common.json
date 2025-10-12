@@ -1,0 +1,20 @@
+{
+  "app_name": "EduAI Studio",
+  "welcome": "Welcome",
+  "welcome_message": "Welcome to AI Education Platform",
+  "dashboard": "Dashboard",
+  "agents": "Agents",
+  "workflows": "Workflows",
+  "datasets": "Datasets",
+  "signin": "Sign In",
+  "signout": "Sign Out",
+  "create": "Create",
+  "edit": "Edit",
+  "delete": "Delete",
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "loading": "Loading...",
+  "error": "Error",
+  "success": "Success"
+}

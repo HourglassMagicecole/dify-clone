@@ -8,11 +8,11 @@ VERSION=latest
 .DEFAULT_GOAL := help
 
 # Backend Development Environment Setup
-.PHONY: dev-setup prepare-docker prepare-web prepare-api
+.PHONY: dev-setup prepare-docker prepare-web prepare-api prepare-web-edu
 
 # Dev setup target
-dev-setup: prepare-docker prepare-web prepare-api
-	@echo "✅ Backend development environment setup complete!"
+dev-setup: prepare-docker prepare-web prepare-api prepare-web-edu
+	@echo "✅ Full development environment setup complete!"
 
 # Step 1: Prepare Docker middleware
 prepare-docker:
@@ -36,6 +36,13 @@ prepare-api:
 	@cd api && uv sync --dev
 	@cd api && uv run flask db upgrade
 	@echo "✅ API environment prepared (not started)"
+
+# Step 4: Prepare web-edu environment
+prepare-web-edu:
+	@echo "🎓 Setting up web-edu environment..."
+	@cp -n web-edu/.env.example web-edu/.env.local 2>/dev/null || echo "Web-edu .env.local already exists"
+	@cd web-edu && pnpm install
+	@echo "✅ Web-edu environment prepared (not started)"
 
 # Clean dev environment
 dev-clean:
@@ -109,10 +116,11 @@ build-push-all: build-all push-all
 # Help target
 help:
 	@echo "Development Setup Targets:"
-	@echo "  make dev-setup      - Run all setup steps for backend dev environment"
+	@echo "  make dev-setup      - Run all setup steps for full dev environment"
 	@echo "  make prepare-docker - Set up Docker middleware"
 	@echo "  make prepare-web    - Set up web environment"
 	@echo "  make prepare-api    - Set up API environment"
+	@echo "  make prepare-web-edu - Set up web-edu environment"
 	@echo "  make dev-clean      - Stop Docker middleware containers"
 	@echo ""
 	@echo "Backend Code Quality:"
@@ -129,4 +137,4 @@ help:
 	@echo "  make build-push-all - Build and push all Docker images"
 
 # Phony targets
-.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api dev-clean help format check lint type-check
+.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu dev-clean help format check lint type-check

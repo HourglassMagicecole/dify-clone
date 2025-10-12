@@ -16,13 +16,18 @@ def init_app(app: DifyApp):
         response.headers.add("X-Env", dify_config.DEPLOY_ENV)
         return response
 
-    @app.route("/health")
+    @app.route("/health", methods=["GET", "OPTIONS"])
     def health():
-        return Response(
+        response = Response(
             json.dumps({"pid": os.getpid(), "status": "ok", "version": dify_config.project.version}),
             status=200,
             content_type="application/json",
         )
+        # Add CORS headers for health endpoint
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "GET, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        return response
 
     @app.route("/threads")
     def threads():

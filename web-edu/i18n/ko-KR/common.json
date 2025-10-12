@@ -1,0 +1,20 @@
+{
+  "app_name": "EduAI Studio",
+  "welcome": "환영합니다",
+  "welcome_message": "AI 교육 플랫폼에 오신 것을 환영합니다",
+  "dashboard": "대시보드",
+  "agents": "Agents",
+  "workflows": "Workflows",
+  "datasets": "Datasets",
+  "signin": "로그인",
+  "signout": "로그아웃",
+  "create": "생성",
+  "edit": "수정",
+  "delete": "삭제",
+  "save": "저장",
+  "cancel": "취소",
+  "confirm": "확인",
+  "loading": "로딩 중...",
+  "error": "오류 발생",
+  "success": "성공"
+}
