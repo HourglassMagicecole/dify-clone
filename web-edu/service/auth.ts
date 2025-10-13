@@ -95,3 +95,34 @@ export async function refreshAccessToken(refreshToken: string): Promise<SignInRe
 
   return response.json()
 }
+
+/**
+ * 사용자 역할 조회 API 호출 (AC3, AC5)
+ *
+ * @param accessToken - Access token for authentication
+ * @param sessionId - Education session ID
+ * @returns User role ('admin' | 'normal')
+ * @throws Error if fetch fails
+ */
+export async function getUserRole(accessToken: string, sessionId: string): Promise<{
+  role: 'admin' | 'normal'
+  account_id: string
+  session_id: string
+}> {
+  const response = await fetch(
+    `${API_BASE_URL}/console/api/edu/user/role?session_id=${sessionId}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch user role')
+  }
+
+  const result = await response.json()
+  return result.data
+}

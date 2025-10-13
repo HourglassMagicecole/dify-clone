@@ -56,7 +56,7 @@ def load_user_from_request(request_from_flask_login):
                         account.current_tenant = tenant
                         return account
 
-    if request.blueprint in {"console", "inner_api"}:
+    if request.blueprint in {"console", "inner_api", "edu_role", "resource_tags"}:
         if not auth_token:
             raise Unauthorized("Invalid Authorization token.")
         decoded = PassportService().verify(auth_token)

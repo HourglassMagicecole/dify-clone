@@ -16,19 +16,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // 초기 로드 시 토큰 검증 및 사용자 정보 조회
+  // 초기 로드 시 토큰 검증 및 사용자 정보 조회 (AC5)
   useEffect(() => {
     const initAuth = async () => {
       const token = getAccessToken()
       if (token && !isTokenExpired(token)) {
         try {
           const account = await authAPI.getCurrentUser(token)
+
+          // 역할 조회 (AC5: DB에서 실제 role 값 가져오기)
+          let userRole: 'admin' | 'normal' = 'normal' // 기본값
+          try {
+            // TODO: 실제 세션 ID는 추후 세션 관리 시스템에서 가져와야 함
+            // 임시로 환경 변수 또는 하드코딩된 세션 ID 사용
+            const sessionId = process.env.NEXT_PUBLIC_DEFAULT_SESSION_ID || 'default-session'
+            const roleData = await authAPI.getUserRole(token, sessionId)
+            userRole = roleData.role
+          }
+          catch (error) {
+            console.warn('[AUTH] Failed to fetch user role on init, defaulting to "normal":', error)
+          }
+
           setUser({
             id: account.id,
             name: account.name,
             email: account.email,
             avatar: account.avatar,
-            role: 'normal', // API에 role이 없으므로 기본값
+            role: userRole, // DB에서 가져온 실제 role 사용
           })
         }
         catch {
@@ -40,21 +54,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth()
   }, [])
 
-  // 로그인 함수
+  // 로그인 함수 (AC5)
   const signIn = useCallback(async (email: string, password: string) => {
     // 1. 로그인해서 토큰 받기
     const response = await authAPI.signIn({ email, password })
     setTokens(response.data.access_token, response.data.refresh_token)
 
-    // 2. 토큰으로 사용자 정보 조회 (응답이 직접 사용자 객체)
+    // 2. 토큰으로 사용자 정보 조회
     const account = await authAPI.getCurrentUser(response.data.access_token)
+
+    // 3. 역할 조회 (CRITICAL: DB에서 실제 role 값 가져오기)
+    let userRole: 'admin' | 'normal' = 'normal' // 기본값
+    try {
+      // TODO: 실제 세션 ID는 추후 세션 관리 시스템에서 가져와야 함
+      // 임시로 환경 변수 또는 하드코딩된 세션 ID 사용
+      const sessionId = process.env.NEXT_PUBLIC_DEFAULT_SESSION_ID || 'default-session'
+      const roleData = await authAPI.getUserRole(response.data.access_token, sessionId)
+      userRole = roleData.role
+    }
+    catch (error) {
+      console.warn('[AUTH] Failed to fetch user role, defaulting to "normal":', error)
+    }
 
     setUser({
       id: account.id,
       name: account.name,
       email: account.email,
       avatar: account.avatar,
-      role: 'normal', // API에 role이 없으므로 기본값
+      role: userRole, // DB에서 가져온 실제 role 사용
     })
     router.push('/dashboard')
   }, [router])

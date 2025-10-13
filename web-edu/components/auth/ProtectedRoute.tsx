@@ -31,7 +31,9 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-gray-500">{t('auth:loading')}</div>
+        <div className="text-gray-500" suppressHydrationWarning>
+          {t('auth:loading')}
+        </div>
       </div>
     )
   }

@@ -105,6 +105,9 @@ ignore = [
     "F811", # redefined-while-unused
     "T201", # allow print in tests
 ]
+"assign_admin.py" = [
+    "T201", # allow print in manual scripts
+]
 
 [lint.pyflakes]
 allowed-unused-imports = [
