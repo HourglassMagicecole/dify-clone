@@ -34,9 +34,11 @@ def require_admin(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # session_id 추출 (query parameter 또는 JSON body)
-        session_id = request.args.get("session_id") or (
-            request.json.get("session_id") if request.is_json and request.json else None
+        # session_id 추출 (URL path parameter, query parameter, 또는 JSON body)
+        session_id = (
+            kwargs.get("session_id")  # URL path parameter (e.g., /<session_id>/members)
+            or request.args.get("session_id")  # Query parameter
+            or (request.json.get("session_id") if request.is_json and request.json else None)  # JSON body
         )
 
         if not session_id:

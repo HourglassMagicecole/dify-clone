@@ -29,6 +29,7 @@ from .dataset import (
 from .education import (
     AdminAPIKeyConfig,
     EducationSession,
+    EducationSessionMember,
     EduUserRole,
     SessionMonitoring,
     SessionResourceTag,
@@ -139,6 +140,7 @@ __all__ = [
     "DocumentSegment",
     "EduUserRole",
     "EducationSession",
+    "EducationSessionMember",
     "Embedding",
     "EndUser",
     "ExternalKnowledgeApis",

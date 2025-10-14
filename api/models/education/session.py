@@ -55,6 +55,7 @@ class EducationSession(Base):
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", foreign_keys=[tenant_id])  # type: ignore[name-defined]
     instructor: Mapped["Account"] = relationship("Account", foreign_keys=[instructor_account_id])  # type: ignore[name-defined]
+    members = relationship("EducationSessionMember", back_populates="session", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """Return string representation of the education session."""

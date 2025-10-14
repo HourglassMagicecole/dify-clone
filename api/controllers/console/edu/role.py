@@ -1,10 +1,15 @@
 """Education role management API endpoints."""
 
+import logging
+
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
 from extensions.ext_database import db
 from services.edu_role_service import EduRoleService
+from services.edu_session_member_service import EduSessionMemberService
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("edu_role", __name__, url_prefix="/console/api/edu/user")
 
@@ -40,22 +45,18 @@ def get_user_role():
         return jsonify({"result": "fail", "message": "session_id is required"}), 400
 
     try:
-        # TODO (AC11 - SEC-003 완화): Story 1.1 완료 후 세션-사용자 연결 검증 추가
-        # 현재는 세션 멤버십 검증을 하지 않아, 사용자가 다른 세션 ID로 역할 조회 가능
-        # Story 1.1에서 EducationSessionMember 테이블 생성 후 아래 코드 활성화 필요
-        #
-        # from models.education import EducationSessionMember
-        #
-        # session_member = db.session.query(EducationSessionMember).filter(
-        #     EducationSessionMember.session_id == session_id,
-        #     EducationSessionMember.account_id == current_user.id
-        # ).first()
-        #
-        # if not session_member:
-        #     return jsonify({
-        #         "result": "fail",
-        #         "message": "You are not a member of this session"
-        #     }), 403
+        # 세션 멤버십 검증 (SEC-003 완화)
+        if not EduSessionMemberService.is_session_member(
+            session_id=session_id,
+            account_id=current_user.id,
+            db_session=db.session,  # type: ignore[arg-type]
+        ):
+            logger.warning(
+                "SEC-003: Non-member access attempt - session_id: %s, account_id: %s",
+                session_id,
+                current_user.id,
+            )
+            return jsonify({"result": "fail", "message": "You are not a member of this session"}), 403
 
         # 역할 조회
         role = EduRoleService.get_user_role(

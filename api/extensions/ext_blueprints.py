@@ -9,6 +9,7 @@ def init_app(app: DifyApp):
 
     from controllers.console import bp as console_app_bp
     from controllers.console.edu import resource_tags_bp, role_bp
+    from controllers.console.edu.session_member import bp as session_member_bp
     from controllers.files import bp as files_bp
     from controllers.inner_api import bp as inner_api_bp
     from controllers.mcp import bp as mcp_bp
@@ -59,6 +60,15 @@ def init_app(app: DifyApp):
         methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
     )
     app.register_blueprint(role_bp)
+
+    CORS(
+        session_member_bp,
+        resources={r"/*": {"origins": dify_config.CONSOLE_CORS_ALLOW_ORIGINS}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+    )
+    app.register_blueprint(session_member_bp)
 
     CORS(
         files_bp,
