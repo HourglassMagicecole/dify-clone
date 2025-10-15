@@ -57,6 +57,8 @@ from libs.login import login_required
 from models import Dataset, DatasetProcessRule, Document, DocumentSegment, UploadFile
 from models.dataset import DocumentPipelineExecutionLog
 from services.dataset_service import DatasetService, DocumentService
+from services.edu.resource_tagging_service import ResourceTaggingService
+from services.edu.session_helper import get_user_active_session
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
 
 logger = logging.getLogger(__name__)
@@ -426,6 +428,35 @@ class DatasetInitApi(Resource):
             raise ProviderQuotaExceededError()
         except ModelCurrentlyNotSupportError:
             raise ProviderModelCurrentlyNotSupportError()
+
+        logger.info("Dataset created via /init: %s (ID: %s, User: %s)", dataset.name, dataset.id, current_user.id)
+
+        # Add session resource tag - automatically find user's active session
+        active_session = get_user_active_session(current_user.id)
+        if active_session:
+            try:
+                resource_tagging_service = ResourceTaggingService()
+                resource_tagging_service.add_tag(
+                    session_id=active_session.id,
+                    resource_type="dataset",
+                    resource_id=dataset.id,
+                    account_id=current_user.id,
+                )
+                logger.info(
+                    "Added SessionResourceTag for dataset %s in session %s",
+                    dataset.id,
+                    active_session.id,
+                )
+            except Exception as e:
+                # Don't fail dataset creation if tagging fails
+                logger.error(
+                    "Failed to add SessionResourceTag for dataset %s: %s",
+                    dataset.id,
+                    e,
+                    exc_info=True,
+                )
+        else:
+            logger.warning("No active session found for user %s during dataset init", current_user.id)
 
         response = {"dataset": dataset, "documents": documents, "batch": batch}
 

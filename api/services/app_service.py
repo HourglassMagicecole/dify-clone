@@ -350,6 +350,11 @@ class AppService:
         Delete app
         :param app: App instance
         """
+        from events.app_event import app_was_deleted
+
+        # Send delete event before deleting (handlers need access to app object)
+        app_was_deleted.send(app)
+
         db.session.delete(app)
         db.session.commit()
 

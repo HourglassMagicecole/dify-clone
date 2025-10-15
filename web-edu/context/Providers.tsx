@@ -2,10 +2,11 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { I18nextProvider } from 'react-i18next'
 import { AuthProvider } from './AuthContext'
 import { useSessionTimer } from '@/hooks/useSessionTimer'
-import '@/i18n' // Initialize i18n on client side
+import i18n from '@/i18n' // Initialize i18n on client side
 
 // Session Manager Component
 function SessionManager() {
@@ -26,13 +27,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
       })
   )
 
+  // Load language from localStorage after client mount to avoid SSR hydration mismatch
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('preferred_language')
+    if (savedLanguage && savedLanguage !== i18n.language) {
+      i18n.changeLanguage(savedLanguage)
+    }
+  }, [])
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SessionManager />
-        {children}
-        <ReactQueryDevtools initialIsOpen={false} />
-      </AuthProvider>
-    </QueryClientProvider>
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SessionManager />
+          {children}
+          <ReactQueryDevtools initialIsOpen={false} />
+        </AuthProvider>
+      </QueryClientProvider>
+    </I18nextProvider>
   )
 }

@@ -5,12 +5,12 @@ import useSWR from 'swr'
 import { DashboardAPI } from '../../../service/dashboard-api'
 import { ResourceSummaryCard, EmptyResourceState } from '../../../components/dashboard/ResourceSummaryCard'
 import { RecentActivityTimeline } from '../../../components/dashboard/RecentActivityTimeline'
-import { ApiUsageChart } from '../../../components/dashboard/ApiUsageChart'
+// import { ApiUsageChart } from '../../../components/dashboard/ApiUsageChart' // Hidden: API usage not needed for students
 import { QuickStartButtons } from '../../../components/dashboard/QuickStartButtons'
 
 /**
  * 학생 대시보드 메인 페이지
- * 로그인 후 첫 화면으로 리소스 요약, 최근 활동, API 사용량 표시
+ * 로그인 후 첫 화면으로 리소스 요약과 최근 활동 표시
  */
 export default function StudentDashboard() {
   // SWR을 사용한 데이터 페칭
@@ -69,24 +69,21 @@ export default function StudentDashboard() {
         <QuickStartButtons />
       </div>
 
-      {/* 2열 레이아웃: 최근 활동 & API 사용량 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* 최근 활동 타임라인 */}
-        <div>
-          <RecentActivityTimeline
-            activities={showLoading ? [] : data.recentActivities}
-            isLoading={showLoading}
-          />
-        </div>
-
-        {/* API 사용량 차트 */}
-        <div>
-          <ApiUsageChart
-            usage={showLoading ? { totalCalls: 0, totalTokens: 0, estimatedCost: 0, dailyUsage: [] } : data.apiUsage}
-            isLoading={showLoading}
-          />
-        </div>
+      {/* 최근 활동 타임라인 */}
+      <div className="mb-8">
+        <RecentActivityTimeline
+          activities={showLoading ? [] : data.recentActivities}
+          isLoading={showLoading}
+        />
       </div>
+
+      {/* API 사용량 차트 - Hidden for students */}
+      {/* <div className="mb-8">
+        <ApiUsageChart
+          usage={showLoading ? { totalCalls: 0, totalTokens: 0, estimatedCost: 0, dailyUsage: [] } : data.apiUsage}
+          isLoading={showLoading}
+        />
+      </div> */}
     </div>
   )
 }

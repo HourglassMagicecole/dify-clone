@@ -1,3 +1,9 @@
+from .clean_resource_tags_when_resource_deleted import (
+    handle_app_deleted as handle_clean_resource_tags_when_app_deleted,
+)
+from .clean_resource_tags_when_resource_deleted import (
+    handle_dataset_deleted as handle_clean_resource_tags_when_dataset_deleted,
+)
 from .clean_when_dataset_deleted import handle as handle_clean_when_dataset_deleted
 from .clean_when_document_deleted import handle as handle_clean_when_document_deleted
 from .create_document_index import handle as handle_create_document_index
@@ -18,6 +24,8 @@ from .update_app_dataset_join_when_app_published_workflow_updated import (
 from .update_provider_when_message_created import handle as handle_update_provider_when_message_created
 
 __all__ = [
+    "handle_clean_resource_tags_when_app_deleted",
+    "handle_clean_resource_tags_when_dataset_deleted",
     "handle_clean_when_dataset_deleted",
     "handle_clean_when_document_deleted",
     "handle_create_document_index",

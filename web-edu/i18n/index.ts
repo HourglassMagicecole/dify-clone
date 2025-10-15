@@ -2,15 +2,8 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import resourcesToBackend from 'i18next-resources-to-backend'
 
-// Read language from localStorage (client-side only)
-const getInitialLanguage = () => {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('preferred_language')
-    if (saved) return saved
-  }
-  return 'ko-KR'
-}
-
+// Initialize with fallback language to avoid SSR hydration mismatch
+// Language will be set from localStorage in Providers after client mount
 i18n
   .use(initReactI18next)
   .use(
@@ -19,7 +12,7 @@ i18n
     })
   )
   .init({
-    lng: getInitialLanguage(),
+    lng: 'ko-KR', // Always start with fallback to match SSR
     fallbackLng: 'ko-KR',
     debug: false,
     interpolation: {

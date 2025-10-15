@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import cast
 
@@ -22,8 +23,12 @@ from libs.login import login_required
 from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
+from services.edu.resource_tagging_service import ResourceTaggingService
+from services.edu.session_helper import get_user_active_session
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
+
+logger = logging.getLogger(__name__)
 
 ALLOW_CREATE_APP_MODES = ["chat", "agent-chat", "advanced-chat", "workflow", "completion"]
 
@@ -160,6 +165,31 @@ class AppListApi(Resource):
         if current_user.current_tenant_id is None:
             raise ValueError("current_user.current_tenant_id cannot be None")
         app = app_service.create_app(current_user.current_tenant_id, args, current_user)
+
+        # Add session resource tag - automatically find user's active session
+        active_session = get_user_active_session(current_user.id)
+        if active_session:
+            try:
+                resource_tagging_service = ResourceTaggingService()
+                resource_tagging_service.add_tag(
+                    session_id=active_session.id,
+                    resource_type="app",
+                    resource_id=app.id,
+                    account_id=current_user.id,
+                )
+                logger.info(
+                    "Added SessionResourceTag for app %s in session %s",
+                    app.id,
+                    active_session.id,
+                )
+            except Exception as e:
+                # Don't fail app creation if tagging fails
+                logger.error(
+                    "Failed to add SessionResourceTag for app %s: %s",
+                    app.id,
+                    e,
+                    exc_info=True,
+                )
 
         return app, 201
 

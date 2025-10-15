@@ -103,6 +103,7 @@ class DashboardService:
             # Dataset 개수 (SessionResourceTag를 통해 태그된 Dataset)
             datasets_count = (
                 db.session.query(func.count(SessionResourceTag.id.distinct()))
+                .join(Dataset, SessionResourceTag.resource_id == Dataset.id)
                 .filter(
                     SessionResourceTag.account_id == account_id,
                     SessionResourceTag.resource_type == "dataset",
