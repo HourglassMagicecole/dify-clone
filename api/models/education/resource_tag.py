@@ -32,6 +32,7 @@ class SessionResourceTag(Base):
         sa.PrimaryKeyConstraint("id", name="session_resource_tag_pkey"),
         Index("idx_session_resource_account", "session_id", "resource_type", "account_id"),
         Index("idx_resource_lookup", "resource_type", "resource_id"),
+        Index("idx_account_resource_tagged", "account_id", "resource_type", "tagged_at"),
     )
 
     id: Mapped[str] = mapped_column(StringUUID, server_default=sa.text("uuid_generate_v4()"))

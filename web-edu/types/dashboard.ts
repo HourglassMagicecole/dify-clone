@@ -1,0 +1,54 @@
+/**
+ * Dashboard Type Definitions
+ * 대시보드에서 사용하는 모든 데이터 타입 정의
+ */
+
+/**
+ * 리소스 요약 타입
+ */
+export interface ResourceSummary {
+  agents: number;      // Agent 개수
+  workflows: number;   // Workflow 개수
+  datasets: number;    // Dataset(RAG) 개수
+  total: number;       // 전체 리소스 개수
+}
+
+/**
+ * 최근 활동 타입
+ */
+export interface RecentActivity {
+  id: string;
+  type: 'agent' | 'workflow' | 'dataset';  // 리소스 타입
+  resourceName: string;                     // 리소스 이름
+  action: 'created' | 'updated' | 'executed' | 'deleted';  // 액션
+  timestamp: string;                        // ISO 8601 형식
+  status?: 'success' | 'failed';           // 실행 상태 (선택적)
+}
+
+/**
+ * 일별 사용량 타입
+ */
+export interface DailyUsage {
+  date: string;        // YYYY-MM-DD 형식
+  calls: number;       // 해당 날짜의 API 호출 수
+  tokens: number;      // 해당 날짜의 토큰 사용량
+}
+
+/**
+ * API 사용량 타입
+ */
+export interface ApiUsage {
+  totalCalls: number;          // 총 API 호출 수
+  totalTokens: number;         // 총 토큰 사용량
+  estimatedCost: number;       // 추정 비용 (USD)
+  dailyUsage: DailyUsage[];    // 일별 사용량 (차트용)
+}
+
+/**
+ * 대시보드 전체 데이터 타입
+ */
+export interface DashboardData {
+  resourceSummary: ResourceSummary;
+  recentActivities: RecentActivity[];
+  apiUsage: ApiUsage;
+}

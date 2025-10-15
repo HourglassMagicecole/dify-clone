@@ -1,0 +1,43 @@
+{
+  "dashboard": {
+    "title": "대시보드",
+    "subtitle": "내 학습 현황과 리소스를 확인하세요",
+    "resourceSummary": {
+      "agents": "Agents",
+      "workflows": "Workflows",
+      "datasets": "Datasets"
+    },
+    "recentActivity": {
+      "title": "최근 활동",
+      "empty": "아직 활동 내역이 없습니다",
+      "actions": {
+        "created": "생성됨",
+        "updated": "수정됨",
+        "executed": "실행됨",
+        "deleted": "삭제됨"
+      }
+    },
+    "apiUsage": {
+      "title": "API 사용량",
+      "totalCalls": "총 호출",
+      "totalTokens": "총 토큰",
+      "estimatedCost": "추정 비용",
+      "empty": "아직 API 사용 데이터가 없습니다"
+    },
+    "quickStart": {
+      "title": "빠른 시작",
+      "createAgent": "Agent 생성",
+      "createWorkflow": "Workflow 생성",
+      "createDataset": "Dataset 생성"
+    },
+    "empty": {
+      "title": "아직 생성한 리소스가 없습니다",
+      "description": "Agent, Workflow, Dataset을 생성하여 AI 학습을 시작하세요",
+      "button": "시작하기"
+    },
+    "error": {
+      "title": "데이터 로딩 실패",
+      "description": "대시보드 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요."
+    }
+  }
+}

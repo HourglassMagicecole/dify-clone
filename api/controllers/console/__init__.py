@@ -104,6 +104,9 @@ from .datasets.rag_pipeline import (
     rag_pipeline_workflow,
 )
 
+# Import edu controllers (교육 관리)
+from .edu import dashboard
+
 # Import explore controllers
 from .explore import (
     installed_app,
@@ -150,6 +153,7 @@ __all__ = [
     "console_ns",
     "conversation",
     "conversation_variables",
+    "dashboard",  # 교육 관리 대시보드
     "data_source",
     "data_source_bearer_auth",
     "data_source_oauth",

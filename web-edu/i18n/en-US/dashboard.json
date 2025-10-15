@@ -1,0 +1,43 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "View your learning progress and resources",
+    "resourceSummary": {
+      "agents": "Agents",
+      "workflows": "Workflows",
+      "datasets": "Datasets"
+    },
+    "recentActivity": {
+      "title": "Recent Activity",
+      "empty": "No activity yet",
+      "actions": {
+        "created": "Created",
+        "updated": "Updated",
+        "executed": "Executed",
+        "deleted": "Deleted"
+      }
+    },
+    "apiUsage": {
+      "title": "API Usage",
+      "totalCalls": "Total Calls",
+      "totalTokens": "Total Tokens",
+      "estimatedCost": "Estimated Cost",
+      "empty": "No API usage data yet"
+    },
+    "quickStart": {
+      "title": "Quick Start",
+      "createAgent": "Create Agent",
+      "createWorkflow": "Create Workflow",
+      "createDataset": "Create Dataset"
+    },
+    "empty": {
+      "title": "No resources created yet",
+      "description": "Start creating Agents, Workflows, and Datasets to begin your AI learning",
+      "button": "Get Started"
+    },
+    "error": {
+      "title": "Failed to Load Data",
+      "description": "Unable to fetch dashboard data. Please try again later."
+    }
+  }
+}
