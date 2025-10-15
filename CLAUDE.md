@@ -144,9 +144,19 @@ pnpm test      # MUST pass before commit
 cd api
 uv run --project api <command>
 
+# Start API Server
+uv run --project api flask run --host=0.0.0.0 --port=5001 --debug
+
+# Start Celery Worker (REQUIRED for async tasks: RAG, Dataset, etc.)
+uv run celery -A app.celery worker -P gevent -c 2 --loglevel INFO \
+  -Q dataset,generation,mail,ops_trace,app_deletion,plugin,workflow_storage,conversation
+
+# Start Celery Beat (for periodic tasks)
+uv run celery -A app.celery beat
+
 # Quality Checks (ALL REQUIRED)
 make lint
-make type-check  
+make type-check
 uv run --project api --dev dev/pytest/pytest_unit_tests.sh
 
 # Database
