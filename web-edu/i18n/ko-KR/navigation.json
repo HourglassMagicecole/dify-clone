@@ -1,0 +1,15 @@
+{
+  "header": {
+    "userMenu": {
+      "profile": "프로필",
+      "settings": "설정",
+      "signOut": "로그아웃"
+    },
+    "languageSelector": {
+      "label": "언어 선택",
+      "korean": "한국어",
+      "english": "English"
+    },
+    "loading": "로딩 중..."
+  }
+}

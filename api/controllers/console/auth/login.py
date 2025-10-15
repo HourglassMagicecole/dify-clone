@@ -103,6 +103,16 @@ class LogoutApi(Resource):
         flask_login.logout_user()
         return {"result": "success"}
 
+    @setup_required
+    def post(self):
+        """Logout user via POST method (for frontend compatibility)."""
+        account = cast(Account, flask_login.current_user)
+        if isinstance(account, flask_login.AnonymousUserMixin):
+            return {"result": "success"}
+        AccountService.logout(account=account)
+        flask_login.logout_user()
+        return {"result": "success"}
+
 
 @console_ns.route("/reset-password")
 class ResetPasswordSendEmailApi(Resource):

@@ -16,5 +16,11 @@
   "confirm": "확인",
   "loading": "로딩 중...",
   "error": "오류 발생",
-  "success": "성공"
+  "success": "성공",
+  "nav": {
+    "dashboard": "대시보드",
+    "agents": "에이전트",
+    "workflows": "워크플로우",
+    "datasets": "데이터셋"
+  }
 }

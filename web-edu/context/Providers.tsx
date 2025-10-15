@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState } from 'react'
 import { AuthProvider } from './AuthContext'
 import { useSessionTimer } from '@/hooks/useSessionTimer'
+import '@/i18n' // Initialize i18n on client side
 
 // Session Manager Component
 function SessionManager() {

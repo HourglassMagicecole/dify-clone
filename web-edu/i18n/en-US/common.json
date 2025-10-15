@@ -16,5 +16,11 @@
   "confirm": "Confirm",
   "loading": "Loading...",
   "error": "Error",
-  "success": "Success"
+  "success": "Success",
+  "nav": {
+    "dashboard": "Dashboard",
+    "agents": "Agents",
+    "workflows": "Workflows",
+    "datasets": "Datasets"
+  }
 }
