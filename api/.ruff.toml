@@ -108,6 +108,9 @@ ignore = [
 "assign_admin.py" = [
     "T201", # allow print in manual scripts
 ]
+"scripts/*" = [
+    "T201", # allow print in scripts
+]
 
 [lint.pyflakes]
 allowed-unused-imports = [
