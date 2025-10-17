@@ -105,8 +105,7 @@ class TestResourceSummary:
         """여러 리소스를 정확히 집계 (agents=5, workflows=3, datasets=2, total=10) (1.5-UNIT-002)"""
         # Arrange - Mock query chain to return specific counts
         # First call (agents): 5, second call (workflows): 3, third call (datasets): 2
-        mock_db.session.query.return_value.join.return_value.filter.return_value.scalar.side_effect = [5, 3]
-        mock_db.session.query.return_value.filter.return_value.scalar.return_value = 2
+        mock_db.session.query.return_value.join.return_value.filter.return_value.scalar.side_effect = [5, 3, 2]
 
         # Act
         result = service._get_resource_summary(mock_user_id)

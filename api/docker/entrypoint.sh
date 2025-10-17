@@ -17,6 +17,20 @@ if [[ "${MIGRATION_ENABLED}" == "true" ]]; then
   fi
 fi
 
+# Initialize Tenant Owner if environment variables are set
+# Security Note: Remove or comment out INITIAL_ADMIN_* environment variables
+# after first deployment to avoid password exposure in docker-compose.yaml or .env files
+if [ ! -z "$INITIAL_ADMIN_EMAIL" ] && [ ! -z "$INITIAL_ADMIN_PASSWORD" ]; then
+    echo "Checking initial admin setup..."
+    flask init-tenant \
+        --email "$INITIAL_ADMIN_EMAIL" \
+        --password "$INITIAL_ADMIN_PASSWORD" \
+        --name "${INITIAL_ADMIN_NAME:-Admin}" || true
+    # '|| true' ensures script continues even if tenant already exists
+else
+    echo "INITIAL_ADMIN_EMAIL not set, skipping automatic tenant setup."
+fi
+
 if [[ "${MODE}" == "worker" ]]; then
 
   # Get the number of available CPU cores

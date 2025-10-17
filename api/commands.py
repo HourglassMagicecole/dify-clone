@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import secrets
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import click
@@ -32,9 +33,19 @@ from libs.helper import email as email_validate
 from libs.password import hash_password, password_pattern, valid_password
 from libs.rsa import generate_key_pair
 from models import Tenant
+from models.account import TenantAccountJoin
 from models.dataset import Dataset, DatasetCollectionBinding, DatasetMetadata, DatasetMetadataBinding, DocumentSegment
 from models.dataset import Document as DatasetDocument
-from models.model import Account, App, AppAnnotationSetting, AppMode, Conversation, MessageAnnotation, UploadFile
+from models.education import EducationSession, EducationSessionMember, EduUserRole, MemberStatus
+from models.model import (
+    Account,
+    App,
+    AppAnnotationSetting,
+    AppMode,
+    Conversation,
+    MessageAnnotation,
+    UploadFile,
+)
 from models.oauth import DatasourceOauthParamConfig, DatasourceProvider
 from models.provider import Provider, ProviderModel
 from models.provider_ids import DatasourceProviderID, ToolProviderID
@@ -1824,3 +1835,101 @@ def migrate_oss(
             except Exception as e:
                 db.session.rollback()
                 click.echo(click.style(f"Failed to update DB storage_type: {str(e)}", fg="red"))
+
+
+@click.command("init-tenant", help="Initialize Tenant Owner for first deployment.")
+@click.option("--email", required=True, help="Admin email address")
+@click.option("--password", required=True, help="Admin password")
+@click.option("--name", default="Admin", help="Admin name (default: Admin)")
+def init_tenant(email: str, password: str, name: str) -> None:
+    """
+    Initialize Tenant Owner for first deployment.
+    Only available in SELF_HOSTED mode.
+    """
+    # Check if already setup (DifySetup record)
+    with sessionmaker(db.engine, expire_on_commit=False).begin() as session:
+        from models.model import DifySetup
+
+        setup_record = session.scalar(select(DifySetup).limit(1))
+        if setup_record:
+            click.echo(click.style("Error: System is already set up. DifySetup record exists.", fg="red"))
+            return
+
+        # Check if any tenant exists
+        tenant_count = session.scalar(select(sa.func.count()).select_from(Tenant))
+        if tenant_count and tenant_count > 0:
+            click.echo(click.style(f"Error: System is already set up. {tenant_count} tenant(s) exist.", fg="red"))
+            return
+
+    # Call RegisterService.setup()
+    try:
+        RegisterService.setup(email=email, name=name, password=password, ip_address="127.0.0.1")
+        click.echo(click.style(f"Success: Tenant Owner created - {email}", fg="green"))
+    except Exception as e:
+        click.echo(click.style(f"Error during setup: {str(e)}", fg="red"))
+        logger.exception("Failed to initialize tenant")
+        return
+
+    # Create default education session and add admin as member
+    try:
+        with sessionmaker(db.engine, expire_on_commit=False).begin() as session:
+            # Get created account and tenant through TenantAccountJoin
+            account = session.scalar(select(Account).where(Account.email == email))
+            if not account:
+                click.echo(click.style("Error: Failed to retrieve created account", fg="red"))
+                return
+
+            # Get tenant through TenantAccountJoin
+            tenant_join = session.scalar(
+                select(TenantAccountJoin)
+                .where(TenantAccountJoin.account_id == account.id)
+                .order_by(TenantAccountJoin.created_at.desc())
+            )
+            if not tenant_join:
+                click.echo(click.style("Error: Failed to retrieve tenant join", fg="red"))
+                return
+
+            tenant = session.scalar(select(Tenant).where(Tenant.id == tenant_join.tenant_id))
+            if not tenant:
+                click.echo(click.style("Error: Failed to retrieve tenant", fg="red"))
+                return
+
+            # Create default education session
+            now = datetime.now(UTC)
+            default_session = EducationSession(
+                session_name="Default Session",
+                session_tag="default-session",
+                tenant_id=tenant.id,
+                instructor_account_id=account.id,
+                start_date=now,
+                end_date=now + timedelta(days=365),
+                max_students=50,
+                is_active=True,
+                description="Default education session created during initial setup",
+            )
+            session.add(default_session)
+            session.flush()  # Get the session ID
+
+            # Add admin as session member (within same transaction)
+            session_member = EducationSessionMember(
+                session_id=default_session.id, account_id=account.id, status=MemberStatus.ACTIVE.value
+            )
+            session.add(session_member)
+
+            # Assign admin role to the tenant owner (within same transaction)
+            admin_role = EduUserRole(
+                session_id=default_session.id,
+                account_id=account.id,
+                role="admin",
+                assigned_by=None,  # System auto-assigned
+                assigned_at=datetime.now(UTC),
+            )
+            session.add(admin_role)
+
+            click.echo(click.style(f"Success: Default education session created - {default_session.id}", fg="green"))
+            click.echo(click.style(f"Success: Admin role assigned to {email}", fg="green"))
+
+    except Exception as e:
+        click.echo(click.style(f"Error creating default session: {str(e)}", fg="red"))
+        logger.exception("Failed to create default education session")
+        return

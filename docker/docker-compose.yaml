@@ -599,7 +599,11 @@ x-shared-env: &shared-api-worker-env
 services:
   # API service
   api:
-    image: langgenius/dify-api:1.9.1
+    # Local build for Story 1.0 (init-tenant command)
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    # image: langgenius/dify-api:1.9.1  # Disabled: using local build
     restart: always
     environment:
       # Use the shared environment variables.
@@ -613,6 +617,12 @@ services:
       PLUGIN_REMOTE_INSTALL_PORT: ${EXPOSE_PLUGIN_DEBUGGING_PORT:-5003}
       PLUGIN_MAX_PACKAGE_SIZE: ${PLUGIN_MAX_PACKAGE_SIZE:-52428800}
       INNER_API_KEY_FOR_PLUGIN: ${PLUGIN_DIFY_INNER_API_KEY:-QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1}
+
+      # ========== Initial Tenant Setup (Story 1.0) ==========
+      # Set these variables for automatic admin account creation on first deployment
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-}
     depends_on:
       db:
         condition: service_healthy
@@ -628,7 +638,11 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
-    image: langgenius/dify-api:1.9.1
+    # Local build for Story 1.0 (same as api)
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    # image: langgenius/dify-api:1.9.1  # Disabled: using local build
     restart: always
     environment:
       # Use the shared environment variables.
@@ -655,7 +669,11 @@ services:
   # worker_beat service
   # Celery beat for scheduling periodic tasks.
   worker_beat:
-    image: langgenius/dify-api:1.9.1
+    # Local build for Story 1.0 (same as api)
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    # image: langgenius/dify-api:1.9.1  # Disabled: using local build
     restart: always
     environment:
       # Use the shared environment variables.
@@ -697,6 +715,42 @@ services:
       ENABLE_WEBSITE_JINAREADER: ${ENABLE_WEBSITE_JINAREADER:-true}
       ENABLE_WEBSITE_FIRECRAWL: ${ENABLE_WEBSITE_FIRECRAWL:-true}
       ENABLE_WEBSITE_WATERCRAWL: ${ENABLE_WEBSITE_WATERCRAWL:-true}
+
+  # EduAI Studio Web (Story 1.4+)
+  # Custom educational interface built on Next.js
+  web-edu:
+    build:
+      context: ../web-edu
+      dockerfile: Dockerfile
+      args:
+        API_HOST: api:5001
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      # API connection for Docker network
+      API_HOST: api:5001
+      CONSOLE_API_URL: ${CONSOLE_API_URL:-}
+      APP_API_URL: ${APP_API_URL:-}
+      EDITION: ${EDITION:-SELF_HOSTED}
+      DEPLOY_ENV: ${DEPLOY_ENV:-PRODUCTION}
+      SENTRY_DSN: ${WEB_SENTRY_DSN:-}
+      NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED:-1}
+      TEXT_GENERATION_TIMEOUT_MS: ${TEXT_GENERATION_TIMEOUT_MS:-60000}
+      CSP_WHITELIST: ${CSP_WHITELIST:-}
+      ALLOW_EMBED: ${ALLOW_EMBED:-false}
+      ALLOW_UNSAFE_DATA_SCHEME: ${ALLOW_UNSAFE_DATA_SCHEME:-false}
+      MARKETPLACE_API_URL: ${MARKETPLACE_API_URL:-https://marketplace.dify.ai}
+      MARKETPLACE_URL: ${MARKETPLACE_URL:-https://marketplace.dify.ai}
+      PM2_INSTANCES: ${PM2_INSTANCES:-2}
+      LOOP_NODE_MAX_COUNT: ${LOOP_NODE_MAX_COUNT:-100}
+      MAX_TOOLS_NUM: ${MAX_TOOLS_NUM:-10}
+      MAX_PARALLEL_LIMIT: ${MAX_PARALLEL_LIMIT:-10}
+      MAX_ITERATIONS_NUM: ${MAX_ITERATIONS_NUM:-99}
+      MAX_TREE_DEPTH: ${MAX_TREE_DEPTH:-50}
+    depends_on:
+      - api
+
   # The postgres database.
   db:
     image: postgres:15-alpine
