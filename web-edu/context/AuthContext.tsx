@@ -24,14 +24,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const account = await authAPI.getCurrentUser(token)
 
-          // 역할 조회 (AC5: DB에서 실제 role 값 가져오기)
+          // 시스템 역할 조회 (TenantAccountJoin.role from user management API)
           let userRole: 'admin' | 'normal' = 'normal' // 기본값
           try {
-            // TODO: 실제 세션 ID는 추후 세션 관리 시스템에서 가져와야 함
-            // 임시로 환경 변수 또는 하드코딩된 세션 ID 사용
-            const sessionId = process.env.NEXT_PUBLIC_DEFAULT_SESSION_ID || 'default-session'
-            const roleData = await authAPI.getUserRole(token, sessionId)
-            userRole = roleData.role
+            const response = await fetch(`/console/api/edu/users/${account.id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            if (response.ok) {
+              const data = await response.json()
+              // data.data.role은 'admin', 'owner', 또는 'student'
+              // owner와 admin 모두 관리자 권한으로 처리
+              userRole = (data.data.role === 'admin' || data.data.role === 'owner') ? 'admin' : 'normal'
+            }
           }
           catch (error) {
             console.warn('[AUTH] Failed to fetch user role on init, defaulting to "normal":', error)
@@ -42,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: account.name,
             email: account.email,
             avatar: account.avatar,
-            role: userRole, // DB에서 가져온 실제 role 사용
+            role: userRole, // 시스템 역할 (TenantAccountJoin.role)
           })
         }
         catch {
@@ -63,14 +67,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 2. 토큰으로 사용자 정보 조회
     const account = await authAPI.getCurrentUser(response.data.access_token)
 
-    // 3. 역할 조회 (CRITICAL: DB에서 실제 role 값 가져오기)
+    // 3. 시스템 역할 조회 (TenantAccountJoin.role from user management API)
     let userRole: 'admin' | 'normal' = 'normal' // 기본값
     try {
-      // TODO: 실제 세션 ID는 추후 세션 관리 시스템에서 가져와야 함
-      // 임시로 환경 변수 또는 하드코딩된 세션 ID 사용
-      const sessionId = process.env.NEXT_PUBLIC_DEFAULT_SESSION_ID || 'default-session'
-      const roleData = await authAPI.getUserRole(response.data.access_token, sessionId)
-      userRole = roleData.role
+      const roleResponse = await fetch(`/console/api/edu/users/${account.id}`, {
+        headers: { Authorization: `Bearer ${response.data.access_token}` },
+      })
+      if (roleResponse.ok) {
+        const data = await roleResponse.json()
+        // data.data.role은 'admin', 'owner', 또는 'student'
+        // owner와 admin 모두 관리자 권한으로 처리
+        userRole = (data.data.role === 'admin' || data.data.role === 'owner') ? 'admin' : 'normal'
+      }
     }
     catch (error) {
       console.warn('[AUTH] Failed to fetch user role, defaulting to "normal":', error)
@@ -81,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: account.name,
       email: account.email,
       avatar: account.avatar,
-      role: userRole, // DB에서 가져온 실제 role 사용
+      role: userRole, // 시스템 역할 (TenantAccountJoin.role)
     })
     router.push('/dashboard')
   }, [router])

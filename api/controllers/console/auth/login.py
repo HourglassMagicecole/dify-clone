@@ -89,6 +89,11 @@ class LoginApi(Resource):
 
         token_pair = AccountService.login(account=account, ip_address=extract_remote_ip(request))
         AccountService.reset_login_error_rate_limit(args["email"])
+
+        # NOTE: JWT-based authentication is used instead of Flask-Login session cookies
+        # to avoid conflicts with token-based API authentication
+        # flask_login.login_user(account, remember=args.get("remember_me", False))
+
         return {"result": "success", "data": token_pair.model_dump()}
 
 
@@ -100,7 +105,8 @@ class LogoutApi(Resource):
         if isinstance(account, flask_login.AnonymousUserMixin):
             return {"result": "success"}
         AccountService.logout(account=account)
-        flask_login.logout_user()
+        # NOTE: JWT-based authentication - no session to clear
+        # flask_login.logout_user()
         return {"result": "success"}
 
     @setup_required
@@ -110,7 +116,8 @@ class LogoutApi(Resource):
         if isinstance(account, flask_login.AnonymousUserMixin):
             return {"result": "success"}
         AccountService.logout(account=account)
-        flask_login.logout_user()
+        # NOTE: JWT-based authentication - no session to clear
+        # flask_login.logout_user()
         return {"result": "success"}
 
 

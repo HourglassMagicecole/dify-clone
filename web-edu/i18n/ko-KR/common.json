@@ -21,6 +21,7 @@
     "dashboard": "대시보드",
     "agents": "에이전트",
     "workflows": "워크플로우",
-    "datasets": "데이터셋"
+    "datasets": "데이터셋",
+    "users": "사용자 관리"
   }
 }

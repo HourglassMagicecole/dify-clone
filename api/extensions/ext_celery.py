@@ -157,6 +157,10 @@ def init_app(app: DifyApp) -> Celery:
             "task": "schedule.clean_workflow_runlogs_precise.clean_workflow_runlogs_precise",
             "schedule": crontab(minute="0", hour="2"),
         }
+
+    # Education management tasks
+    imports.append("tasks.education.bulk_user_task")
+
     celery_app.conf.update(beat_schedule=beat_schedule, imports=imports)
 
     return celery_app

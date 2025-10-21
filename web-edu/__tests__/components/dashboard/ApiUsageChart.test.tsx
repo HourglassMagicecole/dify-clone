@@ -2,6 +2,11 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { ApiUsageChart } from '@/components/dashboard/ApiUsageChart'
 
+// Mock react-chartjs-2
+jest.mock('react-chartjs-2', () => ({
+  Line: () => <div data-testid="mock-line-chart">Line Chart</div>,
+}))
+
 describe('ApiUsageChart', () => {
   it('API 사용량 정보를 올바르게 표시', () => {
     const mockUsage = {
@@ -79,5 +84,20 @@ describe('ApiUsageChart', () => {
     expect(screen.getByText(/총 호출/)).toBeInTheDocument()
     expect(screen.getByText(/총 토큰/)).toBeInTheDocument()
     expect(screen.getByText(/추정 비용/)).toBeInTheDocument()
+  })
+
+  it('차트가 렌더링됨', () => {
+    const mockUsage = {
+      totalCalls: 1250,
+      totalTokens: 125000,
+      estimatedCost: 2.5,
+      dailyUsage: [
+        { date: '2025-10-01', calls: 100, tokens: 10000 },
+      ],
+    }
+
+    render(<ApiUsageChart usage={mockUsage} />)
+
+    expect(screen.getByTestId('mock-line-chart')).toBeInTheDocument()
   })
 })

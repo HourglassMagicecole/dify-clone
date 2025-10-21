@@ -1,0 +1,96 @@
+{
+  "userManagement": {
+    "title": "User Management",
+    "createUser": "Create User",
+    "editUser": "Edit User",
+    "deleteUser": "Delete User",
+    "bulkCreate": "Bulk Create",
+    "downloadTemplate": "Download CSV Template",
+    "assignRole": "Assign Role",
+    "table": {
+      "email": "Email",
+      "name": "Name",
+      "role": "Role",
+      "status": "Status",
+      "createdAt": "Created At",
+      "lastLoginAt": "Last Login",
+      "actions": "Actions"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "student": "Student"
+    },
+    "status": {
+      "active": "Active",
+      "banned": "Banned"
+    },
+    "createModal": {
+      "title": "Create New User",
+      "emailLabel": "Email",
+      "emailPlaceholder": "user@example.com",
+      "nameLabel": "Name",
+      "namePlaceholder": "John Doe",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Min 8 chars (letters+numbers)",
+      "roleLabel": "Role",
+      "submitButton": "Create",
+      "cancelButton": "Cancel"
+    },
+    "editModal": {
+      "title": "Edit User",
+      "nameLabel": "Name",
+      "statusLabel": "Status",
+      "statusHelp": "Active: Can login / Banned: Login blocked",
+      "roleLabel": "System Role",
+      "roleHelp": "Admin: User management access / Student: Regular user",
+      "passwordLabel": "New Password",
+      "passwordPlaceholder": "Leave blank to keep unchanged",
+      "passwordHelp": "Password will be changed if entered (min 8 chars)",
+      "submitButton": "Save",
+      "cancelButton": "Cancel"
+    },
+    "deleteDialog": {
+      "title": "Confirm Delete User",
+      "message": "Are you sure you want to delete this user? This action cannot be undone.",
+      "warningWithResources": "All resources (Agents, Workflows, Datasets) associated with this user will also be deleted.",
+      "confirmButton": "Delete",
+      "cancelButton": "Cancel"
+    },
+    "bulkCreateModal": {
+      "title": "Bulk Create from CSV",
+      "uploadLabel": "Upload CSV File",
+      "uploadPlaceholder": "Drag & drop or click to select file",
+      "sessionLabel": "Select Session (Optional)",
+      "downloadTemplate": "Download CSV Template",
+      "submitButton": "Upload",
+      "cancelButton": "Cancel",
+      "confirmButton": "OK",
+      "statusTitle": "Bulk Create Progress",
+      "statusProcessing": "Processing...",
+      "statusSuccess": "Completed",
+      "statusFailed": "Failed",
+      "progressLabel": "{{current}} / {{total}} processed",
+      "successLabel": "Success",
+      "failedLabel": "Failed",
+      "recentErrors": "Recent Errors:"
+    },
+    "messages": {
+      "createSuccess": "User created successfully.",
+      "createError": "Failed to create user: {{error}}",
+      "updateSuccess": "User updated successfully.",
+      "updateError": "Failed to update user: {{error}}",
+      "deleteSuccess": "User deleted successfully.",
+      "deleteError": "Failed to delete user: {{error}}",
+      "bulkCreateStarted": "Bulk create task started.",
+      "bulkCreateError": "Bulk create failed: {{error}}",
+      "roleAssignSuccess": "Role assigned successfully.",
+      "roleAssignError": "Failed to assign role: {{error}}",
+      "ownerCannotBeEdited": "Owner account can only be edited by the owner",
+      "ownerCannotBeDeleted": "Owner account cannot be deleted",
+      "ownerRoleCannotBeChanged": "Owner role cannot be changed",
+      "cannotDeleteYourself": "Cannot delete your own account",
+      "onlyOwnerCanChangeRoleStatus": "Only owner can change user role or status"
+    }
+  }
+}

@@ -59,6 +59,7 @@ def initialize_extensions(app: DifyApp):
         ext_orjson,
         ext_otel,
         ext_proxy_fix,
+        ext_rate_limit,
         ext_redis,
         ext_request_logging,
         ext_sentry,
@@ -81,6 +82,7 @@ def initialize_extensions(app: DifyApp):
         ext_app_metrics,
         ext_migrate,
         ext_redis,
+        ext_rate_limit,  # Must be after ext_redis (depends on Redis)
         ext_storage,
         ext_celery,
         ext_login,

@@ -1,0 +1,96 @@
+{
+  "userManagement": {
+    "title": "사용자 관리",
+    "createUser": "사용자 생성",
+    "editUser": "사용자 편집",
+    "deleteUser": "사용자 삭제",
+    "bulkCreate": "일괄 생성",
+    "downloadTemplate": "CSV 템플릿 다운로드",
+    "assignRole": "역할 할당",
+    "table": {
+      "email": "이메일",
+      "name": "이름",
+      "role": "역할",
+      "status": "상태",
+      "createdAt": "생성일",
+      "lastLoginAt": "마지막 로그인",
+      "actions": "작업"
+    },
+    "roles": {
+      "owner": "소유자",
+      "admin": "관리자",
+      "student": "학생"
+    },
+    "status": {
+      "active": "활성",
+      "banned": "차단됨"
+    },
+    "createModal": {
+      "title": "새 사용자 생성",
+      "emailLabel": "이메일",
+      "emailPlaceholder": "user@example.com",
+      "nameLabel": "이름",
+      "namePlaceholder": "홍길동",
+      "passwordLabel": "비밀번호",
+      "passwordPlaceholder": "최소 8자 (영문+숫자)",
+      "roleLabel": "역할",
+      "submitButton": "생성",
+      "cancelButton": "취소"
+    },
+    "editModal": {
+      "title": "사용자 편집",
+      "nameLabel": "이름",
+      "statusLabel": "상태",
+      "statusHelp": "활성: 로그인 가능 / 차단됨: 로그인 차단",
+      "roleLabel": "시스템 역할",
+      "roleHelp": "관리자: 사용자 관리 권한 / 학생: 일반 사용자",
+      "passwordLabel": "새 비밀번호",
+      "passwordPlaceholder": "변경하지 않으려면 비워두세요",
+      "passwordHelp": "입력 시 비밀번호가 변경됩니다 (최소 8자)",
+      "submitButton": "저장",
+      "cancelButton": "취소"
+    },
+    "deleteDialog": {
+      "title": "사용자 삭제 확인",
+      "message": "정말로 이 사용자를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "warningWithResources": "이 사용자와 관련된 모든 리소스(Agent, Workflow, Dataset)도 함께 삭제됩니다.",
+      "confirmButton": "삭제",
+      "cancelButton": "취소"
+    },
+    "bulkCreateModal": {
+      "title": "CSV 일괄 생성",
+      "uploadLabel": "CSV 파일 업로드",
+      "uploadPlaceholder": "파일을 드래그하거나 클릭하여 선택",
+      "sessionLabel": "세션 선택 (선택사항)",
+      "downloadTemplate": "CSV 템플릿 다운로드",
+      "submitButton": "업로드",
+      "cancelButton": "취소",
+      "confirmButton": "확인",
+      "statusTitle": "일괄 생성 진행 상황",
+      "statusProcessing": "처리 중...",
+      "statusSuccess": "완료",
+      "statusFailed": "실패",
+      "progressLabel": "{{current}} / {{total}} 처리됨",
+      "successLabel": "성공",
+      "failedLabel": "실패",
+      "recentErrors": "최근 오류:"
+    },
+    "messages": {
+      "createSuccess": "사용자가 성공적으로 생성되었습니다.",
+      "createError": "사용자 생성에 실패했습니다: {{error}}",
+      "updateSuccess": "사용자가 성공적으로 수정되었습니다.",
+      "updateError": "사용자 수정에 실패했습니다: {{error}}",
+      "deleteSuccess": "사용자가 성공적으로 삭제되었습니다.",
+      "deleteError": "사용자 삭제에 실패했습니다: {{error}}",
+      "bulkCreateStarted": "일괄 생성 작업이 시작되었습니다.",
+      "bulkCreateError": "일괄 생성에 실패했습니다: {{error}}",
+      "roleAssignSuccess": "역할이 성공적으로 할당되었습니다.",
+      "roleAssignError": "역할 할당에 실패했습니다: {{error}}",
+      "ownerCannotBeEdited": "소유자 계정은 본인만 수정할 수 있습니다",
+      "ownerCannotBeDeleted": "소유자 계정은 삭제할 수 없습니다",
+      "ownerRoleCannotBeChanged": "소유자 역할은 변경할 수 없습니다",
+      "cannotDeleteYourself": "자기 자신의 계정은 삭제할 수 없습니다",
+      "onlyOwnerCanChangeRoleStatus": "소유자만 역할과 상태를 변경할 수 있습니다"
+    }
+  }
+}
