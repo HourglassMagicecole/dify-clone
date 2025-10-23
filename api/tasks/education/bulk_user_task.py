@@ -92,8 +92,22 @@ def bulk_create_users_task(self, csv_content: str, session_id: str | None, creat
             if not email or not name or not password:
                 raise ValueError("Email, name, and password are required")
 
-            service.create_user(email=email, name=name, password=password, role=role, creator_account=creator_account)
+            # 사용자 생성
+            user = service.create_user(
+                email=email, name=name, password=password, role=role, creator_account=creator_account
+            )
             created += 1
+
+            # 세션이 지정된 경우, 세션 멤버로 추가 (AC 9)
+            if session_id:
+                from services.edu_session_member_service import EduSessionMemberService
+
+                try:
+                    EduSessionMemberService.add_member(session_id, user["id"], db.session)  # type: ignore[arg-type]
+                    logger.info("User %s added to session %s", user["id"], session_id)
+                except Exception as e:
+                    logger.warning("Failed to add user %s to session %s: %s", user["id"], session_id, e)
+                    # 멤버 추가 실패해도 사용자 생성은 성공으로 처리
 
         except Exception as e:
             failed += 1

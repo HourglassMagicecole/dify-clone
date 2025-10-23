@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useEffect, useState } from 'react'
 import { I18nextProvider } from 'react-i18next'
 import { AuthProvider } from './AuthContext'
+import { SessionProvider } from './SessionContext'
 import { useSessionTimer } from '@/hooks/useSessionTimer'
 import i18n from '@/i18n' // Initialize i18n on client side
 
@@ -39,9 +40,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <SessionManager />
-          {children}
-          <ReactQueryDevtools initialIsOpen={false} />
+          <SessionProvider>
+            <SessionManager />
+            {children}
+            <ReactQueryDevtools initialIsOpen={false} />
+          </SessionProvider>
         </AuthProvider>
       </QueryClientProvider>
     </I18nextProvider>

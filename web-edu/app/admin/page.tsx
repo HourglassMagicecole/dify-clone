@@ -1,15 +1,18 @@
 'use client'
 
+import { useTranslation } from 'react-i18next'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 export default function AdminPage() {
+  const { t } = useTranslation('common')
+
   return (
     <ProtectedRoute requireAdmin={true}>
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900">관리자 페이지</h1>
+          <h1 className="text-4xl font-bold text-gray-900">{t('admin_page_title')}</h1>
           <p className="mt-2 text-gray-600">
-            이 페이지는 admin 역할을 가진 사용자만 접근할 수 있습니다.
+            {t('admin_page_description')}
           </p>
         </div>
       </div>

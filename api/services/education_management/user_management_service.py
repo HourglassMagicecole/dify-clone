@@ -100,7 +100,13 @@ class UserManagementService:
         return {"users": user_list, "total": total, "page": page, "limit": limit}
 
     def create_user(
-        self, email: str, name: str, password: str, role: str | None = "student", creator_account: Account | None = None
+        self,
+        email: str,
+        name: str,
+        password: str,
+        role: str | None = "student",
+        session_id: str | None = None,
+        creator_account: Account | None = None,
     ) -> dict[str, Any]:
         """
         새 사용자 생성.
@@ -110,6 +116,7 @@ class UserManagementService:
             name: 사용자 이름
             password: 비밀번호 (평문, 암호화하여 저장)
             role: 역할 ('admin' 또는 'student', 기본값: 'student')
+            session_id: 세션 ID (선택적, 지정하면 자동으로 세션 멤버로 추가)
             creator_account: 사용자를 생성하는 관리자 계정 (Tenant 멤버십 생성에 사용)
 
         Returns:
@@ -178,8 +185,27 @@ class UserManagementService:
         )
         db.session.add(tenant_join)
 
-        # 역할 할당은 session_id가 필요하므로, 여기서는 생략
-        # 대신 assign_role 메서드를 통해 별도로 할당해야 함
+        # 세션 ID가 제공된 경우 자동으로 세션 멤버로 추가
+        if session_id:
+            from models.education.session import EducationSession
+            from models.education.session_member import EducationSessionMember
+
+            # 세션 존재 확인
+            session = db.session.query(EducationSession).filter_by(id=session_id).first()
+            if not session:
+                db.session.rollback()
+                raise ValueError(f"Session not found: {session_id}")
+
+            # 세션 멤버 추가
+            session_member = EducationSessionMember(
+                id=str(uuid.uuid4()),
+                session_id=session_id,
+                account_id=account.id,
+                joined_at=datetime.now(UTC),
+                status="active",
+                created_at=datetime.now(UTC),
+            )
+            db.session.add(session_member)
 
         db.session.commit()
 

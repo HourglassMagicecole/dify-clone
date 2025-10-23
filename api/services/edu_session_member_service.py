@@ -39,6 +39,11 @@ class EduSessionMemberService:
             )
 
             if existing_member:
+                # If member was removed, reactivate them
+                if existing_member.status == MemberStatus.REMOVED.value:
+                    existing_member.status = MemberStatus.ACTIVE.value
+                    existing_member.updated_at = datetime.now(UTC)
+                    db_session.commit()
                 return existing_member
 
             # Create new member

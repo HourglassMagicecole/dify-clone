@@ -34,6 +34,9 @@
       "passwordLabel": "Password",
       "passwordPlaceholder": "Min 8 chars (letters+numbers)",
       "roleLabel": "Role",
+      "sessionLabel": "Assign to Session (Optional)",
+      "sessionPlaceholder": "-- No session --",
+      "sessionHelp": "User will be automatically added to the selected session",
       "submitButton": "Create",
       "cancelButton": "Cancel"
     },

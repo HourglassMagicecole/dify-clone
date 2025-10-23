@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import useSWR from 'swr'
 import { DashboardAPI } from '../../../service/dashboard-api'
 import { ResourceSummaryCard, EmptyResourceState } from '../../../components/dashboard/ResourceSummaryCard'
@@ -13,6 +14,7 @@ import { QuickStartButtons } from '../../../components/dashboard/QuickStartButto
  * 로그인 후 첫 화면으로 리소스 요약과 최근 활동 표시
  */
 export default function StudentDashboard() {
+  const { t } = useTranslation('dashboard')
   // SWR을 사용한 데이터 페칭
   const { data, error, isLoading } = useSWR(
     'dashboard-data',
@@ -31,9 +33,9 @@ export default function StudentDashboard() {
           <div className="flex items-center">
             <div className="text-red-600 text-xl mr-3">⚠️</div>
             <div>
-              <h3 className="text-red-900 font-medium">데이터 로딩 실패</h3>
+              <h3 className="text-red-900 font-medium">{t('dashboard.error.title')}</h3>
               <p className="text-red-700 text-sm mt-1">
-                대시보드 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.
+                {t('dashboard.error.description')}
               </p>
             </div>
           </div>
@@ -49,8 +51,8 @@ export default function StudentDashboard() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* 페이지 헤더 */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">대시보드</h1>
-        <p className="text-gray-600 mt-2">내 학습 현황과 리소스를 확인하세요</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+        <p className="text-gray-600 mt-2">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* 리소스 요약 카드 */}

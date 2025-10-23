@@ -7,6 +7,7 @@ import { UserAvatar } from '@/components/common/UserAvatar';
 import { Dropdown } from '@/components/common/Dropdown';
 import { DropdownItem } from '@/components/common/DropdownItem';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
+import { SessionSelector } from '@/components/session/SessionSelector';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
@@ -84,6 +85,9 @@ export function NavigationHeader() {
 
           {/* Right menu section */}
           <div className="flex items-center gap-4">
+            {/* Session selector (admin only) */}
+            {user.role === 'admin' && <SessionSelector />}
+
             {/* Language selector (AC: 4) */}
             <LanguageSelector />
 
@@ -143,14 +147,31 @@ export function NavigationHeader() {
             >
               {t('common:nav.datasets')}
             </Link>
-            {/* Admin-only navigation (owner and admin roles both map to 'admin' in AuthContext) */}
-            {user.role === 'admin' && (
+            {/* Regular user: My Session */}
+            {user.role !== 'admin' && (
               <Link
-                href="/users"
+                href="/my-session"
                 className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
               >
-                {t('common:nav.users')}
+                {t('common:nav.my_session')}
               </Link>
+            )}
+            {/* Admin-only navigation (owner and admin roles both map to 'admin' in AuthContext) */}
+            {user.role === 'admin' && (
+              <>
+                <Link
+                  href="/admin/sessions"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  {t('common:nav.sessions')}
+                </Link>
+                <Link
+                  href="/admin/users"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  {t('common:nav.users')}
+                </Link>
+              </>
             )}
           </div>
         </div>

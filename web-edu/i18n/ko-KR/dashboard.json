@@ -27,8 +27,11 @@
     "quickStart": {
       "title": "빠른 시작",
       "createAgent": "Agent 생성",
+      "createAgentDesc": "대화형 AI Agent 만들기",
       "createWorkflow": "Workflow 생성",
-      "createDataset": "Dataset 생성"
+      "createWorkflowDesc": "AI 워크플로우 구성하기",
+      "createDataset": "Dataset 생성",
+      "createDatasetDesc": "RAG 지식베이스 만들기"
     },
     "empty": {
       "title": "아직 생성한 리소스가 없습니다",

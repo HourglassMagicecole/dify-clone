@@ -17,11 +17,19 @@
   "loading": "Loading...",
   "error": "Error",
   "success": "Success",
+  "copy": "Copy",
+  "copied": "Copied",
+  "admin_page_title": "Admin Page",
+  "admin_page_description": "This page can only be accessed by users with the admin role.",
+  "admin_dashboard_title": "Admin Dashboard",
   "nav": {
     "dashboard": "Dashboard",
     "agents": "Agents",
     "workflows": "Workflows",
     "datasets": "Datasets",
+    "my_session": "My Session",
+    "my_sessions": "My Sessions",
+    "sessions": "Sessions",
     "users": "User Management"
   }
 }

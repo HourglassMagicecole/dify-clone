@@ -1,5 +1,7 @@
 """Education session member management API endpoints."""
 
+from datetime import UTC
+
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 
@@ -55,7 +57,7 @@ def get_session_members(session_id: str):
                 "account_id": member.account_id,
                 "account_name": member.account.name if member.account else None,
                 "status": member.status,
-                "joined_at": member.joined_at.isoformat() if member.joined_at else None,
+                "joined_at": member.joined_at.replace(tzinfo=UTC).isoformat() if member.joined_at else None,
             }
             for member in members
         ]
@@ -112,7 +114,7 @@ def add_session_member(session_id: str):
             "account_id": member.account_id,
             "account_name": member.account.name if member.account else None,
             "status": member.status,
-            "joined_at": member.joined_at.isoformat() if member.joined_at else None,
+            "joined_at": member.joined_at.replace(tzinfo=UTC).isoformat() if member.joined_at else None,
         }
 
         return jsonify({"result": "success", "data": {"member": member_data}}), 201

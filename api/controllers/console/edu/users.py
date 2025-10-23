@@ -24,6 +24,7 @@ class CreateUserRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     password: str = Field(..., min_length=8)
     role: str | None = Field(default="student", pattern="^(admin|student)$")
+    session_id: str | None = Field(default=None, description="Optional session ID to add user to")
 
 
 class UpdateUserRequest(BaseModel):
@@ -93,7 +94,12 @@ def create_user():
     try:
         service = UserManagementService()
         user = service.create_user(
-            email=data.email, name=data.name, password=data.password, role=data.role, creator_account=request.user
+            email=data.email,
+            name=data.name,
+            password=data.password,
+            role=data.role,
+            session_id=data.session_id,
+            creator_account=request.user,
         )
 
         return jsonify({"result": "success", "data": user}), 201

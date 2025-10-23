@@ -34,6 +34,9 @@
       "passwordLabel": "비밀번호",
       "passwordPlaceholder": "최소 8자 (영문+숫자)",
       "roleLabel": "역할",
+      "sessionLabel": "세션 할당 (선택)",
+      "sessionPlaceholder": "-- 세션 없음 --",
+      "sessionHelp": "선택한 세션에 사용자가 자동으로 추가됩니다",
       "submitButton": "생성",
       "cancelButton": "취소"
     },

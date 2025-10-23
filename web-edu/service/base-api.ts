@@ -1,3 +1,5 @@
+import { getAccessToken } from '@/utils/storage'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001'
 
 export interface ApiResponse<T> {
@@ -9,26 +11,40 @@ export interface ApiResponse<T> {
 
 export class ApiClient {
   private baseUrl: string
-  private headers: HeadersInit
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl
-    this.headers = {
-      'Content-Type': 'application/json',
-    }
   }
 
-  setAuthToken(token: string) {
-    this.headers = {
-      ...this.headers,
-      'Authorization': `Bearer ${token}`,
+  /**
+   * Get headers with current access token
+   * Token is fetched fresh on every request to handle token refresh automatically
+   */
+  private getHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
     }
+
+    const token = getAccessToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    return headers
+  }
+
+  /**
+   * @deprecated Use getHeaders() instead. This method is kept for backward compatibility.
+   */
+  setAuthToken(_token: string) {
+    // No-op: Token is now fetched dynamically on each request
+    console.warn('ApiClient.setAuthToken() is deprecated and has no effect. Tokens are now fetched automatically.')
   }
 
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'GET',
-      headers: this.headers,
+      headers: this.getHeaders(),
     })
 
     if (!response.ok) {
@@ -41,7 +57,7 @@ export class ApiClient {
   async post<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
-      headers: this.headers,
+      headers: this.getHeaders(),
       body: JSON.stringify(data),
     })
 
@@ -55,7 +71,7 @@ export class ApiClient {
   async put<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'PUT',
-      headers: this.headers,
+      headers: this.getHeaders(),
       body: JSON.stringify(data),
     })
 
@@ -69,7 +85,7 @@ export class ApiClient {
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'DELETE',
-      headers: this.headers,
+      headers: this.getHeaders(),
     })
 
     if (!response.ok) {

@@ -1,12 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Modal } from '@/components/common/Modal'
+import { sessionAPI } from '@/service/session-api'
 import type { CreateUserRequest } from '@/types/user-management'
+import type { Session } from '@/types/session'
 
 // Zod 스키마 정의
 const createUserSchema = z.object({
@@ -34,6 +36,8 @@ export function CreateUserModal({
   const { t } = useTranslation('user-management')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('')
 
   const {
     register,
@@ -47,11 +51,32 @@ export function CreateUserModal({
     },
   })
 
+  // Load active sessions
+  useEffect(() => {
+    const loadSessions = async () => {
+      try {
+        const data = await sessionAPI.listSessions(true) // Active sessions only
+        setSessions(data.sessions)
+      }
+      catch (err) {
+        console.error('Failed to load sessions:', err)
+      }
+    }
+    if (isOpen) {
+      loadSessions()
+    }
+  }, [isOpen])
+
   const handleFormSubmit = async (data: CreateUserFormData) => {
     setIsSubmitting(true)
     try {
-      await onSubmit(data)
+      const requestData: CreateUserRequest = {
+        ...data,
+        session_id: selectedSessionId || undefined, // Include session_id if selected
+      }
+      await onSubmit(requestData)
       reset()
+      setSelectedSessionId('')
       onClose()
     }
     catch (error) {
@@ -177,6 +202,28 @@ export function CreateUserModal({
           {errors.role && (
             <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
           )}
+        </div>
+
+        {/* Session Assignment */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('userManagement.createModal.sessionLabel')}
+          </label>
+          <select
+            value={selectedSessionId}
+            onChange={e => setSelectedSessionId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">{t('userManagement.createModal.sessionPlaceholder')}</option>
+            {sessions.map(session => (
+              <option key={session.id} value={session.id}>
+                {session.session_name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            {t('userManagement.createModal.sessionHelp')}
+          </p>
         </div>
       </form>
     </Modal>

@@ -17,11 +17,19 @@
   "loading": "로딩 중...",
   "error": "오류 발생",
   "success": "성공",
+  "copy": "복사",
+  "copied": "복사됨",
+  "admin_page_title": "관리자 페이지",
+  "admin_page_description": "이 페이지는 admin 역할을 가진 사용자만 접근할 수 있습니다.",
+  "admin_dashboard_title": "관리자 대시보드",
   "nav": {
     "dashboard": "대시보드",
     "agents": "에이전트",
     "workflows": "워크플로우",
     "datasets": "데이터셋",
+    "my_session": "나의 세션",
+    "my_sessions": "나의 세션들",
+    "sessions": "세션 관리",
     "users": "사용자 관리"
   }
 }

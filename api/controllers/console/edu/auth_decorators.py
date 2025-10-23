@@ -98,10 +98,16 @@ def admin_required(view: Callable[P, R]) -> Callable[P, R]:
             abort(401, "Authentication required")
 
         # 현재 사용자의 Tenant 역할 조회 (Dify 기존 시스템 사용)
-        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account.id).first()
+        # current=True로 현재 활성 tenant만 확인
+        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account.id, current=True).first()
 
+        # Fallback: current=True가 없으면 첫 번째 tenant 사용
         if not tenant_join:
-            abort(403, "No tenant membership found")
+            all_joins = db.session.query(TenantAccountJoin).filter_by(account_id=account.id).all()
+            if all_joins:
+                tenant_join = all_joins[0]
+            else:
+                abort(403, "No tenant membership found")
 
         # Admin 또는 Owner 역할만 허용
         try:
@@ -111,6 +117,9 @@ def admin_required(view: Callable[P, R]) -> Callable[P, R]:
 
         if not TenantAccountRole.is_privileged_role(role):
             abort(403, "Admin permission required")
+
+        # Store tenant_id in request for use in view functions
+        request.tenant_id = tenant_join.tenant_id
 
         return view(*args, **kwargs)
 

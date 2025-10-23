@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ResourceSummary } from '../../types/dashboard'
 
 interface ResourceSummaryCardProps {
@@ -13,6 +14,7 @@ interface ResourceSummaryCardProps {
  * Agent, Workflow, Dataset 개수를 카드 형태로 표시
  */
 export function ResourceSummaryCard({ summary, isLoading = false }: ResourceSummaryCardProps) {
+  const { t } = useTranslation('dashboard')
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -28,21 +30,21 @@ export function ResourceSummaryCard({ summary, isLoading = false }: ResourceSumm
 
   const resources = [
     {
-      label: 'Agents',
+      label: t('dashboard.resourceSummary.agents'),
       count: summary.agents,
       icon: '🤖',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
-      label: 'Workflows',
+      label: t('dashboard.resourceSummary.workflows'),
       count: summary.workflows,
       icon: '🔄',
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
-      label: 'Datasets',
+      label: t('dashboard.resourceSummary.datasets'),
       count: summary.datasets,
       icon: '📚',
       color: 'text-purple-600',
@@ -76,6 +78,8 @@ export function ResourceSummaryCard({ summary, isLoading = false }: ResourceSumm
  * 리소스가 없을 때 표시할 빈 상태 컴포넌트
  */
 export function EmptyResourceState() {
+  const { t } = useTranslation('dashboard')
+
   const handleGetStarted = () => {
     // 빠른 시작 버튼 섹션으로 스크롤
     // QuickStartButtons 컴포넌트는 페이지 내에 이미 렌더링되어 있음
@@ -89,16 +93,16 @@ export function EmptyResourceState() {
     <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
       <div className="text-6xl mb-4">📦</div>
       <h3 className="text-lg font-medium text-gray-900 mb-2">
-        아직 생성한 리소스가 없습니다
+        {t('dashboard.empty.title')}
       </h3>
       <p className="text-gray-600 mb-6">
-        Agent, Workflow, Dataset을 생성하여 AI 학습을 시작하세요
+        {t('dashboard.empty.description')}
       </p>
       <button
         className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         onClick={handleGetStarted}
       >
-        시작하기
+        {t('dashboard.empty.button')}
       </button>
     </div>
   )

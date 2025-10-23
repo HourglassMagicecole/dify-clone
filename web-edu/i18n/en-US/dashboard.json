@@ -27,8 +27,11 @@
     "quickStart": {
       "title": "Quick Start",
       "createAgent": "Create Agent",
+      "createAgentDesc": "Build conversational AI Agent",
       "createWorkflow": "Create Workflow",
-      "createDataset": "Create Dataset"
+      "createWorkflowDesc": "Configure AI workflows",
+      "createDataset": "Create Dataset",
+      "createDatasetDesc": "Build RAG knowledge base"
     },
     "empty": {
       "title": "No resources created yet",

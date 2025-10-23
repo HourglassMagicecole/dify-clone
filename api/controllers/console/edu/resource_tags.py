@@ -2,6 +2,7 @@
 
 import logging
 import uuid
+from datetime import UTC
 
 from flask import Blueprint, request
 from flask_login import login_required
@@ -72,7 +73,7 @@ def create_tag():
                 "resource_type": tag.resource_type,
                 "resource_id": tag.resource_id,
                 "account_id": tag.account_id,
-                "tagged_at": tag.tagged_at.isoformat() if tag.tagged_at else None,
+                "tagged_at": tag.tagged_at.replace(tzinfo=UTC).isoformat() if tag.tagged_at else None,
             },
         }, 201
 
@@ -156,7 +157,7 @@ def get_tags_by_resource(resource_type: str, resource_id: str):
                     "tag_id": tag.id,
                     "session_id": tag.session_id,
                     "account_id": tag.account_id,
-                    "tagged_at": tag.tagged_at.isoformat() if tag.tagged_at else None,
+                    "tagged_at": tag.tagged_at.replace(tzinfo=UTC).isoformat() if tag.tagged_at else None,
                 }
                 for tag in tags
             ],
