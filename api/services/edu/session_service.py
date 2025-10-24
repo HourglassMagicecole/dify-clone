@@ -6,6 +6,7 @@ from typing import Optional
 from sqlalchemy import select
 
 from extensions.ext_database import db
+from models.account import Account, TenantAccountJoin, TenantAccountRole
 from models.education.session import EducationSession
 from models.education.session_member import MemberStatus
 
@@ -99,15 +100,17 @@ class EduSessionService:
 
     def list_sessions(
         self,
+        current_user: Account,
         is_active: Optional[bool] = None,
         instructor_account_id: Optional[str] = None,
         page: int = 1,
         limit: int = 20,
     ) -> dict:
         """
-        List education sessions with pagination.
+        List education sessions with pagination and permission filtering.
 
         Args:
+            current_user: 현재 사용자 (Account 객체)
             is_active: Filter by active status (None = all)
             instructor_account_id: Filter by instructor account ID (None = all)
             page: Page number (starts from 1)
@@ -120,15 +123,44 @@ class EduSessionService:
                 "page": int,
                 "limit": int
             }
+
+        Permission Logic:
+            - Owner: 모든 세션 조회 (필터 없음)
+            - Admin: instructor_account_id = current_user.id 자동 필터링
+            - Others (Editor, Normal 등): 자신이 멤버로 등록된 세션만 조회
         """
-        # Build query
+        # Get user's role
+        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=current_user.id, current=True).first()
+
+        if not tenant_join:
+            tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=current_user.id).first()
+
+        if tenant_join:
+            role = TenantAccountRole(tenant_join.role)
+
+            # Owner와 Admin이 아닌 모든 역할(Editor, Normal 등)은 멤버십 기반 필터링
+            if role not in [TenantAccountRole.OWNER, TenantAccountRole.ADMIN]:
+                return self.list_sessions_by_member(
+                    account_id=current_user.id, is_active=is_active, page=page, limit=limit
+                )
+
+        # Build query for Owner/Admin
         query = select(EducationSession)
+
+        # Permission filtering: Admin은 자신이 생성한 세션만 조회
+        if tenant_join:
+            role = TenantAccountRole(tenant_join.role)
+            # Admin은 자신이 생성한 세션만
+            if role == TenantAccountRole.ADMIN:
+                query = query.where(EducationSession.instructor_account_id == current_user.id)
+            # Owner는 모든 세션 조회 (필터 없음)
 
         # Filter by is_active if specified
         if is_active is not None:
             query = query.where(EducationSession.is_active == is_active)
 
         # Filter by instructor_account_id if specified
+        # (Owner가 특정 관리자의 세션만 보고 싶을 때 사용)
         if instructor_account_id is not None:
             query = query.where(EducationSession.instructor_account_id == instructor_account_id)
 

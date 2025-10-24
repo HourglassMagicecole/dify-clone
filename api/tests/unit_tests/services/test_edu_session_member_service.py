@@ -193,6 +193,14 @@ class TestEduSessionMemberService:
         session_id = str(uuid.uuid4())
         account_id = str(uuid.uuid4())
 
+        # Mock Account
+        mock_account = MagicMock()
+        mock_account.id = account_id
+
+        # Mock TenantAccountJoin (non-owner role)
+        mock_tenant_join = MagicMock()
+        mock_tenant_join.role = "admin"  # Not owner, so membership check will proceed
+
         existing_member = MagicMock()
         existing_member.id = str(uuid.uuid4())
         existing_member.session_id = session_id
@@ -200,9 +208,18 @@ class TestEduSessionMemberService:
         existing_member.status = "active"
 
         mock_db_session = MagicMock()
-        mock_query = mock_db_session.query.return_value
-        mock_filter = mock_query.filter.return_value
-        mock_filter.first.return_value = existing_member
+        mock_db_session.get.return_value = mock_account  # Account lookup
+
+        # Setup query chains for TenantAccountJoin and EducationSessionMember
+        def query_side_effect(model):
+            mock_query = MagicMock()
+            if hasattr(model, "__name__") and model.__name__ == "TenantAccountJoin":
+                mock_query.filter_by.return_value.first.return_value = mock_tenant_join
+            else:
+                mock_query.filter.return_value.first.return_value = existing_member
+            return mock_query
+
+        mock_db_session.query.side_effect = query_side_effect
 
         # Act
         result = EduSessionMemberService.is_session_member(
@@ -224,10 +241,27 @@ class TestEduSessionMemberService:
         session_id = str(uuid.uuid4())
         account_id = str(uuid.uuid4())
 
+        # Mock Account
+        mock_account = MagicMock()
+        mock_account.id = account_id
+
+        # Mock TenantAccountJoin (non-owner role)
+        mock_tenant_join = MagicMock()
+        mock_tenant_join.role = "admin"  # Not owner, so membership check will proceed
+
         mock_db_session = MagicMock()
-        mock_query = mock_db_session.query.return_value
-        mock_filter = mock_query.filter.return_value
-        mock_filter.first.return_value = None
+        mock_db_session.get.return_value = mock_account  # Account lookup
+
+        # Setup query chains for TenantAccountJoin and EducationSessionMember
+        def query_side_effect(model):
+            mock_query = MagicMock()
+            if hasattr(model, "__name__") and model.__name__ == "TenantAccountJoin":
+                mock_query.filter_by.return_value.first.return_value = mock_tenant_join
+            else:
+                mock_query.filter.return_value.first.return_value = None  # No membership
+            return mock_query
+
+        mock_db_session.query.side_effect = query_side_effect
 
         # Act
         result = EduSessionMemberService.is_session_member(

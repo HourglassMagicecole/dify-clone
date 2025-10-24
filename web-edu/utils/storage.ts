@@ -15,6 +15,7 @@ const REFRESH_TOKEN_KEY = 'edu_refresh_token'
 export function setTokens(accessToken: string, refreshToken: string): void {
   // 쿠키 옵션: Secure (HTTPS only in production), SameSite (CSRF 방지)
   const cookieOptions: Cookies.CookieAttributes = {
+    path: '/', // 명시적으로 path 지정
     expires: 7, // 7일
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -49,8 +50,9 @@ export function getRefreshToken(): string | undefined {
  * 토큰 삭제
  */
 export function clearTokens(): void {
-  Cookies.remove(ACCESS_TOKEN_KEY)
-  Cookies.remove(REFRESH_TOKEN_KEY)
+  // Cookie 삭제 시 저장 시 사용한 path 옵션을 명시해야 제대로 삭제됨
+  Cookies.remove(ACCESS_TOKEN_KEY, { path: '/' })
+  Cookies.remove(REFRESH_TOKEN_KEY, { path: '/' })
 }
 
 /**

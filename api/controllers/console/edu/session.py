@@ -5,10 +5,21 @@ from datetime import UTC, datetime
 from flask import Blueprint, jsonify, request
 from pydantic import BaseModel, Field
 
-from controllers.console.edu.auth_decorators import admin_required, jwt_required
+from controllers.console.edu.auth_decorators import (
+    admin_required,
+    jwt_required,
+    owner_or_creator_required,
+)
 from services.edu.session_service import EduSessionService
 
 bp = Blueprint("edu_sessions", __name__, url_prefix="/console/api/edu/sessions")
+
+
+# Helper function for owner_or_creator_required decorator
+def _get_session_by_id(session_id: str):
+    """세션 조회 헬퍼 함수 (owner_or_creator_required용)."""
+    service = EduSessionService()
+    return service.get_session(session_id)
 
 
 # Pydantic 요청/응답 모델
@@ -120,8 +131,10 @@ def list_sessions():
     """
     세션 목록 조회.
 
-    - 관리자: 자신이 생성한 세션 조회
-    - 일반 사용자: 자신이 멤버로 속한 세션 조회
+    Permission:
+        - Owner: 모든 세션 조회
+        - Admin: 자신이 생성한 세션만 조회
+        - Others (Editor, Normal 등): 자신이 멤버로 등록된 세션만 조회
 
     Query Parameters:
         is_active (bool, optional): 활성 상태 필터 (true/false)
@@ -142,16 +155,8 @@ def list_sessions():
     try:
         service = EduSessionService()
 
-        # Admin: show sessions created by current user (instructor)
-        # Regular user: show sessions where user is a member
-        if request.user.is_admin:
-            result = service.list_sessions(
-                is_active=is_active, instructor_account_id=request.user.id, page=page, limit=limit
-            )
-        else:
-            result = service.list_sessions_by_member(
-                account_id=request.user.id, is_active=is_active, page=page, limit=limit
-            )
+        # Permission filtering is handled in service layer
+        result = service.list_sessions(current_user=request.user, is_active=is_active, page=page, limit=limit)
 
         # Convert sessions to dict
         sessions_data = []
@@ -195,10 +200,14 @@ def list_sessions():
 
 @bp.route("/<string:session_id>", methods=["GET"])
 @jwt_required
-@admin_required
+@owner_or_creator_required(_get_session_by_id)
 def get_session(session_id: str):
     """
-    세션 상세 조회 (관리자만, 자신이 생성한 세션만).
+    세션 상세 조회 (소유자 또는 생성자만).
+
+    Permission:
+        - Owner: 모든 세션 조회 가능
+        - Admin: 자신이 생성한 세션만 조회 가능
 
     Args:
         session_id: Session UUID
@@ -210,9 +219,7 @@ def get_session(session_id: str):
         service = EduSessionService()
         session = service.get_session(session_id)
 
-        # Check ownership
-        if session.instructor_account_id != request.user.id:
-            return jsonify({"result": "error", "message": "You can only view your own sessions"}), 403
+        # Permission is checked by @owner_or_creator_required decorator
 
         return jsonify(
             {
@@ -242,10 +249,14 @@ def get_session(session_id: str):
 
 @bp.route("/<string:session_id>", methods=["PUT"])
 @jwt_required
-@admin_required
+@owner_or_creator_required(_get_session_by_id)
 def update_session(session_id: str):
     """
-    세션 수정 (관리자만, 자신이 생성한 세션만).
+    세션 수정 (소유자 또는 생성자만).
+
+    Permission:
+        - Owner: 모든 세션 수정 가능
+        - Admin: 자신이 생성한 세션만 수정 가능
 
     Args:
         session_id: Session UUID
@@ -272,10 +283,7 @@ def update_session(session_id: str):
     try:
         service = EduSessionService()
 
-        # Check ownership first
-        session = service.get_session(session_id)
-        if session.instructor_account_id != request.user.id:
-            return jsonify({"result": "error", "message": "You can only update your own sessions"}), 403
+        # Permission is checked by @owner_or_creator_required decorator
 
         # Parse dates if provided
         start_date = None
@@ -321,10 +329,14 @@ def update_session(session_id: str):
 
 @bp.route("/<string:session_id>", methods=["DELETE"])
 @jwt_required
-@admin_required
+@owner_or_creator_required(_get_session_by_id)
 def delete_session(session_id: str):
     """
-    세션 삭제 (관리자만, 자신이 생성한 세션만).
+    세션 삭제 (소유자 또는 생성자만).
+
+    Permission:
+        - Owner: 모든 세션 삭제 가능
+        - Admin: 자신이 생성한 세션만 삭제 가능
 
     Args:
         session_id: Session UUID
@@ -338,10 +350,7 @@ def delete_session(session_id: str):
     try:
         service = EduSessionService()
 
-        # Check ownership first
-        session = service.get_session(session_id)
-        if session.instructor_account_id != request.user.id:
-            return jsonify({"result": "error", "message": "You can only delete your own sessions"}), 403
+        # Permission is checked by @owner_or_creator_required decorator
 
         service.delete_session(session_id)
 
@@ -355,10 +364,14 @@ def delete_session(session_id: str):
 
 @bp.route("/<string:session_id>/members", methods=["GET"])
 @jwt_required
-@admin_required
+@owner_or_creator_required(_get_session_by_id)
 def get_session_members(session_id: str):
     """
-    세션 멤버 목록 조회 (관리자만, 자신이 생성한 세션만).
+    세션 멤버 목록 조회 (소유자 또는 생성자만).
+
+    Permission:
+        - Owner: 모든 세션의 멤버 조회 가능
+        - Admin: 자신이 생성한 세션의 멤버만 조회 가능
 
     Args:
         session_id: Session UUID
@@ -369,13 +382,7 @@ def get_session_members(session_id: str):
     try:
         service = EduSessionService()
 
-        # Check ownership first
-        session = service.get_session(session_id)
-        if session.instructor_account_id != request.user.id:
-            return (
-                jsonify({"result": "error", "message": "You can only view members of your own sessions"}),
-                403,
-            )
+        # Permission is checked by @owner_or_creator_required decorator
 
         members = service.get_session_members(session_id)
 
@@ -389,10 +396,14 @@ def get_session_members(session_id: str):
 
 @bp.route("/<string:session_id>/members", methods=["POST"])
 @jwt_required
-@admin_required
+@owner_or_creator_required(_get_session_by_id)
 def add_session_member(session_id: str):
     """
-    세션 멤버 추가 (관리자만, 자신이 생성한 세션만).
+    세션 멤버 추가 (소유자 또는 생성자만).
+
+    Permission:
+        - Owner: 모든 세션에 멤버 추가 가능
+        - Admin: 자신이 생성한 세션에만 멤버 추가 가능
 
     Args:
         session_id: Session UUID
@@ -414,13 +425,7 @@ def add_session_member(session_id: str):
     try:
         service = EduSessionService()
 
-        # Check ownership first
-        session = service.get_session(session_id)
-        if session.instructor_account_id != request.user.id:
-            return (
-                jsonify({"result": "error", "message": "You can only add members to your own sessions"}),
-                403,
-            )
+        # Permission is checked by @owner_or_creator_required decorator
 
         service.add_session_member(session_id, data.account_id)
 
@@ -434,10 +439,14 @@ def add_session_member(session_id: str):
 
 @bp.route("/<string:session_id>/members/<string:account_id>", methods=["DELETE"])
 @jwt_required
-@admin_required
+@owner_or_creator_required(_get_session_by_id)
 def remove_session_member(session_id: str, account_id: str):
     """
-    세션 멤버 제거 (관리자만, 자신이 생성한 세션만).
+    세션 멤버 제거 (소유자 또는 생성자만).
+
+    Permission:
+        - Owner: 모든 세션에서 멤버 제거 가능
+        - Admin: 자신이 생성한 세션에서만 멤버 제거 가능
 
     Args:
         session_id: Session UUID
@@ -449,13 +458,7 @@ def remove_session_member(session_id: str, account_id: str):
     try:
         service = EduSessionService()
 
-        # Check ownership first
-        session = service.get_session(session_id)
-        if session.instructor_account_id != request.user.id:
-            return (
-                jsonify({"result": "error", "message": "You can only remove members from your own sessions"}),
-                403,
-            )
+        # Permission is checked by @owner_or_creator_required decorator
 
         removed = service.remove_session_member(session_id, account_id)
 

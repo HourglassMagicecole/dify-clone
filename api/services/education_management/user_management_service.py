@@ -10,7 +10,7 @@ from sqlalchemy import func
 
 from extensions.ext_database import db
 from libs.password import hash_password
-from models.account import Account, TenantAccountJoin
+from models.account import Account, TenantAccountJoin, TenantAccountRole
 from models.education.user_role import EduUserRole
 
 
@@ -58,25 +58,140 @@ class UserManagementService:
             return "student"
         return role
 
-    def list_users(self, page: int = 1, limit: int = 20) -> dict[str, Any]:
+    @staticmethod
+    def _can_admin_manage_user(admin_account_id: str, target_user_id: str) -> bool:
         """
-        사용자 목록 조회.
+        Admin이 특정 사용자를 관리할 권한이 있는지 확인.
+
+        Admin은 다음 경우에 사용자를 관리할 수 있음:
+        1. 직접 생성한 사용자 (created_by = admin_id)
+        2. 자신이 생성한 세션의 멤버
 
         Args:
+            admin_account_id: Admin 계정 ID
+            target_user_id: 대상 사용자 ID
+
+        Returns:
+            bool: 권한이 있으면 True, 없으면 False
+        """
+        # 1. created_by 확인
+        user = db.session.get(Account, target_user_id)
+        if user and user.created_by == admin_account_id:
+            return True
+
+        # 2. 세션 멤버십 확인
+        from models.education.session import EducationSession
+        from models.education.session_member import EducationSessionMember
+
+        # Admin이 생성한 세션의 멤버인지 확인
+        is_member = (
+            db.session.query(EducationSessionMember)
+            .join(EducationSession, EducationSessionMember.session_id == EducationSession.id)
+            .filter(
+                EducationSession.instructor_account_id == admin_account_id,
+                EducationSessionMember.account_id == target_user_id,
+                EducationSessionMember.status == "active",
+            )
+            .first()
+        )
+
+        return is_member is not None
+
+    def list_users(self, current_user: Account, page: int = 1, limit: int = 20) -> dict[str, Any]:
+        """
+        사용자 목록 조회 (권한 기반 필터링).
+
+        Args:
+            current_user: 현재 사용자 (Account 객체)
             page: 페이지 번호 (1부터 시작)
             limit: 페이지당 사용자 수
 
         Returns:
             사용자 목록 및 페이지네이션 정보
+
+        Permission Logic:
+            - Owner: 모든 사용자 조회
+            - Admin: 다음 사용자 조회 가능
+              1. created_by = current_user.id (직접 생성한 사용자)
+              2. 자신이 생성한 세션의 멤버
         """
         offset = (page - 1) * limit
 
-        # 사용자 목록 조회
-        users_query = db.session.query(Account).offset(offset).limit(limit)
+        # 사용자 목록 조회 (권한 필터링 추가)
+        users_query = db.session.query(Account)
+
+        # Permission filtering
+        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=current_user.id, current=True).first()
+
+        if not tenant_join:
+            tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=current_user.id).first()
+
+        role = None
+        if tenant_join:
+            role = TenantAccountRole(tenant_join.role)
+            # Admin은 다음 사용자들 조회 가능:
+            # 1. 자신이 생성한 사용자 (created_by)
+            # 2. 자신이 생성한 세션의 멤버
+            if role == TenantAccountRole.ADMIN:
+                from models.education.session import EducationSession
+                from models.education.session_member import EducationSessionMember
+
+                # Admin이 생성한 세션 ID 목록
+                admin_session_ids_subquery = (
+                    db.session.query(EducationSession.id)
+                    .filter(EducationSession.instructor_account_id == current_user.id)
+                    .subquery()
+                )
+
+                # 세션 멤버 account_id 목록
+                session_member_ids_subquery = (
+                    db.session.query(EducationSessionMember.account_id)
+                    .filter(
+                        EducationSessionMember.session_id.in_(admin_session_ids_subquery),  # type: ignore[arg-type]
+                        EducationSessionMember.status == "active",
+                    )
+                    .subquery()
+                )
+
+                # created_by = current_user.id OR id IN (session members)
+                users_query = users_query.filter(
+                    db.or_(
+                        Account.created_by == current_user.id,
+                        Account.id.in_(session_member_ids_subquery),  # type: ignore[arg-type]
+                    )
+                )
+            # Owner는 모든 사용자 조회 (필터 없음)
+
+        # 페이지네이션 적용
+        users_query = users_query.offset(offset).limit(limit)
         users = users_query.all()
 
-        # 전체 사용자 수
-        total = db.session.query(func.count(Account.id)).scalar() or 0
+        # 전체 사용자 수 (권한 필터링 적용)
+        total_query = db.session.query(func.count(Account.id))
+        if tenant_join and role == TenantAccountRole.ADMIN:
+            from models.education.session import EducationSession
+            from models.education.session_member import EducationSessionMember
+
+            admin_session_ids_subquery = (
+                db.session.query(EducationSession.id)
+                .filter(EducationSession.instructor_account_id == current_user.id)
+                .subquery()
+            )
+            session_member_ids_subquery = (
+                db.session.query(EducationSessionMember.account_id)
+                .filter(
+                    EducationSessionMember.session_id.in_(admin_session_ids_subquery),  # type: ignore[arg-type]
+                    EducationSessionMember.status == "active",
+                )
+                .subquery()
+            )
+            total_query = total_query.filter(
+                db.or_(
+                    Account.created_by == current_user.id,
+                    Account.id.in_(session_member_ids_subquery),  # type: ignore[arg-type]
+                )
+            )
+        total = total_query.scalar() or 0
 
         # 사용자 데이터 변환
         user_list = []
@@ -86,14 +201,28 @@ class UserManagementService:
                 "email": user.email,
                 "name": user.name,
                 "status": user.status,
+                "created_by": user.created_by,
                 "created_at": user.created_at.isoformat() if user.created_at else None,
                 "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
             }
 
+            # 생성자 정보 추가 (created_by가 있을 경우)
+            if user.created_by:
+                creator = db.session.get(Account, user.created_by)
+                if creator:
+                    user_dict["created_by_name"] = creator.name
+                    user_dict["created_by_email"] = creator.email
+                else:
+                    user_dict["created_by_name"] = None
+                    user_dict["created_by_email"] = None
+            else:
+                user_dict["created_by_name"] = None
+                user_dict["created_by_email"] = None
+
             # 시스템 역할 정보 추가 (TenantAccountJoin에서 조회)
-            tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=user.id).first()
-            if tenant_join:
-                user_dict["role"] = self._denormalize_role(tenant_join.role)
+            tenant_join_user = db.session.query(TenantAccountJoin).filter_by(account_id=user.id).first()
+            if tenant_join_user:
+                user_dict["role"] = self._denormalize_role(tenant_join_user.role)
 
             user_list.append(user_dict)
 
@@ -138,15 +267,25 @@ class UserManagementService:
         if not creator_account:
             raise ValueError("creator_account is required to create user")
 
-        # creator의 tenant_id 가져오기
+        # creator의 tenant_id 및 역할 가져오기
         # JWT 인증에서는 current_tenant_id가 설정되지 않을 수 있으므로 TenantAccountJoin에서 조회
         creator_tenant_id = creator_account.current_tenant_id
+        creator_join = None
         if not creator_tenant_id:
             # TenantAccountJoin에서 조회
             creator_join = db.session.query(TenantAccountJoin).filter_by(account_id=creator_account.id).first()
             if not creator_join:
                 raise ValueError("Creator account is not a member of any tenant")
             creator_tenant_id = creator_join.tenant_id
+        else:
+            # creator_join이 없으면 조회
+            creator_join = db.session.query(TenantAccountJoin).filter_by(account_id=creator_account.id).first()
+
+        # Admin 권한 검증: Admin은 student만 생성 가능
+        if creator_join and role and role.lower() == "admin":
+            creator_role = TenantAccountRole(creator_join.role)
+            if creator_role == TenantAccountRole.ADMIN:
+                raise ValueError("Admin users can only create 'student' role users. Only owner can create admin users.")
 
         # 역할 정규화
         normalized_role = self._normalize_role(role)
@@ -167,6 +306,7 @@ class UserManagementService:
             interface_language="ko-KR",  # 기본 언어 설정 (Agent 생성 시 default_language로 사용됨)
             timezone="Asia/Seoul",  # 기본 시간대 설정 (워크플로우 시간 표시에 사용됨)
             status="active",
+            created_by=creator_account.id,  # 생성자 ID 저장
             created_at=datetime.now(UTC),
         )
         db.session.add(account)
@@ -250,7 +390,7 @@ class UserManagementService:
         self, user_id: str, updates: dict[str, Any], updater_account: Account | None = None
     ) -> dict[str, Any]:
         """
-        사용자 정보 수정.
+        사용자 정보 수정 (권한 검증 포함).
 
         Args:
             user_id: 사용자 ID
@@ -262,10 +402,35 @@ class UserManagementService:
 
         Raises:
             ValueError: 사용자를 찾을 수 없거나 권한이 없는 경우
+
+        Permission Logic:
+            - Owner: 모든 사용자 수정 가능
+            - Admin: 다음 사용자만 수정 가능
+              1. created_by = updater_account.id (직접 생성한 사용자)
+              2. 자신이 생성한 세션의 멤버
         """
         user = db.session.query(Account).filter_by(id=user_id).first()
         if not user:
             raise ValueError(f"User not found: {user_id}")
+
+        # 권한 검증 (Owner/Admin 권한 구분)
+        if updater_account:
+            tenant_join = (
+                db.session.query(TenantAccountJoin).filter_by(account_id=updater_account.id, current=True).first()
+            )
+
+            if not tenant_join:
+                tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=updater_account.id).first()
+
+            if tenant_join:
+                role = TenantAccountRole(tenant_join.role)
+                # Admin은 자신이 생성한 사용자 또는 자신의 세션 멤버만 수정 가능
+                if role == TenantAccountRole.ADMIN:
+                    if not self._can_admin_manage_user(updater_account.id, user_id):
+                        raise ValueError(
+                            "Permission denied: You can only update users you created or members of your sessions"
+                        )
+                # Owner는 모든 사용자 수정 가능 (권한 체크 스킵)
 
         # 수정자 권한 확인
         if updater_account:
@@ -279,9 +444,9 @@ class UserManagementService:
                 if "status" in updates:
                     raise ValueError("Cannot change your own status")
 
-            # Owner만 role/status 변경 가능
-            if ("role" in updates or "status" in updates) and updater_role != "owner":
-                raise ValueError("Only owner can change user role or status")
+            # Owner만 role 변경 가능 (Admin은 status 변경 가능)
+            if "role" in updates and updater_role != "owner":
+                raise ValueError("Only owner can change user role")
 
         # Owner 보호: 역할과 상태 변경 금지 (Owner 본인만 이름/비밀번호 변경 가능)
         tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=user.id).first()
@@ -323,7 +488,7 @@ class UserManagementService:
 
     def delete_user(self, user_id: str, delete_resources: bool = True, deleter_account: Account | None = None) -> None:
         """
-        사용자 삭제 (관련 리소스도 삭제).
+        사용자 삭제 (권한 검증 포함).
 
         Args:
             user_id: 사용자 ID
@@ -332,10 +497,35 @@ class UserManagementService:
 
         Raises:
             ValueError: 사용자를 찾을 수 없거나 권한이 없는 경우
+
+        Permission Logic:
+            - Owner: 모든 사용자 삭제 가능
+            - Admin: 다음 사용자만 삭제 가능
+              1. created_by = deleter_account.id (직접 생성한 사용자)
+              2. 자신이 생성한 세션의 멤버
         """
         user = db.session.query(Account).filter_by(id=user_id).first()
         if not user:
             raise ValueError(f"User not found: {user_id}")
+
+        # 권한 검증 (Owner/Admin 권한 구분)
+        if deleter_account:
+            tenant_join = (
+                db.session.query(TenantAccountJoin).filter_by(account_id=deleter_account.id, current=True).first()
+            )
+
+            if not tenant_join:
+                tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=deleter_account.id).first()
+
+            if tenant_join:
+                role = TenantAccountRole(tenant_join.role)
+                # Admin은 자신이 생성한 사용자 또는 자신의 세션 멤버만 삭제 가능
+                if role == TenantAccountRole.ADMIN:
+                    if not self._can_admin_manage_user(deleter_account.id, user_id):
+                        raise ValueError(
+                            "Permission denied: You can only delete users you created or members of your sessions"
+                        )
+                # Owner는 모든 사용자 삭제 가능 (권한 체크 스킵)
 
         # 자기 자신 삭제 방지
         if deleter_account and user_id == deleter_account.id:

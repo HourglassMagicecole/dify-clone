@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from models.account import Account, TenantAccountJoin, TenantAccountRole
 from models.education import EducationSessionMember, MemberStatus
 
 
@@ -135,14 +136,33 @@ class EduSessionMemberService:
         """
         Check if an account is a member of a session.
 
+        Permission Logic:
+            - Owner: 모든 세션 접근 가능 (멤버십 체크 스킵)
+            - Admin/Normal: 세션 멤버만 접근 가능
+
         Args:
             session_id: The session ID
             account_id: The account ID to check
             db_session: Database session
 
         Returns:
-            bool: True if account is an active member, False otherwise
+            bool: True if member or owner, False otherwise
         """
+        # 1. 소유자 체크
+        account = db_session.get(Account, account_id)
+        if account:
+            tenant_join = db_session.query(TenantAccountJoin).filter_by(account_id=account.id, current=True).first()
+
+            if not tenant_join:
+                tenant_join = db_session.query(TenantAccountJoin).filter_by(account_id=account.id).first()
+
+            if tenant_join:
+                role = TenantAccountRole(tenant_join.role)
+                # 소유자는 모든 세션 접근 가능
+                if role == TenantAccountRole.OWNER:
+                    return True
+
+        # 2. 멤버십 체크 (Admin, Normal User)
         member = (
             db_session.query(EducationSessionMember)
             .filter(

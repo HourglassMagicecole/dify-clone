@@ -101,6 +101,7 @@ class Account(UserMixin, Base):
     last_active_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
     status: Mapped[str] = mapped_column(String(16), server_default=sa.text("'active'::character varying"))
     initialized_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_by: Mapped[str | None] = mapped_column(StringUUID, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 

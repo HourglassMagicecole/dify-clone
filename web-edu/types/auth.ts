@@ -28,7 +28,8 @@ export interface User {
   name: string
   email: string
   avatar: string | null
-  role: 'admin' | 'normal'
+  role: 'admin' | 'normal' // Dify 호환 역할
+  actualRole?: 'owner' | 'admin' | 'student' // 실제 역할 (UI 권한 분기용)
 }
 
 // 계정 프로필 응답 타입 (Dify API)

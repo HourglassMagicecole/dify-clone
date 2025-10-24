@@ -24,7 +24,8 @@ export async function signIn(data: SignInRequest): Promise<SignInResponse> {
 
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.message || 'Login failed')
+    // 백엔드 응답 형식: {"result": "fail", "data": "에러 메시지"} 또는 {"message": "..."}
+    throw new Error(error.data || error.message || 'Login failed')
   }
 
   return response.json()
@@ -90,7 +91,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<SignInRe
 
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.message || 'Token refresh failed')
+    // 백엔드 응답 형식: {"result": "fail", "data": "에러 메시지"}
+    throw new Error(error.data || error.message || 'Token refresh failed')
   }
 
   return response.json()

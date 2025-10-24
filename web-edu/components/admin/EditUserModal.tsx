@@ -40,6 +40,7 @@ export function EditUserModal({
   // role/status 변경 불가 조건: owner 계정 또는 자기 자신
   const isOwner = user?.role === 'owner'
   const isSelf = currentUser?.id === user?.id
+  const isCurrentUserOwner = currentUser?.actualRole === 'owner'
 
   const {
     register,
@@ -73,9 +74,13 @@ export function EditUserModal({
         delete updateData.password
       }
 
-      // Owner 계정 또는 자기 자신 편집 시 role과 status 제거 (백엔드 보호)
-      if (user.role === 'owner' || currentUser?.id === user.id) {
+      // Owner가 아니면 role 제거 (Admin은 role 변경 권한 없음)
+      if (currentUser?.actualRole !== 'owner') {
         delete updateData.role
+      }
+
+      // Owner 계정 또는 자기 자신 편집 시 status도 제거 (백엔드 보호)
+      if (user.role === 'owner' || currentUser?.id === user.id) {
         delete updateData.status
       }
 
@@ -146,11 +151,7 @@ export function EditUserModal({
             <option value="banned">{t('userManagement.status.banned')}</option>
           </select>
           <p className="mt-1 text-xs text-gray-500">
-            {isOwner
-              ? t('userManagement.messages.ownerRoleCannotBeChanged')
-              : isSelf
-                ? t('userManagement.messages.cannotDeleteYourself')
-                : t('userManagement.messages.onlyOwnerCanChangeRoleStatus')}
+            {t('userManagement.editModal.statusHelp')}
           </p>
         </div>
 
@@ -161,19 +162,15 @@ export function EditUserModal({
           </label>
           <select
             {...register('role')}
-            disabled={isOwner || isSelf}
+            disabled={isOwner || isSelf || !isCurrentUserOwner}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             {isOwner && <option value="owner">{t('userManagement.roles.owner')}</option>}
             <option value="student">{t('userManagement.roles.student')}</option>
-            <option value="admin">{t('userManagement.roles.admin')}</option>
+            {isCurrentUserOwner && <option value="admin">{t('userManagement.roles.admin')}</option>}
           </select>
           <p className="mt-1 text-xs text-gray-500">
-            {isOwner
-              ? t('userManagement.messages.ownerRoleCannotBeChanged')
-              : isSelf
-                ? t('userManagement.messages.cannotDeleteYourself')
-                : t('userManagement.messages.onlyOwnerCanChangeRoleStatus')}
+            {t('userManagement.editModal.roleHelp')}
           </p>
         </div>
 

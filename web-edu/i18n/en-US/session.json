@@ -79,5 +79,7 @@
   "retry": "Retry",
   "loading_failed": "Failed to load sessions",
   "failed_to_load_members": "Failed to load members",
-  "delete_confirm_detail": "Are you sure you want to delete this session? All members and associated data will be removed."
+  "delete_confirm_detail": "Are you sure you want to delete this session? All members and associated data will be removed.",
+  "filter_by_creator": "Filter by Creator",
+  "filter_all": "All"
 }

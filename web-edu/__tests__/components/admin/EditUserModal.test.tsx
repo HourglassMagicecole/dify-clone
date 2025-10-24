@@ -4,7 +4,7 @@ import { EditUserModal } from '@/components/admin/EditUserModal';
 // Mock useAuth hook
 jest.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
-    user: { id: '2', role: 'admin', email: 'admin@example.com', name: 'Admin User' },
+    user: { id: '2', role: 'admin', actualRole: 'admin', email: 'admin@example.com', name: 'Admin User' },
   }),
 }));
 
@@ -19,7 +19,7 @@ describe('EditUserModal', () => {
   };
 
   const mockOnClose = jest.fn();
-  const mockOnSuccess = jest.fn();
+  const mockOnSubmit = jest.fn();
 
   it('모달이 열려있을 때 렌더링되어야 함', () => {
     const { container } = render(
@@ -27,7 +27,7 @@ describe('EditUserModal', () => {
         isOpen={true}
         user={mockUser}
         onClose={mockOnClose}
-        onSuccess={mockOnSuccess}
+        onSubmit={mockOnSubmit}
       />
     );
 
@@ -41,7 +41,7 @@ describe('EditUserModal', () => {
         isOpen={false}
         user={mockUser}
         onClose={mockOnClose}
-        onSuccess={mockOnSuccess}
+        onSubmit={mockOnSubmit}
       />
     );
 

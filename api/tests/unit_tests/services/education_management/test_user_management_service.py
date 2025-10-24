@@ -131,11 +131,20 @@ class TestListUsers:
     def test_list_users_success(self, service, mock_db_session):
         """사용자 목록 조회 성공 테스트"""
         # Arrange
+        # Mock current_user (Owner role)
+        mock_current_user = Mock(spec=Account)
+        mock_current_user.id = "current-user-id"
+
+        # Mock TenantAccountJoin for current_user (Owner role)
+        mock_tenant_join = Mock(spec=TenantAccountJoin)
+        mock_tenant_join.role = "owner"
+
         mock_user1 = Mock(spec=Account)
         mock_user1.id = "user-1"
         mock_user1.email = "user1@test.com"
         mock_user1.name = "User 1"
         mock_user1.status = "active"
+        mock_user1.created_by = None
         mock_user1.created_at = datetime.now(UTC)
         mock_user1.last_login_at = None
 
@@ -144,11 +153,13 @@ class TestListUsers:
         mock_user2.email = "user2@test.com"
         mock_user2.name = "User 2"
         mock_user2.status = "active"
+        mock_user2.created_by = None
         mock_user2.created_at = datetime.now(UTC)
         mock_user2.last_login_at = None
 
         # Mock query chain
         mock_query = Mock()
+        mock_query.filter_by.return_value.first.return_value = mock_tenant_join  # for current_user tenant join
         mock_query.offset.return_value.limit.return_value.all.return_value = [mock_user1, mock_user2]
         mock_db_session.query.return_value = mock_query
 
@@ -159,7 +170,7 @@ class TestListUsers:
         mock_db_session.query.return_value.filter_by.return_value.first.return_value = None
 
         # Act
-        result = service.list_users(page=1, limit=20)
+        result = service.list_users(current_user=mock_current_user, page=1, limit=20)
 
         # Assert
         assert len(result["users"]) == 2
@@ -170,16 +181,26 @@ class TestListUsers:
     def test_list_users_with_pagination(self, service, mock_db_session):
         """페이지네이션 테스트"""
         # Arrange
+        # Mock current_user (Owner role)
+        mock_current_user = Mock(spec=Account)
+        mock_current_user.id = "current-user-id"
+
+        # Mock TenantAccountJoin for current_user (Owner role)
+        mock_tenant_join = Mock(spec=TenantAccountJoin)
+        mock_tenant_join.role = "owner"
+
         mock_user = Mock(spec=Account)
         mock_user.id = "user-1"
         mock_user.email = "user1@test.com"
         mock_user.name = "User 1"
         mock_user.status = "active"
+        mock_user.created_by = None
         mock_user.created_at = datetime.now(UTC)
         mock_user.last_login_at = None
 
         # Mock query chain
         mock_query = Mock()
+        mock_query.filter_by.return_value.first.return_value = mock_tenant_join  # for current_user tenant join
         mock_query.offset.return_value.limit.return_value.all.return_value = [mock_user]
         mock_db_session.query.return_value = mock_query
 
@@ -190,7 +211,7 @@ class TestListUsers:
         mock_db_session.query.return_value.filter_by.return_value.first.return_value = None
 
         # Act
-        result = service.list_users(page=2, limit=10)
+        result = service.list_users(current_user=mock_current_user, page=2, limit=10)
 
         # Assert
         assert result["page"] == 2

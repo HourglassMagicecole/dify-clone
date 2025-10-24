@@ -20,39 +20,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       const token = getAccessToken()
-      if (token && !isTokenExpired(token)) {
-        try {
-          const account = await authAPI.getCurrentUser(token)
 
-          // 시스템 역할 조회 (TenantAccountJoin.role from user management API)
-          let userRole: 'admin' | 'normal' = 'normal' // 기본값
-          try {
-            const response = await fetch(`/console/api/edu/users/${account.id}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-            if (response.ok) {
-              const data = await response.json()
-              // data.data.role은 'admin', 'owner', 또는 'student'
-              // owner와 admin 모두 관리자 권한으로 처리
-              userRole = (data.data.role === 'admin' || data.data.role === 'owner') ? 'admin' : 'normal'
-            }
-          }
-          catch (error) {
-            console.warn('[AUTH] Failed to fetch user role on init, defaulting to "normal":', error)
-          }
-
-          setUser({
-            id: account.id,
-            name: account.name,
-            email: account.email,
-            avatar: account.avatar,
-            role: userRole, // 시스템 역할 (TenantAccountJoin.role)
-          })
-        }
-        catch {
-          clearTokens()
-        }
+      // 토큰이 없거나 만료된 경우 정리
+      if (!token || isTokenExpired(token)) {
+        clearTokens()
+        setIsLoading(false)
+        return
       }
+
+      // 유효한 토큰이 있으면 사용자 정보 조회
+      try {
+        const account = await authAPI.getCurrentUser(token)
+
+        // 시스템 역할 조회 (TenantAccountJoin.role from user management API)
+        let userRole: 'admin' | 'normal' = 'normal' // 기본값
+        let actualRole: 'owner' | 'admin' | 'student' = 'student' // 실제 역할
+        try {
+          const response = await fetch(`/console/api/edu/users/${account.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (response.ok) {
+            const data = await response.json()
+            // data.data.role은 'admin', 'owner', 또는 'student'
+            actualRole = data.data.role || 'student'
+            // owner와 admin 모두 관리자 권한으로 처리 (Dify 호환성)
+            userRole = (actualRole === 'admin' || actualRole === 'owner') ? 'admin' : 'normal'
+          }
+        }
+        catch (error) {
+          console.warn('[AUTH] Failed to fetch user role on init, defaulting to "normal":', error)
+        }
+
+        setUser({
+          id: account.id,
+          name: account.name,
+          email: account.email,
+          avatar: account.avatar,
+          role: userRole, // 시스템 역할 (TenantAccountJoin.role) - Dify 호환
+          actualRole, // 실제 역할 ('owner' | 'admin' | 'student')
+        })
+      }
+      catch (error) {
+        console.error('[AUTH] Failed to get user info, clearing tokens:', error)
+        clearTokens()
+      }
+
       setIsLoading(false)
     }
     initAuth()
@@ -69,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 3. 시스템 역할 조회 (TenantAccountJoin.role from user management API)
     let userRole: 'admin' | 'normal' = 'normal' // 기본값
+    let actualRole: 'owner' | 'admin' | 'student' = 'student' // 실제 역할
     try {
       const roleResponse = await fetch(`/console/api/edu/users/${account.id}`, {
         headers: { Authorization: `Bearer ${response.data.access_token}` },
@@ -76,8 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (roleResponse.ok) {
         const data = await roleResponse.json()
         // data.data.role은 'admin', 'owner', 또는 'student'
-        // owner와 admin 모두 관리자 권한으로 처리
-        userRole = (data.data.role === 'admin' || data.data.role === 'owner') ? 'admin' : 'normal'
+        actualRole = data.data.role || 'student'
+        // owner와 admin 모두 관리자 권한으로 처리 (Dify 호환성)
+        userRole = (actualRole === 'admin' || actualRole === 'owner') ? 'admin' : 'normal'
       }
     }
     catch (error) {
@@ -89,7 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: account.name,
       email: account.email,
       avatar: account.avatar,
-      role: userRole, // 시스템 역할 (TenantAccountJoin.role)
+      role: userRole, // 시스템 역할 (TenantAccountJoin.role) - Dify 호환
+      actualRole, // 실제 역할 ('owner' | 'admin' | 'student')
     })
     router.push('/dashboard')
   }, [router])
@@ -132,10 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const expiresIn = (payload.exp * 1000) - Date.now()
 
           if (expiresIn < 5 * 60 * 1000) { // 5분 미만
-            // console.log('[AUTH] Access Token expiring soon, refreshing...')
             const response = await authAPI.refreshAccessToken(refreshToken)
             setTokens(response.data.access_token, response.data.refresh_token)
-            // console.log('[AUTH] Access Token refreshed successfully')
           }
         }
       }

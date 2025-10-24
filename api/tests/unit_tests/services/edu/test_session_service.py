@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+from models.account import TenantAccountRole
 from services.edu.session_service import EduSessionService
 
 
@@ -43,3 +44,116 @@ class TestEduSessionService:
         assert hasattr(service, "get_session_members")
         assert hasattr(service, "add_session_member")
         assert hasattr(service, "remove_session_member")
+
+    @patch("services.edu.session_service.db")
+    def test_list_sessions_as_normal_role_calls_list_sessions_by_member(self, mock_db):
+        """Test that Normal role uses list_sessions_by_member."""
+        # Arrange
+        service = EduSessionService()
+        mock_user = MagicMock()
+        mock_user.id = "normal-user-id"
+
+        # Mock tenant join with NORMAL role
+        mock_tenant_join = MagicMock()
+        mock_tenant_join.role = TenantAccountRole.NORMAL.value
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
+
+        # Mock list_sessions_by_member
+        with patch.object(service, "list_sessions_by_member") as mock_list_by_member:
+            mock_list_by_member.return_value = {
+                "sessions": [],
+                "total": 0,
+                "page": 1,
+                "limit": 20,
+            }
+
+            # Act
+            result = service.list_sessions(current_user=mock_user, is_active=True, page=1, limit=20)
+
+            # Assert
+            mock_list_by_member.assert_called_once_with(account_id="normal-user-id", is_active=True, page=1, limit=20)
+            assert result["sessions"] == []
+            assert result["total"] == 0
+
+    @patch("services.edu.session_service.db")
+    def test_list_sessions_as_editor_role_calls_list_sessions_by_member(self, mock_db):
+        """Test that Editor role (non-privileged) uses list_sessions_by_member."""
+        # Arrange
+        service = EduSessionService()
+        mock_user = MagicMock()
+        mock_user.id = "editor-user-id"
+        mock_user.email = "editor@test.com"
+
+        # Mock tenant join with EDITOR role
+        mock_tenant_join = MagicMock()
+        mock_tenant_join.role = TenantAccountRole.EDITOR.value
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
+
+        # Mock list_sessions_by_member
+        with patch.object(service, "list_sessions_by_member") as mock_list_by_member:
+            mock_list_by_member.return_value = {
+                "sessions": [],
+                "total": 0,
+                "page": 1,
+                "limit": 20,
+            }
+
+            # Act
+            result = service.list_sessions(current_user=mock_user, is_active=True, page=1, limit=20)
+
+            # Assert
+            mock_list_by_member.assert_called_once_with(account_id="editor-user-id", is_active=True, page=1, limit=20)
+            assert result["sessions"] == []
+            assert result["total"] == 0
+
+    @patch("services.edu.session_service.db")
+    def test_list_sessions_as_owner_shows_all_sessions(self, mock_db):
+        """Test that Owner role can see all sessions."""
+        # Arrange
+        service = EduSessionService()
+        mock_user = MagicMock()
+        mock_user.id = "owner-user-id"
+
+        # Mock tenant join with OWNER role
+        mock_tenant_join = MagicMock()
+        mock_tenant_join.role = TenantAccountRole.OWNER.value
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
+
+        # Mock database query
+        mock_query = MagicMock()
+        mock_db.session.scalar.return_value = 5  # 5 total sessions
+        mock_db.session.scalars.return_value.all.return_value = []
+
+        with patch("services.edu.session_service.select", return_value=mock_query):
+            # Act
+            result = service.list_sessions(current_user=mock_user, page=1, limit=20)
+
+            # Assert
+            assert result["total"] == 5
+            # Owner should see all sessions (no instructor_account_id filter applied)
+
+    @patch("services.edu.session_service.db")
+    def test_list_sessions_as_admin_filters_by_creator(self, mock_db):
+        """Test that Admin role only sees their own sessions."""
+        # Arrange
+        service = EduSessionService()
+        mock_user = MagicMock()
+        mock_user.id = "admin-user-id"
+
+        # Mock tenant join with ADMIN role
+        mock_tenant_join = MagicMock()
+        mock_tenant_join.role = TenantAccountRole.ADMIN.value
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
+
+        # Mock database query
+        mock_query = MagicMock()
+        mock_db.session.scalar.return_value = 2  # 2 sessions created by admin
+        mock_db.session.scalars.return_value.all.return_value = []
+
+        with patch("services.edu.session_service.select", return_value=mock_query):
+            # Act
+            result = service.list_sessions(current_user=mock_user, page=1, limit=20)
+
+            # Assert
+            assert result["total"] == 2
+            # Admin should only see their sessions (instructor_account_id filter applied)

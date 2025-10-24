@@ -2,8 +2,8 @@
   "userManagement": {
     "title": "사용자 관리",
     "createUser": "사용자 생성",
-    "editUser": "사용자 편집",
-    "deleteUser": "사용자 삭제",
+    "editUser": "편집",
+    "deleteUser": "삭제",
     "bulkCreate": "일괄 생성",
     "downloadTemplate": "CSV 템플릿 다운로드",
     "assignRole": "역할 할당",
@@ -12,9 +12,14 @@
       "name": "이름",
       "role": "역할",
       "status": "상태",
+      "createdBy": "생성자",
       "createdAt": "생성일",
       "lastLoginAt": "마지막 로그인",
       "actions": "작업"
+    },
+    "filter": {
+      "createdBy": "생성자별 필터",
+      "all": "전체"
     },
     "roles": {
       "owner": "소유자",
@@ -37,8 +42,10 @@
       "sessionLabel": "세션 할당 (선택)",
       "sessionPlaceholder": "-- 세션 없음 --",
       "sessionHelp": "선택한 세션에 사용자가 자동으로 추가됩니다",
+      "adminOnlyStudentHint": "관리자는 학생만 생성할 수 있습니다",
       "submitButton": "생성",
-      "cancelButton": "취소"
+      "cancelButton": "취소",
+      "errorDefault": "사용자 생성 중 오류가 발생했습니다"
     },
     "editModal": {
       "title": "사용자 편집",
@@ -79,6 +86,8 @@
       "recentErrors": "최근 오류:"
     },
     "messages": {
+      "loading": "사용자 목록을 불러오는 중...",
+      "noUsers": "등록된 사용자가 없습니다",
       "createSuccess": "사용자가 성공적으로 생성되었습니다.",
       "createError": "사용자 생성에 실패했습니다: {{error}}",
       "updateSuccess": "사용자가 성공적으로 수정되었습니다.",

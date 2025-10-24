@@ -12,9 +12,14 @@
       "name": "Name",
       "role": "Role",
       "status": "Status",
+      "createdBy": "Created By",
       "createdAt": "Created At",
       "lastLoginAt": "Last Login",
       "actions": "Actions"
+    },
+    "filter": {
+      "createdBy": "Filter by Creator",
+      "all": "All"
     },
     "roles": {
       "owner": "Owner",
@@ -37,8 +42,10 @@
       "sessionLabel": "Assign to Session (Optional)",
       "sessionPlaceholder": "-- No session --",
       "sessionHelp": "User will be automatically added to the selected session",
+      "adminOnlyStudentHint": "Admins can only create student users",
       "submitButton": "Create",
-      "cancelButton": "Cancel"
+      "cancelButton": "Cancel",
+      "errorDefault": "An error occurred while creating the user"
     },
     "editModal": {
       "title": "Edit User",
@@ -79,6 +86,8 @@
       "recentErrors": "Recent Errors:"
     },
     "messages": {
+      "loading": "Loading users...",
+      "noUsers": "No users registered",
       "createSuccess": "User created successfully.",
       "createError": "Failed to create user: {{error}}",
       "updateSuccess": "User updated successfully.",

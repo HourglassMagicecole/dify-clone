@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Modal } from '@/components/common/Modal'
 import { sessionAPI } from '@/service/session-api'
+import { useAuth } from '@/hooks/useAuth'
 import type { CreateUserRequest } from '@/types/user-management'
 import type { Session } from '@/types/session'
 
@@ -34,10 +35,15 @@ export function CreateUserModal({
   onSubmit,
 }: CreateUserModalProps) {
   const { t } = useTranslation('user-management')
+  const { user: currentUser } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [sessions, setSessions] = useState<Session[]>([])
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
+  const [error, setError] = useState<string | null>(null)
+
+  // Admin은 student만 생성 가능
+  const isOwner = currentUser?.actualRole === 'owner'
 
   const {
     register,
@@ -69,6 +75,7 @@ export function CreateUserModal({
 
   const handleFormSubmit = async (data: CreateUserFormData) => {
     setIsSubmitting(true)
+    setError(null) // 이전 에러 초기화
     try {
       const requestData: CreateUserRequest = {
         ...data,
@@ -79,8 +86,19 @@ export function CreateUserModal({
       setSelectedSessionId('')
       onClose()
     }
-    catch (error) {
-      console.error('Failed to create user:', error)
+    catch (err) {
+      console.error('Failed to create user:', err)
+      // API 에러 메시지 추출
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      if (error?.response?.data?.message) {
+        setError(error.response.data.message)
+      }
+      else if (error?.message) {
+        setError(error.message)
+      }
+      else {
+        setError(t('userManagement.createModal.errorDefault'))
+      }
     }
     finally {
       setIsSubmitting(false)
@@ -89,6 +107,8 @@ export function CreateUserModal({
 
   const handleClose = () => {
     reset()
+    setSelectedSessionId('')
+    setError(null) // 에러 초기화
     onClose()
   }
 
@@ -119,6 +139,13 @@ export function CreateUserModal({
       }
     >
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+
         {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -197,10 +224,15 @@ export function CreateUserModal({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="student">{t('userManagement.roles.student')}</option>
-            <option value="admin">{t('userManagement.roles.admin')}</option>
+            {isOwner && <option value="admin">{t('userManagement.roles.admin')}</option>}
           </select>
           {errors.role && (
             <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
+          )}
+          {!isOwner && (
+            <p className="mt-1 text-xs text-gray-500">
+              {t('userManagement.createModal.adminOnlyStudentHint')}
+            </p>
           )}
         </div>
 

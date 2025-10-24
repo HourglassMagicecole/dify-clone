@@ -12,6 +12,9 @@ export interface UserAccount {
   created_at: string;            // ISO 8601 형식
   last_login_at?: string;        // 마지막 로그인 시간 (선택적)
   role?: 'owner' | 'admin' | 'student';    // TenantAccountJoin.role (시스템 역할)
+  created_by?: string;           // 생성자 ID (Account.created_by)
+  created_by_name?: string;      // 생성자 이름
+  created_by_email?: string;     // 생성자 이메일
 }
 
 // 사용자 생성 요청 타입
@@ -20,6 +23,7 @@ export interface CreateUserRequest {
   name: string;
   password: string;              // 최소 8자, 영문+숫자 조합
   role?: 'admin' | 'student';    // 기본값: 'student'
+  session_id?: string;           // 선택적 세션 ID (생성 시 자동으로 세션 멤버로 추가)
 }
 
 // 사용자 수정 요청 타입

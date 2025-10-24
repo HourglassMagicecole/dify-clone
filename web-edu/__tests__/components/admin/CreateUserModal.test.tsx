@@ -1,16 +1,23 @@
 import { render } from '@testing-library/react';
 import { CreateUserModal } from '@/components/admin/CreateUserModal';
 
+// Mock useAuth hook
+jest.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { id: '1', role: 'admin', actualRole: 'admin', email: 'admin@example.com', name: 'Admin User' },
+  }),
+}));
+
 describe('CreateUserModal', () => {
   const mockOnClose = jest.fn();
-  const mockOnSuccess = jest.fn();
+  const mockOnSubmit = jest.fn();
 
   it('모달이 열려있을 때 렌더링되어야 함', () => {
     const { container } = render(
       <CreateUserModal
         isOpen={true}
         onClose={mockOnClose}
-        onSuccess={mockOnSuccess}
+        onSubmit={mockOnSubmit}
       />
     );
 
@@ -23,7 +30,7 @@ describe('CreateUserModal', () => {
       <CreateUserModal
         isOpen={false}
         onClose={mockOnClose}
-        onSuccess={mockOnSuccess}
+        onSubmit={mockOnSubmit}
       />
     );
 

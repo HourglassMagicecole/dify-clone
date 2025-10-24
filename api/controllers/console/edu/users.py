@@ -5,7 +5,11 @@ import io
 from flask import Blueprint, jsonify, request, send_file
 from pydantic import BaseModel, EmailStr, Field
 
-from controllers.console.edu.auth_decorators import admin_required, jwt_required
+from controllers.console.edu.auth_decorators import (
+    admin_or_owner_required,
+    admin_required,
+    jwt_required,
+)
 from extensions.ext_rate_limit import rate_limit
 from services.education_management.user_management_service import UserManagementService
 
@@ -46,10 +50,14 @@ class AssignRoleRequest(BaseModel):
 
 @bp.route("", methods=["GET"])
 @jwt_required
-@admin_required
+@admin_or_owner_required
 def list_users():
     """
-    사용자 목록 조회 (관리자만).
+    사용자 목록 조회 (관리자 또는 소유자).
+
+    Permission:
+        - Owner: 모든 사용자 조회
+        - Admin: 자신이 등록한 사용자만 조회
 
     Query Parameters:
         page (int): 페이지 번호 (기본값: 1)
@@ -62,7 +70,11 @@ def list_users():
     limit = request.args.get("limit", 20, type=int)
 
     service = UserManagementService()
-    result = service.list_users(page=page, limit=limit)
+    result = service.list_users(
+        current_user=request.user,  # 추가
+        page=page,
+        limit=limit,
+    )
 
     return jsonify({"result": "success", "data": result})
 
@@ -132,10 +144,14 @@ def get_user(user_id: str):
 
 @bp.route("/<user_id>", methods=["PUT"])
 @jwt_required
-@admin_required
+@admin_or_owner_required
 def update_user(user_id: str):
     """
-    사용자 정보 수정 (관리자만).
+    사용자 정보 수정 (관리자 또는 소유자).
+
+    Permission:
+        - Owner: 모든 사용자 수정 가능
+        - Admin: 자신이 등록한 사용자만 수정 가능
 
     Path Parameters:
         user_id (str): 사용자 ID
@@ -170,10 +186,14 @@ def update_user(user_id: str):
 
 @bp.route("/<user_id>", methods=["DELETE"])
 @jwt_required
-@admin_required
+@admin_or_owner_required
 def delete_user(user_id: str):
     """
-    사용자 삭제 (관리자만, 관련 리소스도 삭제).
+    사용자 삭제 (관리자 또는 소유자).
+
+    Permission:
+        - Owner: 모든 사용자 삭제 가능
+        - Admin: 자신이 등록한 사용자만 삭제 가능
 
     Path Parameters:
         user_id (str): 사용자 ID
