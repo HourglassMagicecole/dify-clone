@@ -1933,3 +1933,70 @@ def init_tenant(email: str, password: str, name: str) -> None:
         click.echo(click.style(f"Error creating default session: {str(e)}", fg="red"))
         logger.exception("Failed to create default education session")
         return
+
+
+# ========== API Key Encryption Commands (Story 1.8) ==========
+
+
+@click.group("encryption", help="API Key encryption management commands")
+def encryption():
+    """API Key encryption management commands."""
+    pass
+
+
+@encryption.command("generate-key", help="Generate a new API key encryption key")
+def generate_encryption_key():
+    """
+    Generate a new Fernet encryption key.
+
+    This key is used to encrypt/decrypt administrator API keys.
+    """
+    try:
+        from cryptography.fernet import Fernet
+
+        new_key = Fernet.generate_key().decode()
+
+        click.echo(click.style("✅ New encryption key generated successfully!", fg="green"))
+        click.echo(click.style("\n⚠️  CRITICAL: Save this key securely!", fg="yellow"))
+        click.echo(click.style("Add to your .env file:", fg="yellow"))
+        click.echo(f"\nAPI_KEY_ENCRYPTION_KEY={new_key}\n")
+        click.echo(click.style("⚠️  WARNING: If you lose this key, you cannot decrypt existing API keys!", fg="red"))
+
+    except ImportError:
+        click.echo(click.style("Error: cryptography package not installed", fg="red"))
+        click.echo("Install it with: uv sync --dev")
+    except Exception as e:
+        click.echo(click.style(f"Error generating key: {e}", fg="red"))
+        logger.exception("Failed to generate encryption key")
+
+
+@encryption.command("verify-key", help="Verify the current encryption key is valid")
+def verify_encryption_key():
+    """
+    Verify that the configured encryption key is valid.
+
+    This command tests encryption/decryption to ensure the key works correctly.
+    """
+    try:
+        from services.education_management.encryption_service import APIKeyEncryptionService
+
+        # Try to initialize the service
+        encryption_service = APIKeyEncryptionService()
+
+        # Test encryption/decryption
+        if encryption_service.validate_encryption_key():
+            click.echo(click.style("✅ Encryption key is valid and working correctly!", fg="green"))
+        else:
+            click.echo(click.style("❌ Encryption key validation failed", fg="red"))
+            click.echo("The key might be corrupted or invalid.")
+
+    except ValueError as e:
+        click.echo(click.style(f"❌ Configuration Error: {e}", fg="red"))
+        click.echo("\nMake sure API_KEY_ENCRYPTION_KEY is set in your .env file.")
+        click.echo("Generate a new key with: flask encryption generate-key")
+    except ImportError:
+        click.echo(click.style("Error: Required packages not installed", fg="red"))
+        click.echo("Install with: uv sync --dev")
+    except Exception as e:
+        click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))
+        logger.exception("Failed to verify encryption key")

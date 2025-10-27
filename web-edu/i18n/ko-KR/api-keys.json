@@ -1,0 +1,220 @@
+{
+  "title": "API Key 관리",
+  "subtitle": "LLM 및 외부 API의 API Key를 중앙에서 관리합니다",
+  "addButton": "API Key 추가",
+  "helpButton": "도움말",
+
+  "tabs": {
+    "all": "전체",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "google": "Google",
+    "cohere": "Cohere"
+  },
+
+  "table": {
+    "name": "KEY 이름",
+    "provider": "PROVIDER",
+    "status": "상태",
+    "priority": "우선순위",
+    "maskedKey": "API Key",
+    "createdAt": "생성일",
+    "actions": "작업",
+    "loading": "로딩 중...",
+    "noKeys": "등록된 API Key가 없습니다",
+    "noKeysDescription": "새로운 API Key를 추가하여 시작하세요",
+    "totalKeys": "총 {{count}}개"
+  },
+
+  "status": {
+    "active": "활성",
+    "inactive": "비활성",
+    "error": "오류"
+  },
+
+  "priority": {
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "tertiary": "Tertiary"
+  },
+
+  "addModal": {
+    "title": "API Key 추가",
+    "fields": {
+      "provider": "Provider",
+      "keyName": "Key 이름",
+      "apiKey": "API Key",
+      "priority": "우선순위"
+    },
+    "placeholders": {
+      "keyName": "예: OpenAI-GPT4-Primary",
+      "apiKey": "API Key를 입력하세요"
+    },
+    "guideInfo": "{{provider}}의 API Key를 발급받으세요",
+    "links": {
+      "apiKeyGuide": "API Key 획득 가이드",
+      "pricing": "요금 정보"
+    },
+    "freeTier": "무료 티어",
+    "priority": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "tertiary": "Tertiary"
+    },
+    "actions": {
+      "show": "표시",
+      "hide": "숨기기",
+      "cancel": "취소",
+      "testing": "테스트 중...",
+      "testAndSave": "테스트 후 저장"
+    },
+    "errors": {
+      "providerRequired": "Provider를 선택하세요",
+      "keyNameRequired": "Key 이름을 입력하세요",
+      "keyNameTooShort": "Key 이름은 최소 3자 이상이어야 합니다",
+      "apiKeyRequired": "API Key를 입력하세요",
+      "apiKeyTooShort": "API Key가 너무 짧습니다",
+      "priorityRequired": "우선순위를 선택하세요",
+      "createFailed": "API Key 생성 실패",
+      "networkError": "네트워크 오류가 발생했습니다"
+    },
+    "success": {
+      "created": "API Key가 성공적으로 생성되었습니다"
+    },
+    "responseTime": "응답 시간: {{time}}ms"
+  },
+
+  "editModal": {
+    "title": "API Key 편집",
+    "fields": {
+      "provider": "Provider",
+      "apiKey": "API Key",
+      "keyName": "Key 이름",
+      "priority": "우선순위",
+      "isActive": "활성화"
+    },
+    "hints": {
+      "providerReadonly": "Provider는 변경할 수 없습니다",
+      "apiKeyReadonly": "보안상의 이유로 API Key는 수정할 수 없습니다",
+      "isActive": "비활성화하면 이 Key는 사용되지 않습니다"
+    },
+    "priority": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "tertiary": "Tertiary"
+    },
+    "actions": {
+      "cancel": "취소",
+      "save": "저장",
+      "saving": "저장 중..."
+    },
+    "errors": {
+      "updateFailed": "API Key 수정 실패",
+      "keyNameRequired": "Key 이름을 입력하세요",
+      "keyNameTooShort": "Key 이름은 최소 3자 이상이어야 합니다",
+      "priorityRequired": "우선순위를 선택하세요"
+    }
+  },
+
+  "deleteModal": {
+    "title": "API Key 삭제",
+    "warning": {
+      "title": "주의",
+      "description": "이 작업은 되돌릴 수 없습니다. 신중하게 결정하세요."
+    },
+    "primaryWarning": {
+      "title": "Primary Key 삭제 경고",
+      "description": "이 Key는 Primary로 설정되어 있습니다. 삭제하면 서비스에 영향을 줄 수 있습니다."
+    },
+    "info": {
+      "keyName": "Key 이름",
+      "provider": "Provider",
+      "priority": "우선순위",
+      "maskedKey": "API Key"
+    },
+    "confirmMessage": "정말 이 API Key를 삭제하시겠습니까?",
+    "actions": {
+      "cancel": "취소",
+      "delete": "삭제",
+      "deleting": "삭제 중..."
+    },
+    "errors": {
+      "deleteFailed": "API Key 삭제 실패"
+    }
+  },
+
+  "helpModal": {
+    "title": "API Key 관리 가이드",
+    "sections": {
+      "providers": "지원되는 Provider",
+      "recommended": "권장 Provider 조합",
+      "faq": "자주 묻는 질문",
+      "tips": "사용 팁",
+      "security": "보안 주의사항"
+    },
+    "links": {
+      "getApiKey": "API Key 발급",
+      "pricing": "요금 정보"
+    },
+    "recommended": {
+      "primary": "Primary: OpenAI (높은 신뢰성)",
+      "secondary": "Secondary: Anthropic (대체 옵션)",
+      "tertiary": "Tertiary: Google AI (추가 백업)"
+    },
+    "faq": {
+      "q1": "Q: API Key가 작동하지 않습니다.",
+      "a1": "A: 1) Key 테스트를 실행하세요, 2) Provider 대시보드에서 Key 상태를 확인하세요, 3) 만료일을 확인하세요",
+      "q2": "Q: 어떤 Provider를 사용해야 하나요?",
+      "a2": "A: OpenAI는 높은 신뢰성을, Anthropic은 대체 옵션으로 권장합니다.",
+      "q3": "Q: API Key는 안전하게 저장되나요?",
+      "a3": "A: 네, 모든 API Key는 Fernet (AES-256-CBC + HMAC) 암호화로 안전하게 저장됩니다.",
+      "q4": "Q: 무료로 사용할 수 있나요?",
+      "a4": "A: Provider마다 다릅니다. OpenAI는 $5 무료 크레딧을, Google AI는 무료 티어를 제공합니다.",
+      "q5": "Q: 우선순위는 어떻게 설정하나요?",
+      "a5": "A: Primary를 주 Key로, Secondary를 백업용으로 설정하세요."
+    },
+    "tips": {
+      "tip1": "여러 Provider의 Key를 등록하여 안정성을 높이세요",
+      "tip2": "정기적으로 Key를 테스트하여 유효성을 확인하세요",
+      "tip3": "사용하지 않는 Key는 비활성화하세요",
+      "tip4": "Primary Key는 항상 활성 상태로 유지하세요"
+    },
+    "security": {
+      "warning1": "API Key를 절대 공개하지 마세요",
+      "warning2": "정기적으로 Key를 교체하세요",
+      "warning3": "의심스러운 활동이 발견되면 즉시 Key를 삭제하세요"
+    },
+    "actions": {
+      "close": "닫기"
+    }
+  },
+
+  "actions": {
+    "edit": "편집",
+    "delete": "삭제",
+    "test": "테스트",
+    "testing": "테스트 중",
+    "show": "표시",
+    "hide": "숨기기",
+    "copy": "복사"
+  },
+
+  "test": {
+    "success": "API Key가 유효합니다!",
+    "failure": "API Key 테스트 실패: {{message}}",
+    "error": "테스트 중 오류가 발생했습니다"
+  },
+
+  "messages": {
+    "createSuccess": "API Key가 성공적으로 추가되었습니다",
+    "createError": "API Key 추가 중 오류가 발생했습니다",
+    "updateSuccess": "API Key가 성공적으로 수정되었습니다",
+    "updateError": "API Key 수정 중 오류가 발생했습니다",
+    "deleteSuccess": "API Key가 성공적으로 삭제되었습니다",
+    "deleteError": "API Key 삭제 중 오류가 발생했습니다",
+    "testSuccess": "API Key가 유효합니다. 응답 시간: {time}ms",
+    "testError": "API Key가 유효하지 않습니다. 오류: {error}",
+    "testRunning": "API Key를 테스트하는 중...",
+    "validationError": "입력값을 확인해주세요"
+  }
+}

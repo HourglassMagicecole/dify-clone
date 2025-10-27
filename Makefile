@@ -21,6 +21,78 @@ prepare-docker:
 	@cd docker && docker compose -f docker-compose.middleware.yaml --env-file middleware.env -p dify-middlewares-dev up -d
 	@echo "✅ Docker middleware started"
 
+# Initialize Docker production environment
+init-docker-env:
+	@echo "🔧 Initializing Docker production environment..."
+	@./docker/init-env.sh
+
+# Start Docker production environment (with auto-initialization)
+docker-up: init-docker-env
+	@echo "🚀 Starting Docker containers..."
+	@cd docker && docker-compose up -d
+	@echo "✅ Docker containers started successfully!"
+	@echo ""
+	@echo "📝 Next steps:"
+	@echo "   - Check logs: cd docker && docker-compose logs -f"
+	@echo "   - Access web: http://localhost"
+	@echo "   - Access API: http://localhost/v1"
+
+# Stop Docker production environment
+docker-down:
+	@echo "🛑 Stopping Docker containers..."
+	@cd docker && docker-compose down
+	@echo "✅ Docker containers stopped"
+
+# Restart Docker production environment
+docker-restart:
+	@echo "🔄 Restarting Docker containers..."
+	@cd docker && docker-compose restart
+	@echo "✅ Docker containers restarted"
+
+# Clean Docker containers and volumes
+docker-clean:
+	@echo "⚠️  WARNING: This will remove all containers and volumes (including user data)!"
+	@echo "Press Ctrl+C to cancel, or Enter to continue..."
+	@read dummy
+	@echo "🧹 Cleaning Docker containers and volumes..."
+	@cd docker && docker-compose down -v
+	@echo "🗑️  Removing volume directories..."
+	@rm -rf docker/volumes/app
+	@rm -rf docker/volumes/db
+	@rm -rf docker/volumes/redis
+	@rm -rf docker/volumes/weaviate
+	@rm -rf docker/volumes/plugin_daemon
+	@rm -rf docker/volumes/certbot
+	@echo "✅ Docker containers and volumes removed"
+
+# Clean everything (containers, volumes, images, admin credentials)
+docker-clean-all:
+	@echo "⚠️  WARNING: This will remove ALL Docker resources AND reset admin credentials!"
+	@echo "Press Ctrl+C to cancel, or Enter to continue..."
+	@read dummy
+	@echo "🧹 Cleaning all Docker resources..."
+	@cd docker && docker-compose down -v --rmi all
+	@echo "🗑️  Removing volume directories..."
+	@rm -rf docker/volumes/app
+	@rm -rf docker/volumes/db
+	@rm -rf docker/volumes/redis
+	@rm -rf docker/volumes/weaviate
+	@rm -rf docker/volumes/plugin_daemon
+	@rm -rf docker/volumes/certbot
+	@echo "🔧 Resetting admin credentials in docker/.env..."
+	@if [ -f docker/.env ]; then \
+		perl -pi -e 's/^INITIAL_ADMIN_EMAIL=.*/INITIAL_ADMIN_EMAIL=/' docker/.env; \
+		perl -pi -e 's/^INITIAL_ADMIN_PASSWORD=.*/INITIAL_ADMIN_PASSWORD=/' docker/.env; \
+		perl -pi -e 's/^INITIAL_ADMIN_NAME=.*/INITIAL_ADMIN_NAME=/' docker/.env; \
+		echo "✅ Admin credentials reset"; \
+	else \
+		echo "ℹ️  docker/.env not found (skipped)"; \
+	fi
+	@echo "✅ All Docker resources removed and admin credentials reset"
+	@echo ""
+	@echo "💡 Next steps:"
+	@echo "   Run 'make docker-up' to start fresh with new admin credentials"
+
 # Step 2: Prepare web environment
 prepare-web:
 	@echo "🌐 Setting up web environment..."
@@ -35,6 +107,7 @@ prepare-api:
 	@cp -n api/.env.example api/.env 2>/dev/null || echo "API .env already exists"
 	@awk -v key="$$(openssl rand -base64 42)" '/^SECRET_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env
 	@cd api && uv sync --dev
+	@awk -v key="$$(cd api && uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" '/^API_KEY_ENCRYPTION_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env
 	@cd api && uv run flask db upgrade
 	@echo "✅ API environment prepared (not started)"
 
@@ -45,17 +118,50 @@ prepare-web-edu:
 	@cd web-edu && pnpm install
 	@echo "✅ Web-edu environment prepared (not started)"
 
-# Clean dev environment
+# Clean dev environment (quick cleanup - preserves data)
 dev-clean:
-	@echo "⚠️  Stopping Docker containers..."
+	@echo "🧹 Cleaning development environment (preserving data)..."
+	@echo "⚠️  Stopping Docker middleware containers..."
 	@cd docker && docker compose -f docker-compose.middleware.yaml --env-file middleware.env -p dify-middlewares-dev down
-	@echo "🗑️  Removing volumes..."
+	@echo "🗑️  Removing build artifacts..."
+	@rm -rf web/node_modules web/.next
+	@rm -rf web-edu/node_modules web-edu/.next
+	@rm -rf api/.venv api/storage
+	@echo "✅ Cleanup complete"
+	@echo ""
+	@echo "📝 Preserved:"
+	@echo "   - docker/volumes/ (database data)"
+	@echo "   - .env files (SECRET_KEY, API_KEY_ENCRYPTION_KEY)"
+	@echo "   - Docker images (faster rebuild)"
+	@echo ""
+	@echo "💡 Next: Run 'make dev-setup' to rebuild"
+
+# Clean everything in dev environment (complete reset)
+dev-clean-all:
+	@echo "⚠️  WARNING: This will remove ALL dev resources AND environment files!"
+	@echo "This includes:"
+	@echo "  - All Docker containers, volumes, and images"
+	@echo "  - All database data (PostgreSQL, Redis, Weaviate)"
+	@echo "  - All build artifacts (node_modules, .next, .venv)"
+	@echo "  - All .env files (web/.env, web-edu/.env.local, api/.env)"
+	@echo ""
+	@echo "Press Ctrl+C to cancel, or Enter to continue..."
+	@read dummy
+	@echo "🧹 Cleaning all dev resources..."
+	@cd docker && docker compose -f docker-compose.middleware.yaml --env-file middleware.env -p dify-middlewares-dev down -v --rmi all
+	@echo "🗑️  Removing volume directories..."
 	@rm -rf docker/volumes/db
 	@rm -rf docker/volumes/redis
 	@rm -rf docker/volumes/plugin_daemon
 	@rm -rf docker/volumes/weaviate
-	@rm -rf api/storage
-	@echo "✅ Cleanup complete"
+	@echo "🗑️  Removing build artifacts and .env files..."
+	@rm -rf web/node_modules web/.next web/.env
+	@rm -rf web-edu/node_modules web-edu/.next web-edu/.env.local
+	@rm -rf api/.venv api/storage api/.env
+	@echo "✅ All dev resources removed and environment reset"
+	@echo ""
+	@echo "💡 Next steps:"
+	@echo "   Run 'make dev-setup' to start fresh with new keys"
 
 # Backend Code Quality Commands
 format:
@@ -117,12 +223,21 @@ build-push-all: build-all push-all
 # Help target
 help:
 	@echo "Development Setup Targets:"
-	@echo "  make dev-setup      - Run all setup steps for full dev environment"
-	@echo "  make prepare-docker - Set up Docker middleware"
-	@echo "  make prepare-web    - Set up web environment"
-	@echo "  make prepare-api    - Set up API environment"
+	@echo "  make dev-setup       - Run all setup steps for full dev environment"
+	@echo "  make prepare-docker  - Set up Docker middleware"
+	@echo "  make prepare-web     - Set up web environment"
+	@echo "  make prepare-api     - Set up API environment"
 	@echo "  make prepare-web-edu - Set up web-edu environment"
-	@echo "  make dev-clean      - Stop Docker middleware containers"
+	@echo "  make dev-clean       - Quick cleanup (preserves data & configs)"
+	@echo "  make dev-clean-all   - Complete reset (removes everything)"
+	@echo ""
+	@echo "Docker Production Setup:"
+	@echo "  make init-docker-env - Initialize Docker production environment (generate keys & admin account)"
+	@echo "  make docker-up       - Start Docker containers (auto-initialize if needed)"
+	@echo "  make docker-down     - Stop Docker containers"
+	@echo "  make docker-restart  - Restart Docker containers"
+	@echo "  make docker-clean    - Remove containers, volumes, and volume directories"
+	@echo "  make docker-clean-all - Remove all Docker resources + reset admin credentials"
 	@echo ""
 	@echo "Backend Code Quality:"
 	@echo "  make format         - Format code with ruff"
@@ -138,4 +253,4 @@ help:
 	@echo "  make build-push-all - Build and push all Docker images"
 
 # Phony targets
-.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu dev-clean help format check lint type-check
+.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-down docker-restart docker-clean docker-clean-all dev-clean dev-clean-all help format check lint type-check

@@ -24,7 +24,8 @@ describe('RecentActivityTimeline', () => {
   it('빈 활동 목록 상태를 표시', () => {
     render(<RecentActivityTimeline activities={[]} />)
 
-    expect(screen.getByText(/아직 활동 내역이 없습니다/)).toBeInTheDocument()
+    // i18n 키가 렌더링되는지 확인 (mock 없이 테스트)
+    expect(screen.getByText(/dashboard\.recentActivity\.empty/)).toBeInTheDocument()
   })
 
   it('로딩 상태를 표시', () => {

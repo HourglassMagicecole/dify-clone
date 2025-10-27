@@ -30,6 +30,7 @@
     "my_session": "나의 세션",
     "my_sessions": "나의 세션들",
     "sessions": "세션 관리",
-    "users": "사용자 관리"
+    "users": "사용자 관리",
+    "api_keys": "API Key 관리"
   }
 }

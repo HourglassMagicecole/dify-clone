@@ -7,6 +7,24 @@ export LANG=${LANG:-en_US.UTF-8}
 export LC_ALL=${LC_ALL:-en_US.UTF-8}
 export PYTHONIOENCODING=${PYTHONIOENCODING:-utf-8}
 
+# Generate API Key Encryption Key if not set
+if [ -z "$API_KEY_ENCRYPTION_KEY" ]; then
+    echo "⚠️  WARNING: API_KEY_ENCRYPTION_KEY not set!"
+    echo "🔑 Generating new encryption key..."
+    export API_KEY_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+    echo "✅ Generated API_KEY_ENCRYPTION_KEY"
+    echo ""
+    echo "⚠️  CRITICAL: Save this key immediately!"
+    echo "   Add to docker/.env file:"
+    echo "   API_KEY_ENCRYPTION_KEY=$API_KEY_ENCRYPTION_KEY"
+    echo ""
+    echo "💡 TIP: Use 'make init-docker-env' before first deployment to avoid this warning"
+    echo "   This will automatically save the key to docker/.env"
+    echo ""
+else
+    echo "✅ API_KEY_ENCRYPTION_KEY is set"
+fi
+
 if [[ "${MIGRATION_ENABLED}" == "true" ]]; then
   echo "Running migrations"
   flask upgrade-db
@@ -22,13 +40,18 @@ fi
 # after first deployment to avoid password exposure in docker-compose.yaml or .env files
 if [ ! -z "$INITIAL_ADMIN_EMAIL" ] && [ ! -z "$INITIAL_ADMIN_PASSWORD" ]; then
     echo "Checking initial admin setup..."
-    flask init-tenant \
+    if flask init-tenant \
         --email "$INITIAL_ADMIN_EMAIL" \
         --password "$INITIAL_ADMIN_PASSWORD" \
-        --name "${INITIAL_ADMIN_NAME:-Admin}" || true
-    # '|| true' ensures script continues even if tenant already exists
+        --name "${INITIAL_ADMIN_NAME:-Admin}" 2>/dev/null; then
+        echo "✅ Initial admin account created successfully"
+        echo "   Email: $INITIAL_ADMIN_EMAIL"
+        echo "   Name: ${INITIAL_ADMIN_NAME:-Admin}"
+    else
+        echo "ℹ️  Initial admin already exists (skipped)"
+    fi
 else
-    echo "INITIAL_ADMIN_EMAIL not set, skipping automatic tenant setup."
+    echo "ℹ️  INITIAL_ADMIN_EMAIL not set, skipping automatic tenant setup."
 fi
 
 if [[ "${MODE}" == "worker" ]]; then
@@ -46,7 +69,7 @@ if [[ "${MODE}" == "worker" ]]; then
 
   exec celery -A celery_entrypoint.celery worker -P ${CELERY_WORKER_CLASS:-gevent} $CONCURRENCY_OPTION \
     --max-tasks-per-child ${MAX_TASKS_PER_CHILD:-50} --loglevel ${LOG_LEVEL:-INFO} \
-    -Q ${CELERY_QUEUES:-dataset,pipeline,mail,ops_trace,app_deletion,plugin,workflow_storage,conversation}
+    -Q ${CELERY_QUEUES:-dataset,generation,pipeline,mail,ops_trace,app_deletion,plugin,workflow_storage,conversation}
 
 elif [[ "${MODE}" == "beat" ]]; then
   exec celery -A app.celery beat --loglevel ${LOG_LEVEL:-INFO}

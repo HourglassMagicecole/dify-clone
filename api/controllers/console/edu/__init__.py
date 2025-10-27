@@ -61,9 +61,10 @@ def require_admin(f):
 
 
 # Import blueprints
+from .api_key import bp as api_key_bp
 from .resource_tags import bp as resource_tags_bp
 from .role import bp as role_bp
 from .session import bp as session_bp
 from .users import bp as users_bp
 
-__all__ = ["require_admin", "resource_tags_bp", "role_bp", "session_bp", "users_bp"]
+__all__ = ["api_key_bp", "require_admin", "resource_tags_bp", "role_bp", "session_bp", "users_bp"]

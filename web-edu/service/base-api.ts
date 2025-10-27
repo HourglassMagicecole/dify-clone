@@ -1,6 +1,17 @@
 import { getAccessToken } from '@/utils/storage'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001'
+const API_BASE_URL = (() => {
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+
+  // 환경 변수가 명시적으로 설정된 경우 (빈 문자열 포함)
+  // Docker/Production에서는 빈 문자열로 설정하여 상대 경로 사용
+  if (envUrl !== undefined) {
+    return envUrl
+  }
+
+  // 환경 변수가 없으면 로컬 개발 기본값
+  return 'http://localhost:5001'
+})()
 
 export interface ApiResponse<T> {
   result: 'success' | 'fail'

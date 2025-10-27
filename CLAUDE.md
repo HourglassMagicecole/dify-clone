@@ -139,50 +139,152 @@ pnpm test      # MUST pass before commit
 ## Quick Reference Commands
 
 <common_tasks>
-### Backend Quick Commands
-```bash
-# Development
-cd /PATH_TO_EduAI-Studio/api
-uv run --project api <command>
 
-# Initial Tenant Setup (first deployment only)
+### 1. Initial Setup (First-time only)
+
+**Local Development Environment:**
+```bash
+# Run from project root
+make dev-setup
+
+# Automatically performs:
+# - Starts Docker middleware (PostgreSQL, Redis, Weaviate)
+# - Auto-generates SECRET_KEY and API_KEY_ENCRYPTION_KEY
+# - Installs dependencies and builds
+
+# ⚠️ Additional REQUIRED: Create initial admin account (once only)
+cd api
 uv run --project api flask init-tenant \
   --email admin@example.com \
   --password your_password \
   --name "Admin Name"
+```
 
-# Start API Server
+**Cleanup Commands:**
+```bash
+# Quick cleanup (preserves data & configs - recommended for daily use)
+make dev-clean
+# Removes: build artifacts (node_modules, .next, .venv, api/storage)
+# Preserves: docker/volumes/ (DB data), .env files, Docker images
+
+# Complete reset (removes everything - use when environment is broken)
+make dev-clean-all
+# Removes: ALL containers, volumes, images, data, and ALL .env files
+#          (web/.env, web-edu/.env.local, api/.env)
+# Use case: Starting completely fresh with new keys
+```
+
+**Docker Production Deployment:**
+```bash
+# Run from project root
+make docker-up
+
+# Automatically performs:
+# - Creates docker/.env
+# - Auto-generates SECRET_KEY and API_KEY_ENCRYPTION_KEY
+# - Interactive setup for initial admin account
+# - Starts all containers
+```
+
+---
+
+### 2. Daily Development
+
+**Backend (Terminals 1-3):**
+```bash
+# Terminal 1: API Server (development mode with hot-reload)
+cd api
 uv run --project api flask run --host=0.0.0.0 --port=5001 --debug
 
-# Start Celery Worker (REQUIRED for async tasks: RAG, Dataset, etc.)
+# Terminal 2: Celery Worker (REQUIRED for async tasks)
+# ⚠️ Important: Run from project root
 uv run celery -A app.celery worker -P gevent -c 2 --loglevel INFO \
   -Q dataset,generation,mail,ops_trace,app_deletion,plugin,workflow_storage,conversation
 
-# Start Celery Beat (for periodic tasks)
+# Terminal 3: Celery Beat (for periodic tasks - optional)
 uv run celery -A app.celery beat
+```
 
-# Quality Checks (ALL REQUIRED)
-make lint
-make type-check
-uv run --project api --dev dev/pytest/pytest_unit_tests.sh
+**Frontend (Terminal 4):**
+```bash
+cd web-edu
+pnpm dev
+# Runs on http://localhost:3001
+```
 
-# Database
+**Database Migrations:**
+```bash
+cd api
 uv run --project api flask db migrate -m "message"
 uv run --project api flask db upgrade
 ```
 
-### Frontend Quick Commands
-```bash
-# Development
-cd /PATH_TO_EduAI-Studio/web-edu
-pnpm dev
+---
 
-# Quality Checks (ALL REQUIRED)
-pnpm lint
-pnpm lint:fix
-pnpm test
-pnpm build
+### 3. Quality Checks (REQUIRED before commit)
+
+**Backend (run from project root):**
+```bash
+make lint           # Format and fix code with ruff
+make type-check     # Type checking with basedpyright
+uv run --project api --dev dev/pytest/pytest_unit_tests.sh  # Unit tests
 ```
+
+**Frontend:**
+```bash
+cd web-edu
+pnpm lint      # ESLint check
+pnpm lint:fix  # Auto-fix lint issues
+pnpm test      # Jest tests
+pnpm build     # Production build verification
+```
+
+---
+
+### 4. Docker Management (Production)
+
+**Quick Commands (Recommended):**
+```bash
+make docker-up          # Initialize + start containers
+make docker-down        # Stop containers
+make docker-restart     # Restart containers
+make docker-clean       # Remove containers + volumes + directories
+make docker-clean-all   # Remove all Docker resources + reset admin
+```
+
+**Advanced: Direct docker-compose usage**
+```bash
+cd docker
+
+# Status and logs
+docker-compose ps
+docker-compose logs -f api
+docker-compose logs -f worker
+
+# Restart specific service
+docker-compose restart api
+
+# Rebuild and restart
+docker-compose up -d --build api
+```
+
+---
+
+### 5. Troubleshooting (Rarely needed)
+
+**API Key Encryption (rarely needed - auto-generated):**
+```bash
+cd api
+
+# Generate new encryption key (manual)
+uv run --project api flask encryption generate-key
+
+# Verify existing key
+uv run --project api flask encryption verify-key
+```
+
+**Note**: Generally unnecessary as `make dev-setup` or `make docker-up` handles this automatically
+
 </common_tasks>
 
 <recursion_anchor>

@@ -1,7 +1,5 @@
 """Unit tests for AdminAPIKeyConfig model."""
 
-from datetime import datetime
-
 from models.education.api_key_config import AdminAPIKeyConfig
 
 
@@ -32,9 +30,7 @@ def test_admin_api_key_config_attributes():
     provider = "anthropic"
     api_key_encrypted = "encrypted_key_data_here"
     is_active = True
-    quota_limit = 100000
-    quota_used = 5000
-    last_reset_at = datetime(2025, 10, 1)
+    priority = "primary"
     created_by = "admin-account-id"
 
     # Act
@@ -44,9 +40,7 @@ def test_admin_api_key_config_attributes():
         provider=provider,
         api_key_encrypted=api_key_encrypted,
         is_active=is_active,
-        quota_limit=quota_limit,
-        quota_used=quota_used,
-        last_reset_at=last_reset_at,
+        priority=priority,
         created_by=created_by,
     )
 
@@ -56,9 +50,7 @@ def test_admin_api_key_config_attributes():
     assert config.provider == provider
     assert config.api_key_encrypted == api_key_encrypted
     assert config.is_active == is_active
-    assert config.quota_limit == quota_limit
-    assert config.quota_used == quota_used
-    assert config.last_reset_at == last_reset_at
+    assert config.priority == priority
     assert config.created_by == created_by
 
 
@@ -68,24 +60,22 @@ def test_admin_api_key_config_tablename():
     assert AdminAPIKeyConfig.__tablename__ == "admin_api_key_configs"
 
 
-def test_admin_api_key_config_nullable_quota_limit():
-    """Test AdminAPIKeyConfig with nullable quota_limit."""
+def test_admin_api_key_config_priority_field():
+    """Test AdminAPIKeyConfig with priority field."""
     # Arrange & Act
     config = AdminAPIKeyConfig(
-        id="config-unlimited",
-        key_name="Unlimited Key",
+        id="config-priority-test",
+        key_name="Priority Test Key",
         provider="google",
         api_key_encrypted="encrypted_data",
         is_active=True,
-        quota_limit=None,  # Nullable - unlimited
-        quota_used=0,
-        last_reset_at=datetime.now(),
-        created_by=None,  # Nullable
+        priority="secondary",
+        created_by="admin-123",
     )
 
     # Assert
-    assert config.quota_limit is None
-    assert config.created_by is None
+    assert config.priority == "secondary"
+    assert config.created_by == "admin-123"
 
 
 def test_admin_api_key_config_different_providers():
@@ -97,9 +87,8 @@ def test_admin_api_key_config_different_providers():
         provider="openai",
         api_key_encrypted="enc_openai",
         is_active=True,
-        quota_limit=50000,
-        quota_used=0,
-        last_reset_at=datetime.now(),
+        priority="primary",
+        created_by="admin-123",
     )
 
     anthropic_config = AdminAPIKeyConfig(
@@ -108,9 +97,8 @@ def test_admin_api_key_config_different_providers():
         provider="anthropic",
         api_key_encrypted="enc_anthropic",
         is_active=True,
-        quota_limit=100000,
-        quota_used=0,
-        last_reset_at=datetime.now(),
+        priority="secondary",
+        created_by="admin-123",
     )
 
     google_config = AdminAPIKeyConfig(
@@ -119,9 +107,8 @@ def test_admin_api_key_config_different_providers():
         provider="google",
         api_key_encrypted="enc_google",
         is_active=False,
-        quota_limit=None,
-        quota_used=0,
-        last_reset_at=datetime.now(),
+        priority="tertiary",
+        created_by="admin-123",
     )
 
     # Assert
@@ -129,3 +116,78 @@ def test_admin_api_key_config_different_providers():
     assert anthropic_config.provider == "anthropic"
     assert google_config.provider == "google"
     assert google_config.is_active is False
+
+
+# Story 1.8 - Task 14.3: Model method tests
+
+
+def test_get_masked_key_short():
+    """Test get_masked_key() with short API key."""
+    # Arrange
+    config = AdminAPIKeyConfig(
+        id="test-1",
+        key_name="Test Key",
+        provider="openai",
+        api_key_encrypted="encrypted",
+        created_by="admin-123",
+    )
+    short_key = "sk-1234"
+
+    # Act
+    masked = config.get_masked_key(short_key)
+
+    # Assert
+    assert masked == "****1234"
+
+
+def test_get_masked_key_long():
+    """Test get_masked_key() with long API key."""
+    # Arrange
+    long_key = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOP"
+    config = AdminAPIKeyConfig(
+        id="test-2",
+        key_name="Test Key",
+        provider="openai",
+        api_key_encrypted="encrypted",
+        created_by="admin-123",
+    )
+
+    # Act
+    masked = config.get_masked_key(long_key)
+
+    # Assert
+    assert masked.startswith("sk-proj")
+    assert "****" in masked
+    assert masked.endswith(long_key[-4:])
+    assert len(masked) < len(long_key)
+
+
+def test_validate_provider_valid():
+    """Test validate_provider() with valid provider."""
+    # Arrange
+    config = AdminAPIKeyConfig(
+        id="test-3",
+        key_name="Test Key",
+        provider="openai",
+        api_key_encrypted="encrypted",
+        created_by="admin-123",
+    )
+
+    # Act & Assert - should not raise any exception
+    config.validate_provider()  # Should complete without error
+
+
+def test_validate_priority_valid():
+    """Test validate_priority() with valid priority."""
+    # Arrange
+    config = AdminAPIKeyConfig(
+        id="test-4",
+        key_name="Test Key",
+        provider="openai",
+        priority="primary",
+        api_key_encrypted="encrypted",
+        created_by="admin-123",
+    )
+
+    # Act & Assert - should not raise any exception
+    config.validate_priority()  # Should complete without error

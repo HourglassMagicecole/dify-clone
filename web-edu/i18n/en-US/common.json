@@ -30,6 +30,7 @@
     "my_session": "My Session",
     "my_sessions": "My Sessions",
     "sessions": "Sessions",
-    "users": "User Management"
+    "users": "User Management",
+    "api_keys": "API Keys"
   }
 }

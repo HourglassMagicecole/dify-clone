@@ -173,6 +173,15 @@ export function NavigationHeader() {
                 </Link>
               </>
             )}
+            {/* Owner-only navigation (API Keys management) */}
+            {user.actualRole === 'owner' && (
+              <Link
+                href="/api-keys"
+                className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              >
+                {t('common:nav.api_keys')}
+              </Link>
+            )}
           </div>
         </div>
       </nav>

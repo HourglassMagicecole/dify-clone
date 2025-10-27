@@ -63,6 +63,7 @@ def load_user_from_request(request_from_flask_login):
         "resource_tags",
         "edu_session_member",
         "edu_dashboard",
+        "edu_api_keys",
     }:
         if not auth_token:
             raise Unauthorized("Invalid Authorization token.")

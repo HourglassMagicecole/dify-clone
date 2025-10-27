@@ -43,9 +43,10 @@ describe('ResourceSummaryCard', () => {
 
     render(<ResourceSummaryCard summary={mockSummary} />)
 
-    expect(screen.getByText('Agents')).toBeInTheDocument()
-    expect(screen.getByText('Workflows')).toBeInTheDocument()
-    expect(screen.getByText('Datasets')).toBeInTheDocument()
+    // i18n 키가 렌더링되는지 확인 (mock 없이 테스트)
+    expect(screen.getByText(/dashboard\.resourceSummary\.agents/)).toBeInTheDocument()
+    expect(screen.getByText(/dashboard\.resourceSummary\.workflows/)).toBeInTheDocument()
+    expect(screen.getByText(/dashboard\.resourceSummary\.datasets/)).toBeInTheDocument()
   })
 })
 
@@ -53,14 +54,16 @@ describe('EmptyResourceState', () => {
   it('빈 상태를 올바르게 표시', () => {
     render(<EmptyResourceState />)
 
-    expect(screen.getByText(/아직 생성한 리소스가 없습니다/)).toBeInTheDocument()
-    expect(screen.getByText('시작하기')).toBeInTheDocument()
+    // i18n 키가 렌더링되는지 확인 (mock 없이 테스트)
+    expect(screen.getByText(/dashboard\.empty\.title/)).toBeInTheDocument()
+    expect(screen.getByText(/dashboard\.empty\.description/)).toBeInTheDocument()
   })
 
   it('시작하기 버튼이 렌더링됨', () => {
     render(<EmptyResourceState />)
 
-    const button = screen.getByRole('button', { name: '시작하기' })
+    // i18n 키로 버튼 검색 (mock 없이 테스트)
+    const button = screen.getByRole('button', { name: /dashboard\.empty\.button/ })
     expect(button).toBeInTheDocument()
   })
 })

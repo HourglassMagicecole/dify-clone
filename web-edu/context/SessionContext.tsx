@@ -43,8 +43,8 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       }
       else if (data.sessions.length > 0) {
         // 기본값: 첫 번째 세션
-        setCurrentSession(data.sessions[0])
-        localStorage.setItem('lastSessionId', data.sessions[0].id)
+        setCurrentSession(data.sessions[0]!)
+        localStorage.setItem('lastSessionId', data.sessions[0]!.id)
       }
     }
     catch (err) {

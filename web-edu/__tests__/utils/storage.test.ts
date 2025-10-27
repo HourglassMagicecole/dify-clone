@@ -165,8 +165,8 @@ describe('utils/storage', () => {
 
       // Assert
       expect(mockCookiesRemove).toHaveBeenCalledTimes(2)
-      expect(mockCookiesRemove).toHaveBeenCalledWith('edu_access_token')
-      expect(mockCookiesRemove).toHaveBeenCalledWith('edu_refresh_token')
+      expect(mockCookiesRemove).toHaveBeenCalledWith('edu_access_token', { path: '/' })
+      expect(mockCookiesRemove).toHaveBeenCalledWith('edu_refresh_token', { path: '/' })
     })
   })
 

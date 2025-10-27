@@ -1,0 +1,220 @@
+{
+  "title": "API Key Management",
+  "subtitle": "Centrally manage API Keys for LLM and external APIs",
+  "addButton": "Add API Key",
+  "helpButton": "Help",
+
+  "tabs": {
+    "all": "All",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "google": "Google",
+    "cohere": "Cohere"
+  },
+
+  "table": {
+    "name": "KEY Name",
+    "provider": "PROVIDER",
+    "status": "Status",
+    "priority": "Priority",
+    "maskedKey": "API Key",
+    "createdAt": "Created At",
+    "actions": "Actions",
+    "loading": "Loading...",
+    "noKeys": "No API Keys registered",
+    "noKeysDescription": "Add a new API Key to get started",
+    "totalKeys": "Total {{count}} keys"
+  },
+
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "error": "Error"
+  },
+
+  "priority": {
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "tertiary": "Tertiary"
+  },
+
+  "addModal": {
+    "title": "Add API Key",
+    "fields": {
+      "provider": "Provider",
+      "keyName": "Key Name",
+      "apiKey": "API Key",
+      "priority": "Priority"
+    },
+    "placeholders": {
+      "keyName": "e.g., OpenAI-GPT4-Primary",
+      "apiKey": "Enter your API Key"
+    },
+    "guideInfo": "Get your {{provider}} API Key",
+    "links": {
+      "apiKeyGuide": "API Key Guide",
+      "pricing": "Pricing"
+    },
+    "freeTier": "Free Tier",
+    "priority": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "tertiary": "Tertiary"
+    },
+    "actions": {
+      "show": "Show",
+      "hide": "Hide",
+      "cancel": "Cancel",
+      "testing": "Testing...",
+      "testAndSave": "Test & Save"
+    },
+    "errors": {
+      "providerRequired": "Please select a provider",
+      "keyNameRequired": "Please enter a key name",
+      "keyNameTooShort": "Key name must be at least 3 characters",
+      "apiKeyRequired": "Please enter an API key",
+      "apiKeyTooShort": "API key is too short",
+      "priorityRequired": "Please select a priority",
+      "createFailed": "Failed to create API key",
+      "networkError": "A network error occurred"
+    },
+    "success": {
+      "created": "API key created successfully"
+    },
+    "responseTime": "Response time: {{time}}ms"
+  },
+
+  "editModal": {
+    "title": "Edit API Key",
+    "fields": {
+      "provider": "Provider",
+      "apiKey": "API Key",
+      "keyName": "Key Name",
+      "priority": "Priority",
+      "isActive": "Active"
+    },
+    "hints": {
+      "providerReadonly": "Provider cannot be changed",
+      "apiKeyReadonly": "API Key cannot be modified for security reasons",
+      "isActive": "Deactivating will stop this key from being used"
+    },
+    "priority": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "tertiary": "Tertiary"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    },
+    "errors": {
+      "updateFailed": "Failed to update API key",
+      "keyNameRequired": "Please enter a key name",
+      "keyNameTooShort": "Key name must be at least 3 characters",
+      "priorityRequired": "Please select a priority"
+    }
+  },
+
+  "deleteModal": {
+    "title": "Delete API Key",
+    "warning": {
+      "title": "Warning",
+      "description": "This action cannot be undone. Please proceed with caution."
+    },
+    "primaryWarning": {
+      "title": "Primary Key Deletion Warning",
+      "description": "This key is set as Primary. Deleting it may affect your service."
+    },
+    "info": {
+      "keyName": "Key Name",
+      "provider": "Provider",
+      "priority": "Priority",
+      "maskedKey": "API Key"
+    },
+    "confirmMessage": "Are you sure you want to delete this API Key?",
+    "actions": {
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleting": "Deleting..."
+    },
+    "errors": {
+      "deleteFailed": "Failed to delete API key"
+    }
+  },
+
+  "helpModal": {
+    "title": "API Key Management Guide",
+    "sections": {
+      "providers": "Supported Providers",
+      "recommended": "Recommended Provider Combination",
+      "faq": "Frequently Asked Questions",
+      "tips": "Usage Tips",
+      "security": "Security Precautions"
+    },
+    "links": {
+      "getApiKey": "Get API Key",
+      "pricing": "Pricing"
+    },
+    "recommended": {
+      "primary": "Primary: OpenAI (High reliability)",
+      "secondary": "Secondary: Anthropic (Fallback option)",
+      "tertiary": "Tertiary: Google AI (Additional backup)"
+    },
+    "faq": {
+      "q1": "Q: My API Key is not working.",
+      "a1": "A: 1) Run the Key test, 2) Check Key status in Provider dashboard, 3) Check expiration date",
+      "q2": "Q: Which Provider should I use?",
+      "a2": "A: OpenAI is recommended for high reliability, Anthropic as a fallback option.",
+      "q3": "Q: Are API Keys stored securely?",
+      "a3": "A: Yes, all API Keys are securely stored using Fernet (AES-256-CBC + HMAC) encryption.",
+      "q4": "Q: Can I use it for free?",
+      "a4": "A: It depends on the provider. OpenAI offers $5 free credit, and Google AI provides a free tier.",
+      "q5": "Q: How do I set priorities?",
+      "a5": "A: Set Primary as your main key, and Secondary as a backup."
+    },
+    "tips": {
+      "tip1": "Register keys from multiple providers to improve reliability",
+      "tip2": "Test keys regularly to ensure validity",
+      "tip3": "Deactivate unused keys",
+      "tip4": "Always keep your Primary key active"
+    },
+    "security": {
+      "warning1": "Never share your API Keys publicly",
+      "warning2": "Rotate keys regularly",
+      "warning3": "Delete keys immediately if suspicious activity is detected"
+    },
+    "actions": {
+      "close": "Close"
+    }
+  },
+
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "test": "Test",
+    "testing": "Testing",
+    "show": "Show",
+    "hide": "Hide",
+    "copy": "Copy"
+  },
+
+  "test": {
+    "success": "API Key is valid!",
+    "failure": "API Key test failed: {{message}}",
+    "error": "An error occurred during testing"
+  },
+
+  "messages": {
+    "createSuccess": "API Key added successfully",
+    "createError": "Failed to add API Key",
+    "updateSuccess": "API Key updated successfully",
+    "updateError": "Failed to update API Key",
+    "deleteSuccess": "API Key deleted successfully",
+    "deleteError": "Failed to delete API Key",
+    "testSuccess": "API Key is valid. Response time: {time}ms",
+    "testError": "API Key is invalid. Error: {error}",
+    "testRunning": "Testing API Key...",
+    "validationError": "Please check your input"
+  }
+}

@@ -71,9 +71,7 @@ export function UserTable({
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   user.status === 'active'
                     ? 'bg-green-100 text-green-800'
-                    : user.status === 'inactive'
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-red-100 text-red-800'
+                    : 'bg-red-100 text-red-800'
                 }`}>
                   {t(`userManagement.status.${user.status}`)}
                 </span>
