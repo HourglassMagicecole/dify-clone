@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { I18nextProvider } from 'react-i18next'
 import { AuthProvider } from './AuthContext'
 import { SessionProvider } from './SessionContext'
+import { ToastProvider } from './ToastContext'
 import { useSessionTimer } from '@/hooks/useSessionTimer'
 import i18n from '@/i18n' // Initialize i18n on client side
 
@@ -40,11 +41,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <SessionProvider>
-            <SessionManager />
-            {children}
-            <ReactQueryDevtools initialIsOpen={false} />
-          </SessionProvider>
+          <ToastProvider>
+            <SessionProvider>
+              <SessionManager />
+              {children}
+              <ReactQueryDevtools initialIsOpen={false} />
+            </SessionProvider>
+          </ToastProvider>
         </AuthProvider>
       </QueryClientProvider>
     </I18nextProvider>
