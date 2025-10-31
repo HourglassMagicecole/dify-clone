@@ -298,6 +298,15 @@ class ToolEngine:
                         else "application/octet-stream",
                         url=cast(ToolInvokeMessage.TextMessage, response.message).text,
                     )
+            elif response.type == ToolInvokeMessage.MessageType.BINARY_LINK:
+                # handle binary files (e.g., audio from TTS)
+                if not response.meta:
+                    raise ValueError("missing meta data")
+
+                yield ToolInvokeMessageBinary(
+                    mimetype=response.meta.get("mime_type", "application/octet-stream"),
+                    url=cast(ToolInvokeMessage.TextMessage, response.message).text,
+                )
 
     @staticmethod
     def _create_message_files(

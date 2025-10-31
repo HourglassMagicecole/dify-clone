@@ -127,7 +127,7 @@ const FileItem = ({
         </div>
       </div>
       {
-        type.split('/')[0] === 'audio' && canPreview && previewUrl && (
+        (type?.includes('/') ? type.split('/')[0] : type) === 'audio' && canPreview && previewUrl && (
           <AudioPreview
             title={name}
             url={previewUrl}
@@ -136,7 +136,7 @@ const FileItem = ({
         )
       }
       {
-        type.split('/')[0] === 'video' && canPreview && previewUrl && (
+        (type?.includes('/') ? type.split('/')[0] : type) === 'video' && canPreview && previewUrl && (
           <VideoPreview
             title={name}
             url={previewUrl}
@@ -145,7 +145,7 @@ const FileItem = ({
         )
       }
       {
-        type.split('/')[1] === 'pdf' && canPreview && previewUrl && (
+        (type?.includes('/') ? type.split('/')[1] : type) === 'pdf' && canPreview && previewUrl && (
           <PdfPreview url={previewUrl} onCancel={() => { setPreviewUrl('') }} />
         )
       }

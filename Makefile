@@ -34,8 +34,21 @@ docker-up: init-docker-env
 	@echo ""
 	@echo "📝 Next steps:"
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
-	@echo "   - Access web: http://localhost"
+	@echo "   - Access EduAI: http://localhost"
+	@echo "   - Access Dify (test): http://localhost:8080"
 	@echo "   - Access API: http://localhost/v1"
+
+# Rebuild Docker images without cache (slower but ensures fresh build)
+docker-rebuild: init-docker-env
+	@echo "🔨 Rebuilding Docker images without cache..."
+	@cd docker && docker-compose build --no-cache
+	@cd docker && docker-compose up -d
+	@echo "✅ Docker images rebuilt and containers started!"
+	@echo ""
+	@echo "📝 Next steps:"
+	@echo "   - Check logs: cd docker && docker-compose logs -f"
+	@echo "   - Access EduAI: http://localhost"
+	@echo "   - Access Dify (test): http://localhost:8080"
 
 # Stop Docker production environment
 docker-down:
@@ -91,7 +104,8 @@ docker-clean-all:
 	@echo "✅ All Docker resources removed and admin credentials reset"
 	@echo ""
 	@echo "💡 Next steps:"
-	@echo "   Run 'make docker-up' to start fresh with new admin credentials"
+	@echo "   Run 'make docker-rebuild' to rebuild without cache (recommended after clean-all)"
+	@echo "   Or  'make docker-up' for faster start (uses cache if available)"
 
 # Step 2: Prepare web environment
 prepare-web:
@@ -109,7 +123,15 @@ prepare-api:
 	@cd api && uv sync --dev
 	@awk -v key="$$(cd api && uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" '/^API_KEY_ENCRYPTION_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env
 	@cd api && uv run flask db upgrade
+	@echo "👤 Creating initial tenant (development default)..."
+	@cd api && uv run flask init-tenant --email admin@test.com --password Test1234! --name "Admin" 2>/dev/null || echo "ℹ️  Tenant already exists (skipped)"
+	@echo "🔌 Installing model provider plugins..."
+	@cd api && uv run flask provider install-plugins || echo "⚠️  Plugin installation failed (will retry on API Key creation)"
 	@echo "✅ API environment prepared (not started)"
+	@echo ""
+	@echo "📝 Development Credentials:"
+	@echo "   Email: admin@test.com"
+	@echo "   Password: Test1234!"
 
 # Step 4: Prepare web-edu environment
 prepare-web-edu:
@@ -234,6 +256,7 @@ help:
 	@echo "Docker Production Setup:"
 	@echo "  make init-docker-env - Initialize Docker production environment (generate keys & admin account)"
 	@echo "  make docker-up       - Start Docker containers (auto-initialize if needed)"
+	@echo "  make docker-rebuild  - Rebuild images without cache and start (slower, ensures fresh build)"
 	@echo "  make docker-down     - Stop Docker containers"
 	@echo "  make docker-restart  - Restart Docker containers"
 	@echo "  make docker-clean    - Remove containers, volumes, and volume directories"
@@ -253,4 +276,4 @@ help:
 	@echo "  make build-push-all - Build and push all Docker images"
 
 # Phony targets
-.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-down docker-restart docker-clean docker-clean-all dev-clean dev-clean-all help format check lint type-check
+.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-rebuild docker-down docker-restart docker-clean docker-clean-all dev-clean dev-clean-all help format check lint type-check

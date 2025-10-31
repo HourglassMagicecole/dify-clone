@@ -1,0 +1,24 @@
+identity:
+  name: url_scraper
+  author: EduAI Studio
+  label:
+    en_US: URL Scraper (Secure)
+    ko_KR: URL 스크래퍼 (보안)
+  icon: icon.svg
+description:
+  human:
+    en_US: Securely scrape web pages with built-in SSRF protection. Only allows public URLs and blocks access to internal networks.
+    ko_KR: SSRF 보호 기능이 내장된 안전한 웹 페이지 스크래퍼입니다. 공개 URL만 허용하며 내부 네트워크 접근을 차단합니다.
+  llm: A secure tool for scraping web pages. Includes SSRF (Server-Side Request Forgery) protection - blocks internal IPs, validates protocols, and prevents DNS rebinding attacks. Input should be a public URL (http:// or https://).
+parameters:
+  - name: url
+    type: string
+    required: true
+    label:
+      en_US: URL
+      ko_KR: URL
+    human_description:
+      en_US: 'Public URL to scrape (http:// or https://). Internal/private IP addresses are blocked for security.'
+      ko_KR: '스크래핑할 공개 URL (http:// 또는 https://). 보안을 위해 내부/사설 IP 주소는 차단됩니다.'
+    llm_description: Public URL to scrape. Must use http:// or https:// protocol. Internal IP addresses (localhost, private networks, AWS metadata) are blocked for security.
+    form: llm

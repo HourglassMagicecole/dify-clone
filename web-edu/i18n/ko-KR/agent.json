@@ -68,6 +68,17 @@
     "draftSaved": "작업이 자동으로 저장되었습니다",
     "draftReset": "새로 시작합니다"
   },
+  "tools": {
+    "title": "도구 선택",
+    "description": "Agent가 사용할 수 있는 도구를 선택하세요",
+    "configure": "설정",
+    "test": "테스트",
+    "testParameters": "테스트 파라미터",
+    "testSuccess": "테스트 성공",
+    "testFailed": "테스트 실패",
+    "noToolsAvailable": "사용 가능한 도구가 없습니다",
+    "apiKeyRequired": "API Key가 필요합니다"
+  },
   "roleSamples": {
     "learningMentor": {
       "icon": "📚",

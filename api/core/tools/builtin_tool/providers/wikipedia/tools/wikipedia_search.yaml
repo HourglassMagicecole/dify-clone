@@ -1,0 +1,120 @@
+identity:
+  name: wikipedia_search
+  author: langgenius
+  label:
+    en_US: WikipediaSearch
+    zh_Hans: 维基百科搜索
+    pt_BR: WikipediaSearch
+    ko_KR: 위키백과 검색
+  icon: icon.svg
+description:
+  human:
+    en_US: A tool for performing a Wikipedia search and extracting snippets and webpages.
+    zh_Hans: 一个用于执行维基百科搜索并提取片段和网页的工具。
+    pt_BR: A tool for performing a Wikipedia search and extracting snippets and webpages.
+    ko_KR: 위키백과를 검색하고 요약 및 웹페이지를 추출하는 도구입니다.
+  llm: A tool for performing a Wikipedia search and extracting snippets and webpages. Input should be a search query.
+parameters:
+  - name: query
+    type: string
+    required: true
+    label:
+      en_US: Query string
+      zh_Hans: 查询语句
+      pt_BR: Query string
+      ko_KR: 검색어
+    human_description:
+      en_US: key words for searching
+      zh_Hans: 查询关键词
+      pt_BR: key words for searching
+      ko_KR: 검색 키워드
+    llm_description: key words for searching, this should be in the language of "language" parameter
+    form: llm
+  - name: language
+    type: string
+    required: true
+    label:
+      en_US: Language
+      zh_Hans: 语言
+      pt_BR: Language
+      ko_KR: 언어
+    human_description:
+      en_US: The language of the Wikipedia to be searched
+      zh_Hans: 要搜索的维基百科语言
+      pt_BR: The language of the Wikipedia to be searched
+      ko_KR: 검색할 위키백과 언어
+    llm_description: language of the wikipedia to be searched, only "de" for German, "en" for English, "fr" for French, "hi" for Hindi, "ja" for Japanese, "ko" for Korean, "pl" for Polish, "pt" for Portuguese, "ro" for Romanian, "uk" for Ukrainian, "vi" for Vietnamese, and "zh" for Chinese are supported
+    form: llm
+    options:
+      - value: de
+        label:
+          en_US: German
+          zh_Hans: 德语
+          pt_BR: German
+          ko_KR: 독일어
+      - value: en
+        label:
+          en_US: English
+          zh_Hans: 英语
+          pt_BR: English
+          ko_KR: 영어
+      - value: fr
+        label:
+          en_US: French
+          zh_Hans: 法语
+          pt_BR: French
+          ko_KR: 프랑스어
+      - value: hi
+        label:
+          en_US: Hindi
+          zh_Hans: 印地语
+          pt_BR: Hindi
+          ko_KR: 힌디어
+      - value: ja
+        label:
+          en_US: Japanese
+          zh_Hans: 日语
+          pt_BR: Japanese
+          ko_KR: 일본어
+      - value: ko
+        label:
+          en_US: Korean
+          zh_Hans: 韩语
+          pt_BR: Korean
+          ko_KR: 한국어
+      - value: pl
+        label:
+          en_US: Polish
+          zh_Hans: 波兰语
+          pt_BR: Polish
+          ko_KR: 폴란드어
+      - value: pt
+        label:
+          en_US: Portuguese
+          zh_Hans: 葡萄牙语
+          pt_BR: Portuguese
+          ko_KR: 포르투갈어
+      - value: ro
+        label:
+          en_US: Romanian
+          zh_Hans: 罗马尼亚语
+          pt_BR: Romanian
+          ko_KR: 루마니아어
+      - value: uk
+        label:
+          en_US: Ukrainian
+          zh_Hans: 乌克兰语
+          pt_BR: Ukrainian
+          ko_KR: 우크라이나어
+      - value: vi
+        label:
+          en_US: Vietnamese
+          zh_Hans: 越南语
+          pt_BR: Vietnamese
+          ko_KR: 베트남어
+      - value: zh
+        label:
+          en_US: Chinese
+          zh_Hans: 中文
+          pt_BR: Chinese
+          ko_KR: 중국어

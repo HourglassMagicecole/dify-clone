@@ -1,0 +1,35 @@
+identity:
+  name: json_parser
+  author: EduAI Studio
+  label:
+    en_US: JSON Parser
+    ko_KR: JSON 파서
+  icon: icon.svg
+description:
+  human:
+    en_US: Parse and extract data from JSON strings using optional JSONPath expressions
+    ko_KR: JSON 문자열을 파싱하고 선택적으로 JSONPath 표현식을 사용하여 데이터를 추출합니다
+  llm: A tool that parses JSON strings and extracts specific fields using JSONPath. Input should be a valid JSON string.
+parameters:
+  - name: json_string
+    type: string
+    required: true
+    label:
+      en_US: JSON String
+      ko_KR: JSON 문자열
+    human_description:
+      en_US: Valid JSON string to parse
+      ko_KR: 파싱할 유효한 JSON 문자열
+    llm_description: The JSON string to parse. Must be valid JSON format.
+    form: llm
+  - name: json_path
+    type: string
+    required: false
+    label:
+      en_US: JSONPath (Optional)
+      ko_KR: JSONPath (선택)
+    human_description:
+      en_US: 'JSONPath expression to extract specific fields (e.g., "data.name"). Leave empty to return entire JSON.'
+      ko_KR: '특정 필드를 추출하기 위한 JSONPath 표현식 (예: "data.name"). 비워두면 전체 JSON을 반환합니다.'
+    llm_description: Optional JSONPath expression to extract data. Use dot notation like "data.name" or "users.0.email".
+    form: llm

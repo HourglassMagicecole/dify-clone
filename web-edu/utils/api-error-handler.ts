@@ -16,7 +16,7 @@ export interface APIError {
 /**
  * Error codes and their messages
  */
-const ERROR_MESSAGES: Record<string, string> = {
+const ERROR_MESSAGES = {
   // Authentication errors
   UNAUTHORIZED: '인증이 필요합니다. 다시 로그인해주세요.',
   FORBIDDEN: '이 작업을 수행할 권한이 없습니다.',
@@ -44,7 +44,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 
   // Default
   UNKNOWN_ERROR: '알 수 없는 오류가 발생했습니다.',
-}
+} as const
 
 /**
  * Get error message by HTTP status code
@@ -84,8 +84,8 @@ export function handleAPIError(error: unknown): string {
     const apiError = error as APIError
 
     // Error code exists
-    if (apiError.code && ERROR_MESSAGES[apiError.code]) {
-      return ERROR_MESSAGES[apiError.code]
+    if (apiError.code && apiError.code in ERROR_MESSAGES) {
+      return ERROR_MESSAGES[apiError.code as keyof typeof ERROR_MESSAGES]
     }
 
     // HTTP status exists

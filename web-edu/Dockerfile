@@ -37,6 +37,11 @@ COPY . .
 # Build-time argument for API host (used in next.config.ts)
 ARG API_HOST=localhost:5001
 ENV API_HOST=${API_HOST}
+
+# Build-time argument for API base URL (browser API calls)
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN pnpm build
 

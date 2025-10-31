@@ -7,6 +7,7 @@ from werkzeug.exceptions import BadRequest
 
 from controllers.console.edu.auth_decorators import jwt_required, owner_required
 from services.education_management.api_key_service import APIKeyService
+from services.education_management.provider_sync_service import ProviderSyncService
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,24 @@ def create_api_key():
             )
             return jsonify({"result": "error", "message": test_result["message"]}), 400
 
+        # Sync to Dify Provider system for TTS/STT/Model-dependent tools
+        # Use request.tenant_id which is set by owner_required decorator
+        tenant_id = request.tenant_id
+        sync_service = ProviderSyncService()
+        sync_result = sync_service.sync_api_key_to_provider(
+            tenant_id=tenant_id,
+            api_key_config_id=api_key_config.id,
+        )
+
+        if not sync_result["success"]:
+            logger.warning(
+                "API key created but provider sync failed: %s (provider: %s)",
+                sync_result["message"],
+                provider,
+            )
+            # Note: We don't fail the request, just log the warning
+            # The API key is still valid for tools that don't need Provider system
+
         # 성공 응답
         decrypted = service.get_decrypted_key(api_key_config.id)
         return (
@@ -146,6 +165,7 @@ def create_api_key():
                         "created_at": api_key_config.created_at.isoformat(),
                         "updated_at": api_key_config.updated_at.isoformat(),
                         "test_result": test_result,
+                        "sync_result": sync_result,
                     },
                 }
             ),
@@ -185,14 +205,53 @@ def update_api_key(key_id: str):
         if not data:
             raise BadRequest("Missing request body")
 
-        # API Key 수정
+        # Get current API key to check if key_name changed
         service = _get_api_key_service()
+        current_api_key = service.get_api_key_by_id(key_id)
+        if not current_api_key:
+            raise ValueError("API Key not found")
+
+        old_key_name = current_api_key.key_name
+        new_key_name = data.get("key_name")
+
+        # API Key 수정
         api_key_config = service.update_api_key(
             key_id=key_id,
-            key_name=data.get("key_name"),
+            key_name=new_key_name,
             priority=data.get("priority"),
             is_active=data.get("is_active"),
         )
+
+        # If key_name changed and was synced, re-sync to Provider with new name
+        if new_key_name and new_key_name != old_key_name and api_key_config.provider_credential_name:
+            logger.info(
+                "API key name changed from '%s' to '%s', re-syncing Provider credential",
+                old_key_name,
+                new_key_name,
+            )
+
+            # Get tenant_id from request (set by owner_required decorator)
+            tenant_id = request.tenant_id
+
+            # Remove old Provider credential
+            sync_service = ProviderSyncService()
+            sync_service.remove_synced_credentials(
+                tenant_id=tenant_id,
+                provider=api_key_config.provider,
+                credential_name=api_key_config.provider_credential_name,
+            )
+
+            # Re-sync with new name
+            sync_result = sync_service.sync_api_key_to_provider(
+                tenant_id=tenant_id,
+                api_key_config_id=api_key_config.id,
+            )
+
+            if not sync_result["success"]:
+                logger.warning(
+                    "API key updated but provider re-sync failed: %s",
+                    sync_result.get("message"),
+                )
 
         # 응답
         decrypted = service.get_decrypted_key(api_key_config.id)
@@ -239,10 +298,57 @@ def delete_api_key(key_id: str):
         JSON response with success message
     """
     try:
-        # API Key 삭제
-        _get_api_key_service().delete_api_key(key_id)
+        # Get API Key info before deletion (for sync)
+        service = _get_api_key_service()
+        api_key_config = service.get_api_key_by_id(key_id)
 
-        return jsonify({"result": "success", "message": "API Key deleted successfully"}), 200
+        if not api_key_config:
+            return jsonify({"result": "error", "message": "API Key not found"}), 404
+
+        # Store info for sync
+        provider = api_key_config.provider
+        # Use stored credential_name (saved during sync) for accurate deletion
+        # Fallback to current name if not stored (for backward compatibility)
+        credential_name = api_key_config.provider_credential_name or f"EduAI-{api_key_config.key_name}"
+        # Use request.tenant_id which is set by owner_required decorator
+        tenant_id = request.tenant_id
+
+        # Delete API Key from database
+        service.delete_api_key(key_id)
+
+        # Remove synced credentials from Dify Provider system
+        sync_service = ProviderSyncService()
+        sync_result = sync_service.remove_synced_credentials(
+            tenant_id=tenant_id,
+            provider=provider,
+            credential_name=credential_name,
+        )
+
+        if not sync_result["success"]:
+            logger.warning(
+                "API key deleted but provider credential removal failed: %s (provider: %s)",
+                sync_result["message"],
+                provider,
+            )
+            # Note: We don't fail the request, API key is already deleted
+
+        logger.info(
+            "API key deleted successfully: %s (provider: %s, sync: %s)",
+            key_id,
+            provider,
+            sync_result["success"],
+        )
+
+        return (
+            jsonify(
+                {
+                    "result": "success",
+                    "message": "API Key deleted successfully",
+                    "sync_result": sync_result,
+                }
+            ),
+            200,
+        )
 
     except ValueError as e:
         return jsonify({"result": "error", "message": str(e)}), 404

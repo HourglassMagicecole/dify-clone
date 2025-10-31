@@ -2000,3 +2000,153 @@ def verify_encryption_key():
     except Exception as e:
         click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))
         logger.exception("Failed to verify encryption key")
+
+
+@click.group()
+def provider():
+    """Model provider management commands."""
+    pass
+
+
+@provider.command("install-plugins", help="Install essential model provider plugins")
+@click.option("--tenant-id", default=None, help="Tenant ID (uses first tenant if not specified)")
+def install_provider_plugins(tenant_id: str | None):
+    """
+    Install essential model provider plugins from local packages.
+
+    Installs: OpenAI, Anthropic, Cohere, Gemini (Google)
+
+    These plugins are required for EduAI Console API Key management to work properly.
+    """
+    import os
+
+    from services.plugin.plugin_service import PluginService
+
+    # Model provider packages to install
+    PACKAGES = [
+        {
+            "name": "OpenAI",
+            "file": "model_plugins/langgenius-openai_0.2.6.difypkg",
+            "expected_identifier": "langgenius/openai",
+        },
+        {
+            "name": "Anthropic",
+            "file": "model_plugins/langgenius-anthropic_0.2.3.difypkg",
+            "expected_identifier": "langgenius/anthropic",
+        },
+        {
+            "name": "Cohere",
+            "file": "model_plugins/langgenius-cohere_0.0.8.difypkg",
+            "expected_identifier": "langgenius/cohere",
+        },
+        {
+            "name": "Gemini (Google)",
+            "file": "model_plugins/langgenius-gemini_0.5.6.difypkg",
+            "expected_identifier": "langgenius/gemini",
+        },
+    ]
+
+    try:
+        # Get tenant
+        if tenant_id:
+            tenant = db.session.query(Tenant).filter_by(id=tenant_id).first()
+            if not tenant:
+                click.echo(click.style(f"❌ Tenant not found: {tenant_id}", fg="red"))
+                return
+        else:
+            tenant = db.session.query(Tenant).first()
+            if not tenant:
+                click.echo(click.style("❌ No tenant found in database", fg="red"))
+                click.echo("Run 'flask init-tenant' first to create an initial tenant")
+                return
+
+        tenant_id = tenant.id
+        click.echo(click.style(f"🔍 Using tenant: {tenant.name} ({tenant_id})", fg="cyan"))
+        click.echo("=" * 70)
+
+        installed_count = 0
+        failed_count = 0
+        skipped_count = 0
+
+        for package in PACKAGES:
+            click.echo(f"\n📦 Processing: {package['name']}")
+            click.echo(f"   File: {package['file']}")
+
+            # Check if file exists
+            file_path = os.path.join(os.path.dirname(__file__), package["file"])
+            if not os.path.exists(file_path):
+                click.echo(click.style(f"   ⚠️  File not found: {file_path}", fg="yellow"))
+                click.echo(click.style("   ℹ️  Plugin will be installed on-demand when API Key is added", fg="cyan"))
+                skipped_count += 1
+                continue
+
+            # Read package file
+            try:
+                from pathlib import Path
+
+                pkg_content = Path(file_path).read_bytes()
+                click.echo(f"   ✅ File loaded ({len(pkg_content):,} bytes)")
+            except Exception as e:
+                click.echo(click.style(f"   ❌ Failed to read file: {e}", fg="red"))
+                failed_count += 1
+                continue
+
+            # Upload package
+            try:
+                click.echo("   📤 Uploading package...")
+                response = PluginService.upload_pkg(tenant_id, pkg_content)
+                unique_identifier = response.unique_identifier
+                click.echo(f"   ✅ Package uploaded: {unique_identifier}")
+            except Exception as e:
+                # Check if already installed
+                error_str = str(e)
+                if "already installed" in error_str.lower() or "already exists" in error_str.lower():
+                    click.echo(click.style(f"   ℹ️  {package['name']} already installed (skipped)", fg="cyan"))
+                    skipped_count += 1
+                    continue
+                click.echo(click.style(f"   ❌ Upload failed: {e}", fg="red"))
+                failed_count += 1
+                continue
+
+            # Install package
+            try:
+                click.echo("   📥 Installing package...")
+                install_response = PluginService.install_from_local_pkg(tenant_id, [unique_identifier])
+
+                if install_response.all_installed:
+                    click.echo(click.style(f"   ✅ {package['name']} installed successfully!", fg="green"))
+                    installed_count += 1
+                else:
+                    task_id = install_response.task_id
+                    click.echo(click.style(f"   🔄 Installation task created: {task_id}", fg="yellow"))
+                    installed_count += 1
+
+            except Exception as e:
+                # Check if already installed
+                error_str = str(e)
+                if "already installed" in error_str.lower() or "already exists" in error_str.lower():
+                    click.echo(click.style(f"   ℹ️  {package['name']} already installed (skipped)", fg="cyan"))
+                    skipped_count += 1
+                    continue
+                click.echo(click.style(f"   ❌ Installation failed: {e}", fg="red"))
+                failed_count += 1
+                continue
+
+        click.echo("\n" + "=" * 70)
+        click.echo(
+            click.style(
+                f"✅ Installation complete: {installed_count} installed, "
+                f"{skipped_count} skipped, {failed_count} failed",
+                fg="green",
+            )
+        )
+
+        if installed_count > 0:
+            click.echo("\n📝 Next steps:")
+            click.echo("   1. Wait for background installation tasks (~30 seconds)")
+            click.echo("   2. Verify in Dify UI → Settings → Model Provider")
+            click.echo("   3. Test by creating API Key in EduAI Console")
+
+    except Exception as e:
+        click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))
+        logger.exception("Failed to install provider plugins")

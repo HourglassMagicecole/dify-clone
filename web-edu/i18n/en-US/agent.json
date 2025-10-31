@@ -68,6 +68,17 @@
     "draftSaved": "Work has been automatically saved",
     "draftReset": "Starting fresh"
   },
+  "tools": {
+    "title": "Select Tools",
+    "description": "Choose tools that the Agent can use",
+    "configure": "Configure",
+    "test": "Test",
+    "testParameters": "Test Parameters",
+    "testSuccess": "Test Successful",
+    "testFailed": "Test Failed",
+    "noToolsAvailable": "No tools available",
+    "apiKeyRequired": "API Key required"
+  },
   "roleSamples": {
     "learningMentor": {
       "icon": "📚",

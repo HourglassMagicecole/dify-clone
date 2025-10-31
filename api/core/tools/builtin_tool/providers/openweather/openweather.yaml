@@ -1,0 +1,36 @@
+identity:
+  author: Onelevenvy
+  name: openweather
+  label:
+    en_US: OpenWeather
+    zh_Hans: Open Weather
+    pt_BR: OpenWeather
+    ko_KR: OpenWeather
+  description:
+    en_US: Weather query toolkit based on OpenWeather
+    zh_Hans: 基于open weather的天气查询工具包
+    pt_BR: Kit de consulta de clima baseado no Open Weather
+    ko_KR: OpenWeather 기반 날씨 조회 도구
+  icon: icon.svg
+  tags:
+    - weather
+credentials_for_provider:
+  api_key:
+    type: secret-input
+    required: true
+    label:
+      en_US: API Key
+      zh_Hans: API Key
+      pt_BR: API Key
+      ko_KR: API 키
+    placeholder:
+      en_US: Please enter your OpenWeather API Key
+      zh_Hans: 请输入你的open weather API Key
+      pt_BR: Insira sua chave de API open weather
+      ko_KR: OpenWeather API 키를 입력하세요
+    help:
+      en_US: Get your API Key from OpenWeather
+      zh_Hans: 从open weather获取您的 API Key
+      pt_BR: Obtenha sua chave de API do open weather
+      ko_KR: OpenWeather에서 API 키를 발급받으세요
+    url: https://openweathermap.org/api

@@ -1,0 +1,62 @@
+identity:
+  author: langgenius
+  name: openai_tool
+  label:
+    en_US: OpenAI
+    zh_Hans: OpenAI
+    ko_KR: OpenAI
+  description:
+    en_US: OpenAI Image Generation and Editing
+    zh_Hans: OpenAI 图像生成和编辑
+    ko_KR: OpenAI 이미지 생성 및 편집
+  icon: icon.png
+  tags:
+    - image
+    - productivity
+credentials_for_provider:
+  openai_api_key:
+    type: secret-input
+    required: true
+    label:
+      en_US: OpenAI API key
+      zh_Hans: OpenAI API key
+      ko_KR: OpenAI API 키
+    placeholder:
+      en_US: Please input your OpenAI API key
+      zh_Hans: 请输入你的 OpenAI API key
+      ko_KR: OpenAI API 키를 입력하세요
+    help:
+      en_US: Get your API key from OpenAI
+      zh_Hans: 从 OpenAI 获取您的 API key
+      ko_KR: OpenAI에서 API 키를 발급받으세요
+    url: https://platform.openai.com/api-keys
+  openai_base_url:
+    type: text-input
+    required: false
+    label:
+      en_US: OpenAI base URL
+      zh_Hans: OpenAI base URL
+      ko_KR: OpenAI 기본 URL
+    placeholder:
+      en_US: https://api.openai.com/v1
+      zh_Hans: https://api.openai.com/v1
+      ko_KR: https://api.openai.com/v1
+    help:
+      en_US: Custom base URL for OpenAI API (optional)
+      zh_Hans: OpenAI API 的自定义基础 URL（可选）
+      ko_KR: OpenAI API 사용자 정의 기본 URL (선택사항)
+  openai_organization_id:
+    type: text-input
+    required: false
+    label:
+      en_US: OpenAI organization ID
+      zh_Hans: OpenAI organization ID
+      ko_KR: OpenAI 조직 ID
+    placeholder:
+      en_US: org-xxxxx
+      zh_Hans: org-xxxxx
+      ko_KR: org-xxxxx
+    help:
+      en_US: Your OpenAI organization ID (optional)
+      zh_Hans: 您的 OpenAI organization ID（可选）
+      ko_KR: OpenAI 조직 ID (선택사항)

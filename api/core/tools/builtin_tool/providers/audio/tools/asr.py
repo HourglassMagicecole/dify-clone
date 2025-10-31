@@ -27,7 +27,9 @@ class ASRTool(BuiltinTool):
             yield self.create_text_message("not a valid audio file")
             return
         audio_binary = io.BytesIO(download(file))  # type: ignore
-        audio_binary.name = "temp.mp3"
+        # Use the actual file extension from the uploaded file
+        # This fixes the issue where all files were treated as .mp3
+        audio_binary.name = f"temp{file.extension}" if file.extension else "temp.mp3"  # type: ignore
         provider, model = tool_parameters.get("model").split("#")  # type: ignore
         model_manager = ModelManager()
         model_instance = model_manager.get_model_instance(

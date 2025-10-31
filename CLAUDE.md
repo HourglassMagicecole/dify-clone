@@ -150,14 +150,8 @@ make dev-setup
 # Automatically performs:
 # - Starts Docker middleware (PostgreSQL, Redis, Weaviate)
 # - Auto-generates SECRET_KEY and API_KEY_ENCRYPTION_KEY
+# - Creates initial admin account (interactive)
 # - Installs dependencies and builds
-
-# ⚠️ Additional REQUIRED: Create initial admin account (once only)
-cd api
-uv run --project api flask init-tenant \
-  --email admin@example.com \
-  --password your_password \
-  --name "Admin Name"
 ```
 
 **Cleanup Commands:**
@@ -183,7 +177,15 @@ make docker-up
 # - Creates docker/.env
 # - Auto-generates SECRET_KEY and API_KEY_ENCRYPTION_KEY
 # - Interactive setup for initial admin account
-# - Starts all containers
+# - Starts all containers (uses cache for faster startup)
+
+# For clean rebuild without cache (slower but ensures fresh build):
+make docker-rebuild
+
+# Access points:
+# - EduAI Studio: http://localhost
+# - Dify Original (test): http://localhost:8080
+# - API: http://localhost/v1
 ```
 
 ---
@@ -245,7 +247,8 @@ pnpm build     # Production build verification
 
 **Quick Commands (Recommended):**
 ```bash
-make docker-up          # Initialize + start containers
+make docker-up          # Initialize + start containers (fast, uses cache)
+make docker-rebuild     # Rebuild without cache + start (slow, ensures fresh)
 make docker-down        # Stop containers
 make docker-restart     # Restart containers
 make docker-clean       # Remove containers + volumes + directories

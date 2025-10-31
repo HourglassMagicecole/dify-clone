@@ -1,0 +1,36 @@
+identity:
+  author: Dify
+  name: google
+  label:
+    en_US: Google
+    zh_Hans: Google
+    pt_BR: Google
+    ko_KR: Google
+  description:
+    en_US: A tool for performing a Google SERP search and extracting snippets and webpages.
+    zh_Hans: 一个用于执行 Google SERP 搜索并提取片段和网页的工具。
+    pt_BR: A tool for performing a Google SERP search and extracting snippets and webpages.
+    ko_KR: Google SERP 검색을 수행하고 스니펫과 웹페이지를 추출하는 도구입니다.
+  icon: icon.svg
+  tags:
+    - search
+credentials_for_provider:
+  serpapi_api_key:
+    type: secret-input
+    required: true
+    label:
+      en_US: SerpApi API key
+      zh_Hans: SerpApi API key
+      pt_BR: SerpApi API key
+      ko_KR: SerpApi API 키
+    placeholder:
+      en_US: Please input your SerpApi API key
+      zh_Hans: 请输入你的 SerpApi API key
+      pt_BR: Please input your SerpApi API key
+      ko_KR: SerpApi API 키를 입력하세요
+    help:
+      en_US: Get your SerpApi API key from SerpApi
+      zh_Hans: 从 SerpApi 获取您的 SerpApi API key
+      pt_BR: Get your SerpApi API key from SerpApi
+      ko_KR: SerpApi에서 API 키를 발급받으세요
+    url: https://serpapi.com/manage-api-key

@@ -54,6 +54,15 @@ else
     echo "ℹ️  INITIAL_ADMIN_EMAIL not set, skipping automatic tenant setup."
 fi
 
+# Install model provider plugins (OpenAI, Anthropic, Cohere, Gemini)
+# These are required for EduAI Console API Key management
+echo "🔌 Installing model provider plugins..."
+if flask provider install-plugins 2>/dev/null; then
+    echo "✅ Provider plugins installed"
+else
+    echo "⚠️  Plugin installation failed or already installed (will auto-install on first API Key creation)"
+fi
+
 if [[ "${MODE}" == "worker" ]]; then
 
   # Get the number of available CPU cores

@@ -22,6 +22,7 @@ class AdminAPIKeyConfig(Base):
         key_name: Name of the API key
         provider: LLM provider (e.g., "openai", "anthropic", "google", "azure_openai", "cohere")
         api_key_encrypted: Encrypted API key (using Fernet encryption)
+        provider_credential_name: Synced Dify provider credential name (format: EduAI-{key_name})
         is_active: Whether the API key is active
         priority: Priority level ("primary", "secondary", "tertiary")
         created_by: Reference to account that created the key (owner)
@@ -45,6 +46,9 @@ class AdminAPIKeyConfig(Base):
     key_name: Mapped[str] = mapped_column(String(100), nullable=False)
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     api_key_encrypted: Mapped[str] = mapped_column(String(500), nullable=False)
+    provider_credential_name: Mapped[str | None] = mapped_column(
+        String(150), nullable=True, comment="Synced Dify provider credential name (format: EduAI-{key_name})"
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default=sa.text("true"))
     priority: Mapped[str] = mapped_column(String(20), nullable=False, server_default=sa.text("'secondary'"))
     created_by: Mapped[str] = mapped_column(StringUUID, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)

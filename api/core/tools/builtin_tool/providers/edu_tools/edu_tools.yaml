@@ -1,0 +1,14 @@
+identity:
+  author: EduAI Studio
+  name: edu_tools
+  label:
+    en_US: Educational Tools
+    ko_KR: 교육용 도구
+  description:
+    en_US: Simple educational tools for learning AI concepts without requiring API keys
+    ko_KR: API 키가 필요 없는 AI 개념 학습용 간단한 도구 모음
+  icon: icon.svg
+  tags:
+    - education
+    - utilities
+credentials_for_provider: {}

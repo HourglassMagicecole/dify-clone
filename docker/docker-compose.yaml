@@ -5,7 +5,7 @@
 # ==================================================================
 
 x-shared-env: &shared-api-worker-env
-  CONSOLE_API_URL: ${CONSOLE_API_URL:-}
+  CONSOLE_API_URL: ${CONSOLE_API_URL:-http://localhost/console/api}
   CONSOLE_WEB_URL: ${CONSOLE_WEB_URL:-}
   SERVICE_API_URL: ${SERVICE_API_URL:-}
   APP_API_URL: ${APP_API_URL:-}
@@ -724,13 +724,14 @@ services:
       dockerfile: Dockerfile
       args:
         API_HOST: api:5001
+        NEXT_PUBLIC_API_BASE_URL: http://localhost
     restart: always
     ports:
       - "3001:3001"
     environment:
       # API connection for Docker network
       API_HOST: api:5001
-      CONSOLE_API_URL: ${CONSOLE_API_URL:-}
+      CONSOLE_API_URL: ${CONSOLE_API_URL:-http://localhost/console/api}
       APP_API_URL: ${APP_API_URL:-}
       EDITION: ${EDITION:-SELF_HOSTED}
       DEPLOY_ENV: ${DEPLOY_ENV:-PRODUCTION}
@@ -739,6 +740,7 @@ services:
       TEXT_GENERATION_TIMEOUT_MS: ${TEXT_GENERATION_TIMEOUT_MS:-60000}
       CSP_WHITELIST: ${CSP_WHITELIST:-}
       ALLOW_EMBED: ${ALLOW_EMBED:-false}
+      NEXT_PUBLIC_API_BASE_URL: http://localhost
       ALLOW_UNSAFE_DATA_SCHEME: ${ALLOW_UNSAFE_DATA_SCHEME:-false}
       MARKETPLACE_API_URL: ${MARKETPLACE_API_URL:-https://marketplace.dify.ai}
       MARKETPLACE_URL: ${MARKETPLACE_URL:-https://marketplace.dify.ai}
@@ -977,6 +979,7 @@ services:
     ports:
       - "${EXPOSE_NGINX_PORT:-80}:${NGINX_PORT:-80}"
       - "${EXPOSE_NGINX_SSL_PORT:-443}:${NGINX_SSL_PORT:-443}"
+      - "8080:8080"
 
   # The Weaviate vector store.
   weaviate:

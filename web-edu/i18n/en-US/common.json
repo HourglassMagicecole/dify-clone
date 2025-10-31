@@ -19,6 +19,8 @@
   "success": "Success",
   "copy": "Copy",
   "copied": "Copied",
+  "retry": "Retry",
+  "testing": "Testing...",
   "admin_page_title": "Admin Page",
   "admin_page_description": "This page can only be accessed by users with the admin role.",
   "admin_dashboard_title": "Admin Dashboard",
