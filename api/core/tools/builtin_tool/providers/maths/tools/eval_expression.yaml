@@ -1,0 +1,29 @@
+description:
+  human:
+    en_US: A tool for evaluating an math expression, calculated locally with NumExpr.
+    pt_BR: A tool for evaluating an math expression, calculated locally with NumExpr.
+    zh_Hans: 一个用于计算数学表达式的工具，表达式将通过NumExpr本地执行。
+  llm: A tool for evaluating an math expression.
+extra:
+  python:
+    source: tools/eval_expression.py
+identity:
+  author: Bowen Liang
+  label:
+    en_US: Evaluate Math Expression
+    pt_BR: Evaluate Math Expression
+    zh_Hans: 计算数学表达式
+  name: eval_expression
+parameters:
+- form: llm
+  human_description:
+    en_US: Math Expression
+    pt_BR: Math Expression
+    zh_Hans: 数学计算表达式
+  label:
+    en_US: Math Expression
+    pt_BR: Math Expression
+    zh_Hans: 数学计算表达式
+  name: expression
+  required: true
+  type: string

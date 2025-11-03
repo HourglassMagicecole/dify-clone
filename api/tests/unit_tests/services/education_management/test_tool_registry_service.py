@@ -15,25 +15,28 @@ class TestToolRegistryService:
         mock_provider_controller = MagicMock()
         mock_entity = MagicMock()
         mock_identity = MagicMock()
-        mock_identity.name = "edu_tools"
+        mock_identity.name = "maths"
         mock_identity.label = MagicMock()
-        mock_identity.label.model_dump.return_value = {"en_US": "Educational Tools", "ko_KR": "교육용 도구"}
+        mock_identity.label.model_dump.return_value = {"en_US": "Maths", "ko_KR": "수학 도구"}
         mock_identity.icon = "icon.svg"
         mock_entity.identity = mock_identity
         mock_provider_controller.entity = mock_entity
 
         mock_tool = MagicMock()
         mock_tool_identity = MagicMock()
-        mock_tool_identity.name = "calculator"
+        mock_tool_identity.name = "eval_expression"
         mock_tool_identity.label = MagicMock()
-        mock_tool_identity.label.model_dump.return_value = {"en_US": "Calculator", "ko_KR": "계산기"}
+        mock_tool_identity.label.model_dump.return_value = {
+            "en_US": "Evaluate Math Expression",
+            "ko_KR": "수학 표현식 평가",
+        }
         mock_tool_identity.icon = "calculator.svg"
         mock_tool_entity = MagicMock()
         mock_tool_entity.identity = mock_tool_identity
         mock_tool_entity.description = MagicMock()
         mock_tool_entity.description.model_dump.return_value = {
-            "human": {"en_US": "Calculator", "ko_KR": "계산기"},
-            "llm": "A calculator tool",
+            "human": {"en_US": "Evaluate Math Expression", "ko_KR": "수학 표현식 평가"},
+            "llm": "A tool for evaluating an math expression",
         }
         mock_tool.entity = mock_tool_entity
         mock_provider_controller.tools = [mock_tool]
@@ -48,7 +51,7 @@ class TestToolRegistryService:
 
             # Assert
             assert len(tools) > 0
-            assert any(tool["name"] == "edu_tools" for tool in tools)
+            assert any(tool["name"] == "maths" for tool in tools)
             mock_tool_manager.list_hardcoded_providers.assert_called_once()
 
     @patch("services.education_management.tool_registry_service.ToolManager")
@@ -58,21 +61,21 @@ class TestToolRegistryService:
         mock_provider = MagicMock()
         mock_tool = MagicMock()
         mock_entity = MagicMock()
-        mock_entity.identity.name = "calculator"
-        mock_entity.identity.label = {"en_US": "Calculator", "ko_KR": "계산기"}
+        mock_entity.identity.name = "eval_expression"
+        mock_entity.identity.label = {"en_US": "Evaluate Math Expression", "ko_KR": "수학 표현식 평가"}
         mock_entity.identity.icon = "icon.svg"
         mock_entity.description.model_dump.return_value = {
-            "human": {"en_US": "A simple calculator", "ko_KR": "간단한 계산기"},
-            "llm": "Calculator tool",
+            "human": {"en_US": "A tool for evaluating an math expression", "ko_KR": "수학 표현식을 평가하는 도구"},
+            "llm": "A tool for evaluating an math expression",
         }
 
         mock_param = MagicMock()
         mock_param.name = "expression"
         mock_param.type.value = "string"
         mock_param.required = True
-        mock_param.label = {"en_US": "Expression", "ko_KR": "수식"}
-        mock_param.human_description = {"en_US": "Math expression", "ko_KR": "수학 수식"}
-        mock_param.llm_description = "The mathematical expression to evaluate"
+        mock_param.label = {"en_US": "Math Expression", "ko_KR": "수학 표현식"}
+        mock_param.human_description = {"en_US": "Math expression", "ko_KR": "수학 표현식"}
+        mock_param.llm_description = "Math Expression"
         mock_param.form.value = "llm"
         mock_param.options = None
 
@@ -84,17 +87,17 @@ class TestToolRegistryService:
 
         # Act
         detail = ToolRegistryService.get_tool_detail(
-            tenant_id="test-tenant-id", provider="edu_tools", tool_name="calculator"
+            tenant_id="test-tenant-id", provider="maths", tool_name="eval_expression"
         )
 
         # Assert
-        assert detail["name"] == "calculator"
+        assert detail["name"] == "eval_expression"
         assert "parameters" in detail
         assert len(detail["parameters"]) > 0
         assert detail["parameters"][0]["name"] == "expression"
         assert detail["parameters"][0]["required"] is True
         mock_tool_manager.get_builtin_provider.assert_called_once_with(
-            provider="edu_tools",
+            provider="maths",
             tenant_id="test-tenant-id",
         )
 
@@ -102,14 +105,14 @@ class TestToolRegistryService:
         """Test tool availability check for tools that don't require API Key."""
         # Act
         availability = ToolRegistryService.check_tool_availability(
-            tenant_id="test-tenant-id", provider="edu_tools", tool_name="calculator"
+            tenant_id="test-tenant-id", provider="maths", tool_name="eval_expression"
         )
 
         # Assert
         assert availability["available"] is True
         assert availability["reason"] is None
 
-    @patch("extensions.ext_database.db")
+    @patch("services.education_management.tool_registry_service.db")
     def test_check_tool_availability_api_key_configured(self, mock_db):
         """Test tool availability check when API Key is configured."""
         # Arrange
@@ -118,13 +121,16 @@ class TestToolRegistryService:
         mock_api_key.provider = "openai"
         mock_api_key.is_active = True
 
+        # Setup mock chain: query() -> filter() -> first()
+        mock_result = MagicMock()
+        mock_result.first.return_value = mock_api_key
         mock_query = MagicMock()
-        mock_query.filter.return_value.first.return_value = mock_api_key
+        mock_query.filter.return_value = mock_result
         mock_db.session.query.return_value = mock_query
 
         # Act
         availability = ToolRegistryService.check_tool_availability(
-            tenant_id="test-tenant-id", provider="edu_tools", tool_name="tts"
+            tenant_id="test-tenant-id", provider="audio", tool_name="tts"
         )
 
         # Assert
@@ -132,22 +138,25 @@ class TestToolRegistryService:
         assert availability["reason"] is None
         assert availability["api_key_name"] == "Primary OpenAI Key"
 
-    @patch("extensions.ext_database.db")
+    @patch("services.education_management.tool_registry_service.db")
     def test_check_tool_availability_api_key_missing(self, mock_db):
         """Test tool availability check when API Key is missing."""
         # Arrange
+        # Setup mock chain: query() -> filter() -> first()
+        mock_result = MagicMock()
+        mock_result.first.return_value = None
         mock_query = MagicMock()
-        mock_query.filter.return_value.first.return_value = None
+        mock_query.filter.return_value = mock_result
         mock_db.session.query.return_value = mock_query
 
         # Act
         availability = ToolRegistryService.check_tool_availability(
-            tenant_id="test-tenant-id", provider="edu_tools", tool_name="tts"
+            tenant_id="test-tenant-id", provider="audio", tool_name="tts"
         )
 
         # Assert
         assert availability["available"] is False
-        assert "API Key not configured" in availability["reason"]
+        assert "Admin API Key not configured" in availability["reason"]
         assert "openai" in availability["reason"]
 
     @patch("services.education_management.tool_registry_service.ToolManager")
@@ -172,8 +181,8 @@ class TestToolRegistryService:
         # Act
         result = ToolRegistryService.test_tool(
             tenant_id="test-tenant-id",
-            provider="edu_tools",
-            tool_name="calculator",
+            provider="maths",
+            tool_name="eval_expression",
             test_parameters={"expression": "2 + 2"},
         )
 

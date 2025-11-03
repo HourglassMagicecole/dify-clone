@@ -1,7 +1,7 @@
 from collections.abc import Generator
 from typing import Any
 
-import yfinance
+import yfinance  # pyright: ignore[reportMissingTypeStubs]
 from requests.exceptions import ConnectionError, HTTPError, ReadTimeout
 
 from core.tools.builtin_tool.tool import BuiltinTool

@@ -1,0 +1,667 @@
+import json
+import logging
+import re
+import sys
+from collections.abc import Generator
+from typing import Any
+
+import pandas as pd
+
+from core.tools.builtin_tool.tool import BuiltinTool
+from core.tools.entities.tool_entities import ToolInvokeMessage
+
+from ..utils.chart_templates import ChartTemplates
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger("chart_auto_generator")
+
+
+class ChartAutoGenerator(BuiltinTool):
+    """
+    Automatic Chart Generator Tool - Intelligently selects and generates chart configurations based on data characteristics
+    Reference TypeScript implementation, provides efficient JSON data to chart conversion
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.chart_type_mapping = {
+            # Basic chart types
+            "bar chart": "bar",
+            "bar": "bar",
+            "line chart": "line",
+            "line": "line",
+            "pie chart": "pie",
+            "pie": "pie",
+            "scatter chart": "scatter",
+            "scatter": "scatter",
+            "radar chart": "radar",
+            "radar": "radar",
+            "funnel chart": "funnel",
+            "funnel": "funnel",
+            "heatmap": "heatmap",
+            "boxplot": "boxplot",
+            # Other chart types (may not be supported currently, but keep mapping)
+            "gauge": "gauge",
+            "tree": "tree",
+            "treemap": "treemap",
+            "sunburst": "sunburst",
+            "candlestick": "candlestick",
+            "sankey": "sankey",
+            "graph": "graph",
+            "map": "map",
+            "parallel": "parallel",
+            "theme river": "themeRiver",
+            "calendar": "calendar",
+        }
+
+        # Predefined color schemes
+        self.predefined_color_schemes = {
+            "default": [
+                "#5470c6",
+                "#91cc75",
+                "#fac858",
+                "#ee6666",
+                "#73c0de",
+                "#3ba272",
+                "#fc8452",
+                "#9a60b4",
+                "#ea7ccc",
+                "#c4ccd3",
+            ],
+            "vintage": [
+                "#d87c7c",
+                "#919e8b",
+                "#d7ab82",
+                "#6e7074",
+                "#61a0a8",
+                "#efa18d",
+                "#787464",
+                "#cc7e63",
+                "#724e58",
+                "#4b565b",
+            ],
+            "dark": [
+                "#dd6b66",
+                "#759aa0",
+                "#e69d87",
+                "#8dc1a9",
+                "#ea7e53",
+                "#eedd78",
+                "#73a373",
+                "#73b9bc",
+                "#7289ab",
+                "#91ca8c",
+            ],
+            "macarons": [
+                "#2ec7c9",
+                "#b6a2de",
+                "#5ab1ef",
+                "#ffb980",
+                "#d87a80",
+                "#8d98b3",
+                "#e5cf0d",
+                "#97b552",
+                "#95706d",
+                "#dc69aa",
+            ],
+            "infographic": [
+                "#c1232b",
+                "#27727b",
+                "#fcce10",
+                "#e87c25",
+                "#b5c334",
+                "#fe8463",
+                "#9bca63",
+                "#fad860",
+                "#f3a43b",
+                "#60c0dd",
+            ],
+            "shine": [
+                "#c12e34",
+                "#e6b600",
+                "#0098d9",
+                "#2b821d",
+                "#005eaa",
+                "#339ca8",
+                "#cda819",
+                "#32a487",
+                "#3572a5",
+                "#c4ccd3",
+            ],
+            "roma": [
+                "#e01f54",
+                "#001852",
+                "#f5e8c8",
+                "#b8d2c7",
+                "#c6b38e",
+                "#a4d8c2",
+                "#f3d999",
+                "#d3758f",
+                "#dcc392",
+                "#2e4783",
+            ],
+        }
+
+        # Default color scheme
+        self.colors = self.predefined_color_schemes["default"]
+
+    def _invoke(
+        self,
+        user_id: str,
+        tool_parameters: dict[str, Any],
+        conversation_id: str | None = None,
+        app_id: str | None = None,
+        message_id: str | None = None,
+    ) -> Generator[ToolInvokeMessage, None, None]:
+        """
+        Run tool to automatically generate chart configuration
+
+        Args:
+            tool_parameters: Dictionary containing tool parameters
+                data: JSON format data string
+                chart_type: Optional, specify chart type, auto-select if not specified
+                title: Optional, chart title
+                color_scheme: Optional, color scheme
+
+        Returns:
+            Generator[ToolInvokeMessage]: Response containing ECharts configuration
+        """
+        try:
+            # 获取参数
+            data = tool_parameters.get("data", "")
+            chart_type = tool_parameters.get("chart_type")
+            title = tool_parameters.get("title")
+            color_scheme = tool_parameters.get("color_scheme")
+
+            logger.info(
+                f"接收到的参数: data长度={len(data)}, chart_type={chart_type}, title={title}, color_scheme={color_scheme}"
+            )
+
+            # 处理配色方案
+            if color_scheme:
+                self.colors = self._parse_color_scheme(color_scheme)
+                logger.info(f"使用配色方案: {color_scheme}, 解析得到颜色: {self.colors[:3]}...")
+            logger.debug(f"原始数据: {data[:200]}...")  # 只打印前200个字符，避免日志过长
+
+            # 解析JSON数据
+            json_data = self._parse_data(data)
+            if not json_data:
+                logger.error("无法解析JSON数据")
+                yield self.create_text_message("无法解析数据，请确保提供有效的JSON数据")
+                return
+
+            logger.info(f"成功解析JSON数据，包含{len(json_data)}条记录")
+            logger.debug(f"解析后的数据: {json_data[:2]}...")  # 只打印前两条记录
+
+            # 转换为DataFrame进行处理
+            df = pd.DataFrame(json_data)
+            logger.info(f"DataFrame列: {df.columns.tolist()}")
+            logger.info(f"DataFrame数据类型: {df.dtypes.to_dict()}")
+            logger.debug(f"DataFrame前几行: \n{df.head(2)}")
+
+            # 数据清洗
+            df = self._clean_data(df)
+            if df.empty:
+                logger.error("数据清洗后为空")
+                yield self.create_text_message("数据清洗后为空，请检查数据格式")
+                return
+
+            logger.info(f"数据清洗后的DataFrame列: {df.columns.tolist()}")
+
+            # 如果未指定图表类型，则自动选择
+            if not chart_type or chart_type.lower() == "auto":
+                detected_chart_type = self._analyze_data_and_select_chart(df)
+                chart_type = detected_chart_type
+                auto_selected = True
+                logger.info("自动选择的图表类型: %s", chart_type)
+            else:
+                # 处理中文图表类型
+                original_chart_type = chart_type
+                chart_type = self._normalize_chart_type(chart_type)
+                auto_selected = False
+                logger.info("用户指定的图表类型: %s -> 标准化后: %s", original_chart_type, chart_type)
+
+            # 生成图表配置
+            logger.info("开始生成%s图表配置", chart_type)
+            chart_config = self._generate_chart_config(df, chart_type, title)
+            logger.info(f"图表配置生成完成: {chart_config.keys() if isinstance(chart_config, dict) else 'Error'}")
+
+            # 构建响应
+            response_message = self._add_echarts_code_fence(chart_config)
+
+            # 添加自动选择的图表类型信息
+            if auto_selected:
+                response_message = f"已自动选择图表类型: {chart_type}\n\n" + response_message
+
+            logger.info("生成响应完成，准备返回结果")
+            yield self.create_text_message(response_message)
+
+        except Exception as e:
+            logger.exception(f"生成图表时出错: {str(e)}")
+            yield self.create_text_message(f"生成图表时出错: {str(e)}")
+
+    def _add_echarts_code_fence(self, data: dict) -> str:
+        """
+        将ECharts配置字典转换为带代码块标记的格式化字符串
+
+        参数:
+            data (dict): ECharts配置字典
+
+        返回:
+            str: 带标准代码块标记的格式化JSON字符串
+        """
+        # 执行带格式化的JSON序列化
+        formatted_json = json.dumps(
+            data,
+            indent=2,  # 2空格缩进
+            ensure_ascii=False,  # 支持中文
+            separators=(",", ": "),  # 优化分隔符排版
+        )
+
+        # 构造标准代码块
+        return f"```echarts\n{formatted_json}\n```"
+
+    def _parse_data(self, data_str: str) -> list[dict]:
+        """解析输入的数据字符串为JSON对象"""
+        try:
+            # 尝试直接解析JSON
+            logger.info("尝试解析JSON数据")
+            data = json.loads(data_str)
+            logger.info(f"JSON解析成功，数据类型: {type(data)}")
+
+            # 处理常见的数据结构
+            if isinstance(data, dict):
+                # 检查是否有data字段
+                if "data" in data and (isinstance(data["data"], list) or isinstance(data["data"], dict)):
+                    logger.info("检测到嵌套在'data'字段中的数据")
+                    nested_data = data["data"]
+                    if isinstance(nested_data, dict):
+                        return [nested_data]
+                    elif isinstance(nested_data, list):
+                        return nested_data
+                # 如果是单个对象，转换为列表
+                logger.info("将单个对象转换为列表")
+                return [data]
+            elif isinstance(data, list):
+                logger.info(f"数据已经是列表格式，包含{len(data)}个项目")
+                return data
+            else:
+                logger.warning(f"无法处理的数据类型: {type(data)}")
+                return []
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON解析错误: {str(e)}")
+            # 如果不是有效的JSON，尝试从文本中提取
+            try:
+                # 查找文本中的JSON部分
+                import re
+
+                logger.info("尝试从文本中提取JSON")
+                json_pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
+                matches = re.findall(json_pattern, data_str)
+
+                if matches:
+                    logger.info("在代码块中找到JSON")
+                    data = json.loads(matches[0])
+                    if isinstance(data, dict):
+                        # 检查是否有data字段
+                        if "data" in data and (isinstance(data["data"], list) or isinstance(data["data"], dict)):
+                            nested_data = data["data"]
+                            if isinstance(nested_data, dict):
+                                return [nested_data]
+                            elif isinstance(nested_data, list):
+                                return nested_data
+                        return [data]
+                    elif isinstance(data, list):
+                        return data
+
+                logger.warning("未在代码块中找到有效JSON")
+                # 如果没有找到JSON，尝试解析表格数据
+                # 这里可以添加更多的解析逻辑
+
+                return []
+            except Exception as e:
+                logger.error(f"从文本提取JSON时出错: {str(e)}")
+                return []
+
+    def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        数据清洗和预处理
+        """
+        if df.empty:
+            logger.warning("DataFrame为空，无法清洗")
+            return df
+
+        logger.info("开始数据清洗")
+        logger.info(f"清洗前的列: {df.columns.tolist()}")
+        logger.info(f"清洗前的数据类型: {df.dtypes.to_dict()}")
+
+        # 删除全为空的行
+        df = df.dropna(how="all")
+
+        # 尝试将字符串数字转换为数值类型
+        for col in df.columns:
+            try:
+                # 检查是否可以转换为数值
+                if df[col].dtype == "object":
+                    logger.info("尝试将列 %s 转换为数值类型", col)
+                    # 尝试转换非空值
+                    numeric_mask = df[col].notna()
+                    try_numeric = pd.to_numeric(df[col][numeric_mask], errors="coerce")
+                    non_na_count = try_numeric.count()
+                    total_count = numeric_mask.sum()
+                    success_ratio = non_na_count / total_count if total_count > 0 else 0
+
+                    logger.info(f"列 {col}: 成功转换率 {success_ratio:.2f} ({non_na_count}/{total_count})")
+
+                    if not try_numeric.isna().all() and success_ratio > 0.5:
+                        df.loc[numeric_mask, col] = try_numeric
+                        logger.info("列 %s 已转换为数值类型", col)
+            except Exception as e:
+                logger.warning(f"转换列 {col} 时出错: {str(e)}")
+                continue
+
+        # 检查是否有任何数值列
+        numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
+        logger.info("清洗后的数值列: %s", numeric_columns)
+
+        # 如果没有数值列，尝试更激进的转换
+        if not numeric_columns:
+            logger.warning("清洗后没有数值列，尝试更激进的转换")
+            df = self._try_aggressive_numeric_conversion(df)
+            numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
+            logger.info("激进转换后的数值列: %s", numeric_columns)
+
+        return df
+
+    def _try_aggressive_numeric_conversion(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        尝试更激进的方法将列转换为数值类型
+        """
+        logger.info("开始激进数值转换")
+
+        # 复制DataFrame以避免修改原始数据
+        result_df = df.copy()
+
+        for col in df.columns:
+            if df[col].dtype != "object":
+                continue
+
+            logger.info("尝试激进转换列: %s", col)
+
+            # 1. 尝试提取数字部分
+            try:
+                # 使用正则表达式提取数字
+                extracted = df[col].astype(str).str.extract(r"(-?\d+\.?\d*)")
+                if not extracted.empty and not extracted[0].isna().all():
+                    numeric_values = pd.to_numeric(extracted[0], errors="coerce")
+                    non_na_count = numeric_values.count()
+                    if non_na_count > 0:
+                        new_col_name = f"{col}_numeric"
+                        result_df[new_col_name] = numeric_values
+                        logger.info("从列 %s 提取数值并创建新列 %s，有效值数量: %s", col, new_col_name, non_na_count)
+            except Exception as e:
+                logger.warning(f"从列 {col} 提取数值时出错: {str(e)}")
+
+            # 2. 尝试替换常见的文本表示
+            try:
+                # 创建一个临时系列用于转换
+                temp_series = df[col].astype(str).str.lower()
+
+                # 替换常见的文本表示
+                replacements = {
+                    "yes": "1",
+                    "no": "0",
+                    "true": "1",
+                    "false": "0",
+                    "high": "3",
+                    "medium": "2",
+                    "low": "1",
+                    "good": "3",
+                    "average": "2",
+                    "poor": "1",
+                }
+
+                for text, value in replacements.items():
+                    temp_series = temp_series.str.replace(r"\b" + text + r"\b", value, regex=True)
+
+                # 尝试转换为数值
+                numeric_values = pd.to_numeric(temp_series, errors="coerce")
+                non_na_count = numeric_values.count()
+                if non_na_count > 0:
+                    new_col_name = f"{col}_converted"
+                    result_df[new_col_name] = numeric_values
+                    logger.info("将列 %s 的文本值转换为数值并创建新列 %s，有效值数量: %s", col, new_col_name, non_na_count)
+            except Exception as e:
+                logger.warning(f"转换列 {col} 的文本值时出错: {str(e)}")
+
+        return result_df
+
+    def _normalize_chart_type(self, chart_type: str) -> str:
+        """标准化图表类型名称"""
+        chart_type = chart_type.lower()
+
+        # 检查中文图表类型
+        for cn_type, en_type in self.chart_type_mapping.items():
+            if cn_type in chart_type:
+                return en_type
+
+        # 检查英文图表类型
+        for en_type in set(self.chart_type_mapping.values()):
+            if en_type in chart_type:
+                return en_type
+
+        # 默认返回柱状图
+        return "bar"
+
+    def _analyze_data_and_select_chart(self, df: pd.DataFrame) -> str:
+        """
+        分析数据并智能选择最适合的图表类型
+
+        根据数据特征选择合适的图表类型，支持更多图表类型的智能选择
+        """
+        if df.empty:
+            return "bar"
+
+        # 分析数据类型
+        numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
+
+        # 检查日期列
+        date_columns = []
+        for col in df.columns:
+            if col in numeric_columns:
+                continue
+
+            # 尝试转换为日期
+            try:
+                pd.to_datetime(df[col], errors="raise")
+                date_columns.append(col)
+            except:
+                pass
+
+        # 分类列 = 非数值列且非日期列
+        categorical_columns = [col for col in df.columns if col not in numeric_columns and col not in date_columns]
+
+        logger.info(
+            f"数据分析 - 数值列: {len(numeric_columns)}, 日期列: {len(date_columns)}, 分类列: {len(categorical_columns)}"
+        )
+
+        # 智能选择图表类型
+
+        # 1. 检查是否适合箱线图（多个数值列，需要比较分布）
+        if len(numeric_columns) >= 3:
+            # 检查数据是否有明显的分布特征
+            has_distribution_features = False
+            for col in numeric_columns:
+                # 计算四分位数
+                q1 = df[col].quantile(0.25)
+                q3 = df[col].quantile(0.75)
+                iqr = q3 - q1
+                # 检查是否有离群值
+                outliers = df[(df[col] < q1 - 1.5 * iqr) | (df[col] > q3 + 1.5 * iqr)]
+                if len(outliers) > 0:
+                    has_distribution_features = True
+                    break
+
+            if has_distribution_features:
+                logger.info("选择箱线图 - 数据有明显的分布特征")
+                return "boxplot"
+
+        # 2. 检查是否适合雷达图（多个维度的比较）
+        if len(numeric_columns) >= 3 and len(df) <= 10:
+            # 雷达图适合比较少量实体在多个维度上的表现
+            logger.info("选择雷达图 - 多个维度的少量实体比较")
+            return "radar"
+
+        # 3. 检查是否适合热力图（矩阵数据）
+        if len(categorical_columns) >= 2 and len(numeric_columns) >= 1:
+            # 两个分类变量和一个数值变量，可能适合热力图
+            cat1_unique = df[categorical_columns[0]].nunique()
+            cat2_unique = df[categorical_columns[1]].nunique()
+            if cat1_unique >= 3 and cat2_unique >= 3 and cat1_unique * cat2_unique <= 100:
+                logger.info("选择热力图 - 两个分类变量形成矩阵")
+                return "heatmap"
+
+        # 4. 检查是否适合漏斗图（递减序列）
+        if len(categorical_columns) == 1 and len(numeric_columns) == 1:
+            unique_categories = df[categorical_columns[0]].nunique()
+            if 3 <= unique_categories <= 7:
+                # 检查数值是否呈递减趋势
+                sorted_df = df.sort_values(by=numeric_columns[0], ascending=False)
+                values = sorted_df[numeric_columns[0]].tolist()
+                is_decreasing = all(values[i] >= values[i + 1] for i in range(len(values) - 1))
+                if is_decreasing:
+                    logger.info("选择漏斗图 - 数据呈递减趋势")
+                    return "funnel"
+
+        # 5. 原有的图表类型选择逻辑
+        if date_columns and numeric_columns:
+            # 有时间序列数据，适合折线图
+            logger.info("选择折线图 - 有时间序列数据")
+            return "line"
+
+        if len(categorical_columns) == 1 and len(numeric_columns) >= 1:
+            # 计算唯一类别数
+            unique_categories = df[categorical_columns[0]].nunique()
+
+            # 类别较少且为比例数据，适合饼图
+            if unique_categories <= 6 and self._is_proportion(df, numeric_columns[0]):
+                logger.info("选择饼图 - 少量类别的比例数据")
+                return "pie"
+
+            # 类别数据，适合柱状图
+            logger.info("选择柱状图 - 类别数据")
+            return "bar"
+
+        if len(numeric_columns) >= 2:
+            # 两个或更多数值列，可能适合散点图
+            logger.info("选择散点图 - 两个或更多数值列")
+            return "scatter"
+
+        # 默认使用柱状图
+        logger.info("默认选择柱状图")
+        return "bar"
+
+    def _is_proportion(self, df: pd.DataFrame, column: str) -> bool:
+        """判断是否为比例数据"""
+        values = df[column].dropna()
+        if values.empty:
+            return False
+
+        # 检查是否所有值都是非负的
+        if (values < 0).any():
+            return False
+
+        # 计算总和
+        total = values.sum()
+        if total <= 0:
+            return False
+
+        # 检查是否每个值都小于等于总和
+        return (values <= total).all()
+
+    def _parse_color_scheme(self, color_scheme: str) -> list[str]:
+        """
+        解析配色方案参数
+
+        参数:
+            color_scheme (str): 配色方案参数，可以是预定义方案名称或自定义颜色列表
+
+        返回:
+            List[str]: 颜色列表
+        """
+        if not color_scheme:
+            return self.predefined_color_schemes["default"]
+
+        # 检查是否是预定义方案
+        color_scheme = color_scheme.lower().strip()
+        if color_scheme in self.predefined_color_schemes:
+            logger.info("使用预定义配色方案: %s", color_scheme)
+            return self.predefined_color_schemes[color_scheme]
+
+        # 尝试解析为自定义颜色列表
+        try:
+            # 分割颜色值并清理
+            colors = [c.strip() for c in color_scheme.split(",")]
+
+            # 验证颜色格式
+            valid_colors = []
+            for color in colors:
+                # 检查是否是有效的十六进制颜色值
+                if re.match(r"^#(?:[0-9a-fA-F]{3}){1,2}$", color):
+                    valid_colors.append(color)
+                else:
+                    logger.warning("忽略无效的颜色值: %s", color)
+
+            if valid_colors:
+                logger.info(f"使用自定义配色方案，有效颜色数量: {len(valid_colors)}")
+                return valid_colors
+            else:
+                logger.warning("自定义配色方案无有效颜色，使用默认方案")
+                return self.predefined_color_schemes["default"]
+
+        except Exception as e:
+            logger.error(f"解析配色方案时出错: {str(e)}，使用默认方案")
+            return self.predefined_color_schemes["default"]
+
+    def _generate_chart_config(self, df: pd.DataFrame, chart_type: str, title: str | None = None) -> dict:
+        """
+        根据图表类型生成ECharts配置
+
+        使用ChartTemplates类来生成图表配置，支持多种图表类型和灵活的配置
+
+        参数:
+            df (pd.DataFrame): 包含图表数据的DataFrame
+            chart_type (str): 图表类型（如'bar', 'line', 'pie'等）
+            title (str, optional): 图表标题. 默认为None
+
+        返回:
+            Dict: ECharts配置字典
+        """
+        logger.info("使用ChartTemplates生成%s图表配置", chart_type)
+
+        # 使用ChartTemplates.get_template方法生成图表配置
+        try:
+            chart_config = ChartTemplates.get_template(chart_type=chart_type, df=df, title=title, colors=self.colors)
+            logger.info("成功使用ChartTemplates生成图表配置")
+            return chart_config
+        except Exception as e:
+            logger.error(f"使用ChartTemplates生成图表配置时出错: {str(e)}")
+            # 如果出错，返回一个错误信息
+            return {
+                "error": f"生成{chart_type}图表配置时出错: {str(e)}",
+                "title": {"text": "图表生成错误", "left": "center"},
+                "series": [],
+            }
+
+    def _is_date_column(self, series: pd.Series) -> bool:
+        """判断是否为日期列"""
+        try:
+            pd.to_datetime(series, errors="raise")
+            return True
+        except:
+            return False

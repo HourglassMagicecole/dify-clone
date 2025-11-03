@@ -1,0 +1,14 @@
+identity:
+  author: yevanchen
+  name: markitdown
+  label:
+    en_US: markitdown
+    zh_Hans: markitdown
+    pt_BR: markitdown
+  description:
+    en_US: Python tool for converting files and office documents to Markdown.
+    zh_Hans: Python tool for converting files and office documents to Markdown.
+    pt_BR: Python tool for converting files and office documents to Markdown.
+  icon: micro.png
+tools:
+  - tools/markitdown.yaml

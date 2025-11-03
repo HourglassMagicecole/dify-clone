@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { sessionAPI } from '@/service/session-api'
 import type { Session, SessionMember } from '@/types/session'
@@ -19,13 +19,7 @@ export const SessionDetailView: React.FC<SessionDetailViewProps> = ({
   const [isLoadingMembers, setIsLoadingMembers] = useState(false)
   const [membersError, setMembersError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (showMembers) {
-      loadMembers()
-    }
-  }, [session.id, showMembers])
-
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     try {
       setIsLoadingMembers(true)
       setMembersError(null)
@@ -38,7 +32,13 @@ export const SessionDetailView: React.FC<SessionDetailViewProps> = ({
     finally {
       setIsLoadingMembers(false)
     }
-  }
+  }, [session.id, t])
+
+  useEffect(() => {
+    if (showMembers) {
+      loadMembers()
+    }
+  }, [showMembers, loadMembers])
 
   const activeMembers = members.filter(m => m.status === 'active')
 

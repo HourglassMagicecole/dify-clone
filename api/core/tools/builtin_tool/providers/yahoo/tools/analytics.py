@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 
 from requests.exceptions import ConnectionError, HTTPError, ReadTimeout
-from yfinance import download
+from yfinance import download  # pyright: ignore[reportMissingTypeStubs]
 
 from core.tools.builtin_tool.tool import BuiltinTool
 from core.tools.entities.tool_entities import ToolInvokeMessage

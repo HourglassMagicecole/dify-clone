@@ -5,9 +5,9 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 
-export type ToastType = 'success' | 'error' | 'info'
+export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
 export interface ToastProps {
   id: string
@@ -28,6 +28,8 @@ function ToastIcon({ type }: { type: ToastType }): React.ReactElement {
       return <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
     case 'info':
       return <InformationCircleIcon className="h-5 w-5 text-blue-500" />
+    case 'warning':
+      return <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500" />
   }
 }
 
@@ -42,6 +44,8 @@ function getToastStyles(type: ToastType): string {
       return 'bg-red-50 border-red-200'
     case 'info':
       return 'bg-blue-50 border-blue-200'
+    case 'warning':
+      return 'bg-yellow-50 border-yellow-200'
   }
 }
 

@@ -1,0 +1,12 @@
+identity:
+  author: data_alchemy
+  name: data_alchemy
+  label:
+    en_US: Data Visualization
+    ko_KR: 데이터 시각화
+  description:
+    en_US: Automatically generates interactive charts and visualizations from structured data
+    ko_KR: 구조화된 데이터로부터 인터랙티브 차트와 시각화를 자동으로 생성합니다
+  icon: icon.svg
+  tags:
+    - utilities

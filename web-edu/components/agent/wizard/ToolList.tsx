@@ -62,8 +62,14 @@ export default function ToolList({ selectedTools, onToolsChange }: ToolListProps
       const response = await getToolDetail(provider, tool.name)
 
       if (response.result === 'success' && response.data) {
-        // Add provider info to the detailed tool object
-        setConfigTool({ ...response.data, provider })
+        // Add provider info and preserve availability metadata (api_key_type, etc.)
+        setConfigTool({
+          ...response.data,
+          provider,
+          api_key_type: tool.api_key_type,
+          requires_user_key: tool.requires_user_key,
+          user_has_key: tool.user_has_key,
+        })
       }
       else {
         console.error('Failed to load tool detail:', response.message)

@@ -30,7 +30,7 @@ parameters:
   name: prompt
   required: true
   type: string
-- default: large
+- default: 1024x1024
   form: form
   human_description:
     en_US: used for selecting the image size
@@ -43,15 +43,15 @@ parameters:
   - label:
       en_US: Small(256x256)
       zh_Hans: 小(256x256)
-    value: small
+    value: 256x256
   - label:
       en_US: Medium(512x512)
       zh_Hans: 中(512x512)
-    value: medium
+    value: 512x512
   - label:
       en_US: Large(1024x1024)
       zh_Hans: 大(1024x1024)
-    value: large
+    value: 1024x1024
   required: true
   type: select
 - default: 1

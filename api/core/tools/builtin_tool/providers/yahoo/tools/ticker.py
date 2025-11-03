@@ -2,7 +2,7 @@ from collections.abc import Generator
 from typing import Any
 
 from requests.exceptions import HTTPError, ReadTimeout
-from yfinance import Ticker
+from yfinance import Ticker  # pyright: ignore[reportMissingTypeStubs]
 
 from core.tools.builtin_tool.tool import BuiltinTool
 from core.tools.entities.tool_entities import ToolInvokeMessage

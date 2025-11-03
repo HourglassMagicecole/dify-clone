@@ -1,0 +1,41 @@
+identity:
+  author: digitforce
+  name: data_analysis
+  label:
+    en_US: Data Analysis
+    zh_Hans: 数据分析
+    pt_BR: Data Analysis
+  description:
+    en_US: An intelligent data analysis tool based on LLM and natural language interaction, featuring built-in data query and data visualization, as well as report generation capabilities.
+    zh_Hans: 基于大模型和自然语言交互的智能数据分析工具，内置数据查询和数据可视化（ChatBI），以及报告生成功能。
+    pt_BR: An intelligent data analysis tool based on LLM and natural language interaction, featuring built-in data query and data visualization, as well as report generation capabilities.
+  icon: icon.svg
+credentials_for_provider:
+  tips:
+    type: text-input
+    required: false
+    label:
+      en_US: You can create API keys after registration
+      zh_Hans: 注册后可以创建API key：
+      pt_BR: You can create API keys after registration
+    default: https://ada.im/home?ada_data_=&utm_source=dify&utm_medium=landingpage&utm_infeluncer=landingpage&utm_campain=landingpage&utm_content=landingpage
+  digitforce_api_key:
+    type: secret-input
+    required: true
+    label:
+      en_US: API key
+      zh_Hans: API key
+    placeholder:
+      en_US: Please input your API key
+      zh_Hans: 请输入你的API key
+    help:
+      en_US: You can create API keys after registering at https://ada.im
+      zh_Hans: https://ada.im注册后创建API key
+    url: https://ada.im/home?ada_data_=&utm_source=dify&utm_medium=landingpage&utm_infeluncer=landingpage&utm_campain=landingpage&utm_content=landingpage
+tools:
+  - tools/data_analysis.yaml
+  - tools/data_interpretation.yaml
+  - tools/data_visualization.yaml
+  - tools/time_identify.yaml
+  - tools/query_database.yaml
+  - tools/merge_to_multisheet.yaml

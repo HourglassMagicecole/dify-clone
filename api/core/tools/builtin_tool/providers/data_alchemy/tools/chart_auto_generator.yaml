@@ -1,0 +1,69 @@
+identity:
+  name: chart_auto_generator
+  author: Tencent Cloud
+  label:
+    en_US: Chart Generator
+    zh_Hans: 图表生成器
+    pt_BR: Chart Generator
+description:
+  human:
+    en_US: Automatically analyzes data features and generates appropriate chart configurations
+    zh_Hans: 自动分析数据特征并生成适合的图表配置
+    pt_BR: Automatically analyzes data features and generates appropriate chart configurations
+  llm: Automatically analyzes data features and generates appropriate chart configurations
+parameters:
+  - name: data
+    type: string
+    required: false
+    label:
+      en_US: data
+      zh_Hans: 待处理的数据，建议为json格式
+      pt_BR: data
+    human_description:
+      en_US: "Data to be processed, recommended in JSON format. Can be an array of objects, each representing a data point with properties, or a single object with nested data. The tool will automatically analyze the structure and extract relevant information for visualization."
+      zh_Hans: "待处理的数据，建议为JSON格式。可以是对象数组（每个对象代表一个数据点及其属性），或包含嵌套数据的单个对象。工具会自动分析数据结构并提取相关信息用于可视化。"
+      pt_BR: "Data to be processed, recommended in JSON format. Can be an array of objects, each representing a data point with properties, or a single object with nested data. The tool will automatically analyze the structure and extract relevant information for visualization."
+    llm_description: "Data to be processed, recommended in JSON format. Can be an array of objects or a single object with nested data."
+    form: llm
+  - name: title
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: title
+      zh_Hans: 图表标题，不填则大模型推理生成
+      pt_BR: title
+    human_description:
+      en_US: "Chart title to be displayed at the top of the visualization. If not provided, the AI will generate an appropriate title based on the data content and chart type."
+      zh_Hans: "图表标题，显示在可视化顶部。如果不提供，AI将根据数据内容和图表类型自动生成合适的标题。"
+      pt_BR: "Chart title to be displayed at the top of the visualization. If not provided, the AI will generate an appropriate title based on the data content and chart type."
+    llm_description: "Chart title to be displayed. If not provided, will be auto-generated based on data content."
+  - name: chart_type
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: chart type
+      zh_Hans: 图表类型
+      pt_BR: chart type
+    human_description:
+      en_US: chart type (bar, line, pie, scatter, radar, funnel, heatmap, boxplot)
+      zh_Hans: 图表类型（柱状图bar、折线图line、饼图pie、散点图scatter、雷达图radar、漏斗图funnel、热力图heatmap、箱线图boxplot）
+      pt_BR: chart type (bar, line, pie, scatter, radar, funnel, heatmap, boxplot)
+    llm_description: chart type (bar, line, pie, scatter, radar, funnel, heatmap, boxplot)
+  - name: color_scheme
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: color scheme
+      zh_Hans: 配色方案
+      pt_BR: color scheme
+    human_description:
+      en_US: "Color scheme for the chart. You can either: 1) Choose a predefined scheme (default, vintage, dark, macarons, infographic, shine, roma) or 2) Provide custom colors as comma separated hex values (e.g. #5470c6,#91cc75,#fac858)"
+      zh_Hans: "图表配色方案。您可以：1) 选择预定义方案（默认default、复古vintage、暗色dark、马卡龙macarons、信息图infographic、明亮shine、罗马roma）或 2) 提供自定义颜色，使用逗号分隔的十六进制颜色值（例如：#5470c6,#91cc75,#fac858）"
+      pt_BR: "Color scheme for the chart. You can either: 1) Choose a predefined scheme (default, vintage, dark, macarons, infographic, shine, roma) or 2) Provide custom colors as comma separated hex values (e.g. #5470c6,#91cc75,#fac858)"
+    llm_description: "Color scheme for the chart. Either choose a predefined scheme (default, vintage, dark, macarons, infographic, shine, roma) or provide custom colors as comma separated hex values (e.g. #5470c6,#91cc75,#fac858)"
+extra:
+  python:
+    source: tools/chart_auto_generator.py

@@ -62,11 +62,25 @@ describe('Toast', () => {
     expect(screen.getByRole('alert')).toHaveClass('bg-blue-50', 'border-blue-200')
   })
 
+  it('should render warning toast with correct styling', () => {
+    render(
+      <Toast
+        id="test-4"
+        message="Warning message"
+        type="warning"
+        onClose={mockOnClose}
+      />
+    )
+
+    expect(screen.getByText('Warning message')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveClass('bg-yellow-50', 'border-yellow-200')
+  })
+
   it('should call onClose when close button is clicked', async () => {
     const user = userEvent.setup({ delay: null })
     render(
       <Toast
-        id="test-4"
+        id="test-5"
         message="Test message"
         type="info"
         onClose={mockOnClose}
@@ -76,13 +90,13 @@ describe('Toast', () => {
     const closeButton = screen.getByLabelText('Close notification')
     await user.click(closeButton)
 
-    expect(mockOnClose).toHaveBeenCalledWith('test-4')
+    expect(mockOnClose).toHaveBeenCalledWith('test-5')
   })
 
   it('should auto-close after duration', async () => {
     render(
       <Toast
-        id="test-5"
+        id="test-6"
         message="Test message"
         type="info"
         duration={2000}
@@ -96,14 +110,14 @@ describe('Toast', () => {
     jest.advanceTimersByTime(2000)
 
     await waitFor(() => {
-      expect(mockOnClose).toHaveBeenCalledWith('test-5')
+      expect(mockOnClose).toHaveBeenCalledWith('test-6')
     })
   })
 
   it('should use default duration of 3000ms if not specified', async () => {
     render(
       <Toast
-        id="test-6"
+        id="test-7"
         message="Test message"
         type="info"
         onClose={mockOnClose}
@@ -118,7 +132,7 @@ describe('Toast', () => {
     jest.advanceTimersByTime(500)
 
     await waitFor(() => {
-      expect(mockOnClose).toHaveBeenCalledWith('test-6')
+      expect(mockOnClose).toHaveBeenCalledWith('test-7')
     })
   })
 })

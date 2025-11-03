@@ -61,8 +61,20 @@ export default function ToolCard({ tool, selected, onToggle, onConfigure }: Tool
         </div>
       )}
 
-      {/* Configure Button */}
-      {tool.available && selected && (
+      {/* Configure/Setup Button */}
+      {/* Type B (requires_user_key): Show "Setup API Key" button even if not available */}
+      {/* Type A/C: Show "Configure" button only if available and selected */}
+      {(tool.api_key_type === 'tool_provider' && !tool.available) ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onConfigure(tool)
+          }}
+          className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+        >
+          Setup API Key
+        </button>
+      ) : (tool.available && selected) ? (
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -72,7 +84,7 @@ export default function ToolCard({ tool, selected, onToggle, onConfigure }: Tool
         >
           {t('tools.configure')}
         </button>
-      )}
+      ) : null}
     </div>
   )
 }

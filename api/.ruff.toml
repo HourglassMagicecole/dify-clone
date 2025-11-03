@@ -1,4 +1,7 @@
-exclude = ["migrations/*"]
+exclude = [
+    "migrations/*",
+    "core/tools/builtin_tool/providers/md_exporter/tools/md2pptx-6.0/*",  # External library with many lint issues
+]
 line-length = 120
 
 [format]
@@ -110,6 +113,28 @@ ignore = [
 ]
 "scripts/*" = [
     "T201", # allow print in scripts
+]
+"core/tools/builtin_tool/providers/data_alchemy/**/*" = [
+    "B013",    # allow redundant tuple in exception handler
+    "C419",    # allow list comprehensions in chart templates
+    "E501",    # allow long lines in chart config strings
+    "FURB118", # allow lambda instead of operator.itemgetter
+    "G004",    # allow f-strings in logging for data_alchemy tools
+    "SIM101",  # allow multiple isinstance calls (more readable)
+    "T201",    # allow print in example files
+    "TRY400",  # allow logging.error instead of logging.exception
+    "TRY401",  # allow redundant exception object in logging.exception
+]
+"core/tools/builtin_tool/providers/md_exporter/tools/md_to_*.py" = [
+    "SIM115", # allow NamedTemporaryFile without context manager (needed for external process)
+    "T201",   # allow print in md_to_pptx error handling
+]
+"core/tools/builtin_tool/providers/data_analysis/tools/*" = [
+    "FURB148", # allow enumerate with unused index
+    "T201",    # allow print for debugging (temporary)
+]
+"core/tools/builtin_tool/providers/google_translate/tools/*" = [
+    "E501", # allow long user-agent strings
 ]
 
 [lint.pyflakes]

@@ -11,6 +11,13 @@ import { useAuth } from '@/hooks/useAuth'
 // Mock useAuth hook
 jest.mock('@/hooks/useAuth')
 
+// Mock useToast hook
+jest.mock('@/context/ToastContext', () => ({
+  useToast: jest.fn(() => ({
+    showToast: jest.fn(),
+  })),
+}))
+
 // Mock lodash debounce
 jest.mock('lodash', () => ({
   debounce: jest.fn((fn) => {

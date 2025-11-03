@@ -10,7 +10,8 @@
     "core/ops",
     "core/model_runtime",
     "core/workflow/nodes",
-    "core/app/app_config/easy_ui_based_app/dataset"
+    "core/app/app_config/easy_ui_based_app/dataset",
+    "core/tools/builtin_tool/providers/md_exporter/tools/md2pptx-6.0"
   ],
   "typeCheckingMode": "strict",
   "allowedUntypedLibraries": [

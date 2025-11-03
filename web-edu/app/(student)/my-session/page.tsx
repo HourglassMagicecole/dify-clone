@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { sessionAPI } from '@/service/session-api'
 import { SessionTabs } from '@/components/session/SessionTabs'
@@ -15,11 +15,7 @@ export default function MySessionPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadSessions()
-  }, [])
-
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -37,7 +33,11 @@ export default function MySessionPage() {
     finally {
       setIsLoading(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    loadSessions()
+  }, [loadSessions])
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId)
 

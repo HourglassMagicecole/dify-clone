@@ -31,6 +31,8 @@
     "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
     "dayjs": "^1.11.18",
+    "echarts": "^6.0.0",
+    "echarts-for-react": "^3.0.2",
     "elkjs": "^0.11.0",
     "i18next": "^25.6.0",
     "i18next-resources-to-backend": "^1.2.1",

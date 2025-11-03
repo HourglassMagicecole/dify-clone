@@ -43,12 +43,14 @@ class ToolListAPI(Resource):
         }
         """
         try:
-            # Get tenant_id with None check
+            # Get tenant_id and user_id with None check
             if not current_user or not current_user.current_tenant_id:  # pyright: ignore[reportOptionalMemberAccess]
                 return {"result": "error", "message": "Tenant ID not found"}, 400
 
             tenant_id = current_user.current_tenant_id  # pyright: ignore[reportOptionalMemberAccess]
-            tools = ToolRegistryService.list_edu_tools(tenant_id=tenant_id)
+            user_id = current_user.id  # pyright: ignore[reportOptionalMemberAccess]
+
+            tools = ToolRegistryService.list_edu_tools(tenant_id=tenant_id, user_id=user_id)
 
             return {"result": "success", "data": tools}, 200
 
@@ -165,11 +167,12 @@ class ToolTestAPI(Resource):
         }
         """
         try:
-            # Get tenant_id with None check
+            # Get tenant_id and user_id with None check
             if not current_user or not current_user.current_tenant_id:  # pyright: ignore[reportOptionalMemberAccess]
                 return {"result": "error", "message": "Tenant ID not found"}, 400
 
             tenant_id = current_user.current_tenant_id  # pyright: ignore[reportOptionalMemberAccess]
+            user_id = current_user.id  # pyright: ignore[reportOptionalMemberAccess]
 
             # Get request body
             req_data = request.get_json()
@@ -184,6 +187,7 @@ class ToolTestAPI(Resource):
                 provider=provider,
                 tool_name=tool_name,
                 test_parameters=test_parameters,
+                user_id=user_id,
             )
 
             # Return result (success or error)

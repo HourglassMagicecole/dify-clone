@@ -50,7 +50,7 @@ class DallE2Tool(BuiltinTool):
 
         size = tool_parameters.get("size", "1024x1024")
         if size not in {"256x256", "512x512", "1024x1024"}:
-            yield self.create_text_message("Invalid size")
+            yield self.create_text_message(f"Invalid size: {size}. Expected one of: 256x256, 512x512, 1024x1024")
             return
 
         n = tool_parameters.get("n", 1)

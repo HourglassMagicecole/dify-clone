@@ -62,7 +62,10 @@ def require_admin(f):
 
 # Import blueprints
 # Import Resource-based APIs (auto-registers via api.add_resource)
-from . import tools  # pyright: ignore[reportUnusedImport]
+from . import (
+    tools,  # pyright: ignore[reportUnusedImport]
+    user_tool_configs,  # pyright: ignore[reportUnusedImport]
+)
 from .api_key import bp as api_key_bp
 from .resource_tags import bp as resource_tags_bp
 from .role import bp as role_bp
