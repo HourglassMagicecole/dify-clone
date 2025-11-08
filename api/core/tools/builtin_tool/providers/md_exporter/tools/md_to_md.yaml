@@ -4,21 +4,26 @@ identity:
   label:
     en_US: Markdown to md file
     zh_Hans: Markdown 转 md 文件
+    ko_KR: Markdown을 MD로
 description:
   human:
     en_US: Generate .md file from Markdown text
     zh_Hans: 将 Markdown 转换为 .md 文件的工具
+    ko_KR: Markdown 텍스트에서 .md 파일을 생성하는 도구입니다.
   llm: Generate .md file from Markdown text
 parameters:
   - name: md_text
     type: string
     required: true
+    default: "# 샘플 문서\n\n## 소제목\n\n본문 내용입니다.\n\n- 항목 1\n- 항목 2"
     label:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 텍스트
     human_description:
       en_US: Markdown text
-      zh_Hans: Markdown格式文本
+      zh_Hans: Markdown格式文본
+      ko_KR: Markdown 형식의 텍스트입니다.
     form: llm
   - name: output_filename
     type: string
@@ -26,9 +31,11 @@ parameters:
     label:
       en_US: Output Filename
       zh_Hans: 输出文件名
+      ko_KR: 출력 파일명
     human_description:
       en_US: Optional custom output file name, and the filename suffix is not required.
       zh_Hans: 可选的自定义输出文件名，后缀名无需指定
+      ko_KR: 선택적 사용자 지정 출력 파일명입니다. 파일 확장자는 지정할 필요가 없습니다.
     form: llm
 extra:
   python:

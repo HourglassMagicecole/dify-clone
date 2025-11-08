@@ -23,13 +23,54 @@ export function Step1BasicSettings(): React.ReactElement {
 
   /**
    * Configuration mode state (Auto or Manual)
+   * Initialize from localStorage if available
    */
-  const [configMode, setConfigMode] = useState<ConfigMode>(ConfigMode.MANUAL)
+  const [configMode, setConfigMode] = useState<ConfigMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('agent-wizard-config-mode')
+      if (saved === 'auto' || saved === 'manual') {
+        return saved as ConfigMode
+      }
+    }
+    return ConfigMode.MANUAL
+  })
 
   /**
-   * Flag to prevent auto-save during programmatic form reset
+   * Track selected sample ID in auto mode
    */
-  const isResettingRef = React.useRef(false)
+  const [selectedSampleId, setSelectedSampleId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('agent-wizard-selected-sample')
+    }
+    return null
+  })
+
+  /**
+   * Track previous configMode to detect actual changes
+   */
+  const prevConfigModeRef = React.useRef<ConfigMode>(configMode)
+
+  /**
+   * Save configMode to localStorage when it changes
+   */
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('agent-wizard-config-mode', configMode)
+    }
+  }, [configMode])
+
+  /**
+   * Save selectedSampleId to localStorage when it changes
+   */
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (selectedSampleId) {
+        localStorage.setItem('agent-wizard-selected-sample', selectedSampleId)
+      } else {
+        localStorage.removeItem('agent-wizard-selected-sample')
+      }
+    }
+  }, [selectedSampleId])
 
   /**
    * Initialize React Hook Form with Zod validation
@@ -50,7 +91,7 @@ export function Step1BasicSettings(): React.ReactElement {
       description: '',
       mode: AgentType.CHAT,
       role: '',
-      tool_enabled: false,
+      tool_enabled: true,
       icon_type: 'emoji',
       icon: '🤖',
       icon_background: '#3B82F6',
@@ -75,8 +116,6 @@ export function Step1BasicSettings(): React.ReactElement {
    * - When user clicks "Start Fresh", form should be reset
    */
   React.useEffect(() => {
-    isResettingRef.current = true
-
     if (basicSettings === null) {
       // Reset to initial values when starting fresh
       reset({
@@ -84,7 +123,7 @@ export function Step1BasicSettings(): React.ReactElement {
         description: '',
         mode: AgentType.CHAT,
         role: '',
-        tool_enabled: false,
+        tool_enabled: true,
         icon_type: 'emoji',
         icon: '🤖',
         icon_background: '#3B82F6',
@@ -93,33 +132,37 @@ export function Step1BasicSettings(): React.ReactElement {
     } else {
       // Update form with saved data when navigating back
       reset(basicSettings)
+      // Don't change configMode - keep user's previous selection
     }
-
-    // Re-enable auto-save after reset completes
-    setTimeout(() => {
-      isResettingRef.current = false
-    }, 0)
   }, [basicSettings, reset])
 
   /**
-   * Auto-save form changes to context (for localStorage auto-save)
-   * Watch all form values and update context when they change
-   * This enables real-time localStorage sync as user types
+   * Reset form when configuration mode changes
+   * This ensures a clean slate when switching between Auto and Manual modes
    */
   React.useEffect(() => {
-    const subscription = watch((formData) => {
-      // Skip auto-save during programmatic form reset to prevent infinite loop
-      if (isResettingRef.current) {
-        return
-      }
+    // Only reset if configMode actually changed (not on mount/remount)
+    if (prevConfigModeRef.current !== configMode) {
+      // Reset form to initial values when config mode changes
+      reset({
+        name: '',
+        description: '',
+        mode: AgentType.CHAT,
+        role: '',
+        tool_enabled: true,
+        icon_type: 'emoji',
+        icon: '🤖',
+        icon_background: '#3B82F6',
+      })
 
-      // Only auto-save if essential fields are present to avoid saving incomplete data
-      if (formData.name && formData.role && formData.mode) {
-        setBasicSettings(formData as BasicSettingsFormData)
-      }
-    })
-    return () => subscription.unsubscribe()
-  }, [watch, setBasicSettings])
+      // Clear selected sample when switching modes
+      setSelectedSampleId(null)
+
+      // Update the previous value
+      prevConfigModeRef.current = configMode
+    }
+  }, [configMode, reset])
+
 
   /**
    * Radio options for Agent type selection
@@ -289,18 +332,23 @@ export function Step1BasicSettings(): React.ReactElement {
       setValue('description', sample.description, { shouldValidate: true })
       setValue('role', sample.content, { shouldValidate: true })
       setValue('icon', sample.icon, { shouldValidate: true })
-      // Switch to manual mode after selection to allow editing
-      setConfigMode(ConfigMode.MANUAL)
+      // Track selected sample
+      setSelectedSampleId(sampleId)
+      // Stay in auto mode to allow selecting different samples
     }
   }
 
   /**
    * Handle role sample selection (Manual mode dropdown)
+   * Auto-fills name, description, and role
    */
   const handleRoleSampleSelect = (sampleId: string): void => {
     const sample = allRoleSamples.find((s) => s.id === sampleId)
     if (sample) {
+      setValue('name', sample.suggestedName, { shouldValidate: true })
+      setValue('description', sample.description, { shouldValidate: true })
       setValue('role', sample.content, { shouldValidate: true })
+      setValue('icon', sample.icon, { shouldValidate: true })
     }
   }
 
@@ -357,22 +405,44 @@ export function Step1BasicSettings(): React.ReactElement {
           <div>
             <h4 className="text-sm font-medium text-gray-900 mb-3">{t('configMode.selectSample')}</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {roleSamples.map((sample) => (
-                <button
-                  key={sample.id}
-                  type="button"
-                  onClick={() => handleSampleSelect(sample.id)}
-                  className="text-left p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <div className="flex items-start space-x-3">
-                    <span className="text-3xl">{sample.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-semibold text-gray-900 text-sm mb-1">{sample.title}</h5>
-                      <p className="text-xs text-gray-600 line-clamp-2">{sample.description}</p>
+              {roleSamples.map((sample) => {
+                const isSelected = selectedSampleId === sample.id
+                return (
+                  <button
+                    key={sample.id}
+                    type="button"
+                    onClick={() => handleSampleSelect(sample.id)}
+                    className={`relative text-left p-4 border-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isSelected
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
+                    }`}
+                  >
+                    {/* Checkbox indicator */}
+                    <div className="absolute top-2 right-2">
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        isSelected
+                          ? 'bg-blue-500 border-blue-500'
+                          : 'bg-white border-gray-300'
+                      }`}>
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+
+                    <div className="flex items-start space-x-3 pr-6">
+                      <span className="text-3xl">{sample.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-semibold text-gray-900 text-sm mb-1">{sample.title}</h5>
+                        <p className="text-xs text-gray-600 line-clamp-2">{sample.description}</p>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -381,67 +451,73 @@ export function Step1BasicSettings(): React.ReactElement {
       {/* Manual Mode: Full Form */}
       {configMode === ConfigMode.MANUAL && (
         <>
+          {/* Agent Type Selection */}
+          <Controller
+            name="mode"
+            control={control}
+            render={({ field }) => (
+              <RadioGroup
+                name="agent-type"
+                label={t('basicSettings.typeLabel')}
+                options={agentTypeOptions}
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.mode ? t(errors.mode.message as string) : undefined}
+                required
+              />
+            )}
+          />
+
+          {/* Sample Dropdown */}
+          <div>
+            <label htmlFor="sample-select" className="block text-sm font-medium text-gray-900 mb-2">
+              {t('configMode.selectSample')}
+            </label>
+            <select
+              id="sample-select"
+              onChange={(e) => handleRoleSampleSelect(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              defaultValue=""
+            >
+              <option value="">{t('basicSettings.roleSamplePlaceholder')}</option>
+              {roleSamples.map((sample) => (
+                <option key={sample.id} value={sample.id}>
+                  {sample.icon} {sample.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Agent Name */}
           <Input
-        {...register('name')}
-        id="agent-name"
-        label={t('basicSettings.nameLabel')}
-        placeholder={t('basicSettings.namePlaceholder')}
-        error={errors.name ? t(errors.name.message as string) : undefined}
-        required
-        maxLength={255}
-      />
-
-      {/* Agent Description (Optional) */}
-      <Textarea
-        {...register('description')}
-        id="agent-description"
-        label={t('basicSettings.descriptionLabel')}
-        placeholder={t('basicSettings.descriptionPlaceholder')}
-        error={errors.description ? t(errors.description.message as string) : undefined}
-        maxLength={400}
-        rows={3}
-        showCharCount
-        value={descriptionValue}
-      />
-
-      {/* Agent Type Selection */}
-      <Controller
-        name="mode"
-        control={control}
-        render={({ field }) => (
-          <RadioGroup
-            name="agent-type"
-            label={t('basicSettings.typeLabel')}
-            options={agentTypeOptions}
-            value={field.value}
-            onChange={field.onChange}
-            error={errors.mode ? t(errors.mode.message as string) : undefined}
+            {...register('name')}
+            id="agent-name"
+            label={t('basicSettings.nameLabel')}
+            placeholder={t('basicSettings.namePlaceholder')}
+            error={errors.name ? t(errors.name.message as string) : undefined}
             required
+            maxLength={255}
           />
-        )}
-      />
+
+          {/* Agent Description (Optional) */}
+          <Textarea
+            {...register('description')}
+            id="agent-description"
+            label={t('basicSettings.descriptionLabel')}
+            placeholder={t('basicSettings.descriptionPlaceholder')}
+            error={errors.description ? t(errors.description.message as string) : undefined}
+            maxLength={400}
+            rows={3}
+            showCharCount
+            value={descriptionValue}
+          />
 
           {/* Agent Role Definition */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label htmlFor="agent-role" className="block text-sm font-medium text-gray-900">
-                {t('basicSettings.roleLabel')}
-                <span className="text-red-500 ml-1">*</span>
-              </label>
-              <select
-                onChange={(e) => handleRoleSampleSelect(e.target.value)}
-                className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                defaultValue=""
-              >
-                <option value="">{t('basicSettings.roleSamplePlaceholder')}</option>
-                {roleSamples.map((sample) => (
-                  <option key={sample.id} value={sample.id}>
-                    {sample.title}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <label htmlFor="agent-role" className="block text-sm font-medium text-gray-900 mb-2">
+              {t('basicSettings.roleLabel')}
+              <span className="text-red-500 ml-1">*</span>
+            </label>
             <Textarea
               {...register('role')}
               id="agent-role"

@@ -5,24 +5,29 @@ identity:
     en_US: Google Image Search
     zh_Hans: 谷歌图片搜索
     pt_BR: Google Image Search
+    ko_KR: Google 이미지 검색
 description:
   human:
     en_US: A tool for performing a Google image search and extracting images. Input should be a search query.
     zh_Hans: 一个用于执行 Google 图片搜索并提取图片的工具。输入应该是一个搜索查询。
     pt_BR: A tool for performing a Google image search and extracting images. Input should be a search query.
+    ko_KR: Google 이미지 검색을 수행하고 이미지를 추출하는 도구입니다. 입력은 검색 쿼리여야 합니다.
   llm: A tool for performing a Google image search and extracting images. Input should be a search query.
 parameters:
   - name: query
     type: string
     required: true
+    default: "고양이"
     label:
       en_US: Query string
       zh_Hans: 查询语句
       pt_BR: Query string
+      ko_KR: 검색어
     human_description:
       en_US: used for searching
       zh_Hans: 用于搜索网页内容
       pt_BR: used for searching
+      ko_KR: 검색에 사용됩니다
     llm_description: key words for searching
     form: llm
   - name: hl
@@ -32,12 +37,15 @@ parameters:
       en_US: Language
       zh_Hans: 语言
       pt_BR: Language
+      ko_KR: 언어
     human_description:
       en_US: Parameter defines the language to use for the Google search. It's a two-letter language code. (e.g., en for English, es for Spanish, or fr for French). Head to https://serpapi.com/google-languages for a full list of supported Google languages.
       zh_Hans: 此参数定义用于 Google 搜索的语言。它是一个两字母的语言代码。 (例如，en 代表英语，es 代表西班牙语，fr 代表法语)。请前往 https://serpapi.com/google-languages 查看完整的支持 Google 语言列表。
       pt_BR: Parameter defines the language to use for the Google search. It's a two-letter language code. (e.g., en for English, es for Spanish, or fr for French). Head to https://serpapi.com/google-languages for a full list of supported Google languages.
+      ko_KR: "Google 검색에 사용할 언어를 정의하는 매개변수입니다. 두 글자 언어 코드입니다(예: en=영어, es=스페인어, fr=프랑스어). 지원되는 전체 Google 언어 목록은 https://serpapi.com/google-languages를 참조하세요."
     llm_description: Language
     form: llm
+    default: "ko"
   - name: gl
     type: string
     required: false
@@ -45,12 +53,15 @@ parameters:
       en_US: Country
       zh_Hans: 国家
       pt_BR: Country
+      ko_KR: 국가
     human_description:
       en_US: Parameter defines the country to use for the Google search. It's a two-letter country code. (e.g., us for the United States, uk for United Kingdom, or fr for France). Head to the https://serpapi.com/google-countries for a full list of supported Google countries.
       zh_Hans: 此参数定义用于 Google 搜索的国家。它是一个两字母的国家代码。 (例如，us 代表美国，uk 代表英国，fr 代表法国)。请前往 https://serpapi.com/google-countries 查看完整的支持 Google 国家列表。
+      ko_KR: "Google 검색에 사용할 국가를 정의하는 매개변수입니다. 두 글자 국가 코드입니다(예: us=미국, uk=영국, fr=프랑스). 지원되는 전체 Google 국가 목록은 https://serpapi.com/google-countries를 참조하세요."
       pt_BR: Parameter defines the country to use for the Google search. It's a two-letter country code. (e.g., us for the United States, uk for United Kingdom, or fr for France). Head to the https://serpapi.com/google-countries for a full list of supported Google countries.
     llm_description: Country
     form: llm
+    default: "kr"
   - name: location
     type: string
     required: false
@@ -58,12 +69,15 @@ parameters:
       en_US: Location
       zh_Hans: 位置
       pt_BR: Location
+      ko_KR: 위치
     human_description:
-      en_US: Parameter defines from where you want the search to originate. If several locations match the location requested, we'll pick the most popular one. Head to the /locations.json API if you need more precise control. The location and uule parameters can't be used together. It is recommended to specify location at the city level in order to simulate a real user’s search. If location is omitted, the search may take on the location of the proxy.
+      en_US: Parameter defines from where you want the search to originate. If several locations match the location requested, we'll pick the most popular one. Head to the /locations.json API if you need more precise control. The location and uule parameters can't be used together. It is recommended to specify location at the city level in order to simulate a real user's search. If location is omitted, the search may take on the location of the proxy.
       zh_Hans: 此参数定义搜索的位置。如果有多个位置与请求的位置匹配，我们将选择最受欢迎的一个。如果需要更精确的控制，请前往 /locations.json API。location 和 uule 参数不能同时使用。建议在城市级别指定位置，以模拟真实用户的搜索。如果省略位置，则搜索可能会采用代理的位置。
-      pt_BR: Parameter defines from where you want the search to originate. If several locations match the location requested, we'll pick the most popular one. Head to the /locations.json API if you need more precise control. The location and uule parameters can't be used together. It is recommended to specify location at the city level in order to simulate a real user’s search. If location is omitted, the search may take on the location of the proxy.
+      pt_BR: Parameter defines from where you want the search to originate. If several locations match the location requested, we'll pick the most popular one. Head to the /locations.json API if you need more precise control. The location and uule parameters can't be used together. It is recommended to specify location at the city level in order to simulate a real user's search. If location is omitted, the search may take on the location of the proxy.
+      ko_KR: 검색이 시작될 위치를 정의하는 매개변수입니다. 요청된 위치와 일치하는 여러 위치가 있는 경우 가장 인기 있는 위치를 선택합니다. 더 정확한 제어가 필요한 경우 /locations.json API를 참조하세요. location과 uule 매개변수는 함께 사용할 수 없습니다. 실제 사용자의 검색을 시뮬레이션하기 위해 도시 수준에서 위치를 지정하는 것이 좋습니다. 위치를 생략하면 프록시의 위치를 사용할 수 있습니다.
     llm_description: Location
     form: llm
+    default: "Seoul, South Korea"
   - name: max_results
     type: number
     required: true
@@ -71,9 +85,11 @@ parameters:
     label:
       en_US: Max results
       zh_Hans: 最大结果数量
+      ko_KR: 최대 결과 수
     human_description:
       en_US: The max results.
       zh_Hans: 最大结果数量
+      ko_KR: 최대 결과 수입니다.
     form: form
   - name: imgsz
     type: select
@@ -83,92 +99,110 @@ parameters:
     human_description:
       en_US: Parameter defines the size of images.
       zh_Hans: 设置图片尺寸
+      ko_KR: 이미지 크기를 설정합니다.
     form: form
     label:
-      en_US: Parameter defines the size of images.
-      zh_Hans: Parameter defines the size of images.
-      pt_BR: Parameter defines the size of images.
+      en_US: Image size
+      zh_Hans: 图片尺寸
+      pt_BR: Image size
+      ko_KR: 이미지 크기
     options:
       - value: l
         label:
           en_US: Large
-          zh_Hans: Large
+          zh_Hans: 큰
           pt_BR: Large
+          ko_KR: 큰 크기
       - value: m
-        label: 
+        label:
           en_US: Medium
-          zh_Hans: Medium
+          zh_Hans: 中
           pt_BR: Medium
+          ko_KR: 중간 크기
       - value: i
         label:
           en_US: Icon
-          zh_Hans: Icon
+          zh_Hans: 图标
           pt_BR: Icon
+          ko_KR: 아이콘
       - value: vga
         label:
           en_US: Larger than 640x480
-          zh_Hans: Larger than 640x480
+          zh_Hans: 640x480 이상
           pt_BR: Larger than 640x480
+          ko_KR: 640x480 이상
       - value: svga
         label:
           en_US: Larger than 800x600
-          zh_Hans: Larger than 800x600
+          zh_Hans: 800x600 이상
           pt_BR: Larger than 800x600
+          ko_KR: 800x600 이상
       - value: xga
         label:
           en_US: Larger than 1024x768
-          zh_Hans: Larger than 1024x768
+          zh_Hans: 1024x768 이상
           pt_BR: Larger than 1024x768
+          ko_KR: 1024x768 이상
       - value: 2mp
         label:
           en_US: Larger than 2 MP
-          zh_Hans: Larger than 2 MP
+          zh_Hans: 2 MP 이상
           pt_BR: Larger than 2 MP
+          ko_KR: 2 MP 이상
       - value: 4mp
         label:
           en_US: Larger than 4 MP
-          zh_Hans: Larger than 4 MP
+          zh_Hans: 4 MP 이상
           pt_BR: Larger than 4 MP
+          ko_KR: 4 MP 이상
       - value: 6mp
         label:
           en_US: Larger than 6 MP
-          zh_Hans: Larger than 6 MP
+          zh_Hans: 6 MP 이상
           pt_BR: Larger than 6 MP
+          ko_KR: 6 MP 이상
       - value: 8mp
         label:
           en_US: Larger than 8 MP
-          zh_Hans: Larger than 8 MP
+          zh_Hans: 8 MP 이상
           pt_BR: Larger than 8 MP
+          ko_KR: 8 MP 이상
       - value: 10mp
         label:
           en_US: Larger than 10 MP
-          zh_Hans: Larger than 10 MP
+          zh_Hans: 10 MP 이상
           pt_BR: Larger than 10 MP
+          ko_KR: 10 MP 이상
       - value: 12mp
         label:
           en_US: Larger than 12 MP
-          zh_Hans: Larger than 12 MP
+          zh_Hans: 12 MP 이상
           pt_BR: Larger than 12 MP
+          ko_KR: 12 MP 이상
       - value: 15mp
         label:
           en_US: Larger than 15 MP
-          zh_Hans: Larger than 15 MP
+          zh_Hans: 15 MP 이상
           pt_BR: Larger than 15 MP
+          ko_KR: 15 MP 이상
       - value: 20mp
         label:
           en_US: Larger than 20 MP
-          zh_Hans: Larger than 20 MP
+          zh_Hans: 20 MP 이상
           pt_BR: Larger than 20 MP
+          ko_KR: 20 MP 이상
       - value: 40mp
         label:
           en_US: Larger than 40 MP
-          zh_Hans: Larger than 40 MP
+          zh_Hans: 40 MP 이상
           pt_BR: Larger than 40 MP
+          ko_KR: 40 MP 이상
       - value: 70mp
         label:
           en_US: Larger than 70 MP
-          zh_Hans: Larger than 70 MP
+          zh_Hans: 70 MP 이상
           pt_BR: Larger than 70 MP
+          ko_KR: 70 MP 이상
 extra:
   python:
     source: tools/google_image_search.py

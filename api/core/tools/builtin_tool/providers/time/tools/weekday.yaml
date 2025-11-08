@@ -4,10 +4,12 @@ identity:
   label:
     en_US: Weekday Calculator
     zh_Hans: 星期几计算器
+    ko_KR: 요일 계산기
 description:
   human:
     en_US: A tool for calculating the weekday of a given date.
     zh_Hans: 计算指定日期为星期几的工具。
+    ko_KR: 주어진 날짜의 요일을 계산하는 도구입니다.
   llm: A tool for calculating the weekday of a given date by year, month and day.
 parameters:
   - name: year
@@ -17,9 +19,12 @@ parameters:
     label:
       en_US: Year
       zh_Hans: 年
+      ko_KR: 연도
     human_description:
       en_US: Year
       zh_Hans: 年
+      ko_KR: 연도
+    default: 2025
   - name: month
     type: number
     required: true
@@ -27,9 +32,12 @@ parameters:
     label:
       en_US: Month
       zh_Hans: 月
+      ko_KR: 월
     human_description:
       en_US: Month
       zh_Hans: 月
+      ko_KR: 월
+    default: 1
   - name: day
     type: number
     required: true
@@ -37,6 +45,9 @@ parameters:
     label:
       en_US: day
       zh_Hans: 日
+      ko_KR: 일
     human_description:
       en_US: day
       zh_Hans: 日
+      ko_KR: 일
+    default: 1

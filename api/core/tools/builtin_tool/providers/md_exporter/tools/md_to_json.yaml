@@ -4,6 +4,7 @@ identity:
   label:
     en_US: Markdown to JSON file
     zh_Hans: Markdown 转 JSON 文件
+    ko_KR: Markdown을 JSON으로
 description:
   human:
     en_US: Generate JSON or JSONL file from Markdown tables
@@ -13,12 +14,15 @@ parameters:
   - name: md_text
     type: string
     required: true
+    default: "| 이름 | 나이 | 직업 |\n|------|------|------|\n| 홍길동 | 30 | 개발자 |\n| 김철수 | 25 | 디자이너 |"
     label:
       en_US: Markdown table text
-      zh_Hans: Markdown 表格文本
+      zh_Hans: Markdown 표格文本
+      ko_KR: Markdown 표 텍스트
     human_description:
       en_US: Input text of single Markdown table
       zh_Hans: 单个Markdown格式文本
+      ko_KR: 단일 Markdown 표 형식의 입력 텍스트입니다.
     form: llm
   - name: output_style
     type: select
@@ -47,9 +51,11 @@ parameters:
     label:
       en_US: Output Filename
       zh_Hans: 输出文件名
+      ko_KR: 출력 파일명
     human_description:
       en_US: Optional custom output file name, and the filename suffix is not required.
       zh_Hans: 可选的自定义输出文件名，后缀名无需指定
+      ko_KR: 선택적 사용자 지정 출력 파일명입니다. 파일 확장자는 지정할 필요가 없습니다.
     form: llm
 extra:
   python:

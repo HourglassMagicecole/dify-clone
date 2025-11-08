@@ -4,21 +4,26 @@ identity:
   label:
     en_US: Markdown to PPTX file
     zh_Hans: Markdown 转 PPTX 文件
+    ko_KR: Markdown을 PPTX로
 description:
   human:
     en_US: Generate PPTX file from Markdown text
     zh_Hans: 将 Markdown 转换为 PPTX 文件的工具
+    ko_KR: Markdown 텍스트에서 PPTX 파일을 생성하는 도구입니다.
   llm: Generate PPTX file from Markdown text
 parameters:
   - name: md_text
     type: string
     required: true
+    default: "# 샘플 프레젠테이션\n\n## 첫 번째 슬라이드\n\n* 항목 1\n* 항목 2\n* 항목 3\n\n## 두 번째 슬라이드\n\n내용 예시입니다."
     label:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 텍스트
     human_description:
       en_US: Following md2pptx dialect for slides，style docs：https://github.com/MartinPacker/md2pptx/blob/master/docs/user-guide.md#creating-slides
       zh_Hans: 符合md2pptx方言的Markdown文本，样式文档： https://github.com/MartinPacker/md2pptx/blob/master/docs/user-guide.md#creating-slides
+      ko_KR: 슬라이드용 md2pptx 방언을 따르는 Markdown 텍스트입니다. 스타일 문서：https://github.com/MartinPacker/md2pptx/blob/master/docs/user-guide.md#creating-slides
     form: llm
   - name: pptx_template_file
     type: file
@@ -26,9 +31,11 @@ parameters:
     label:
       en_US: PPTX Template File
       zh_Hans: PPTX 模板文件
+      ko_KR: PPTX 템플릿 파일
     human_description:
       en_US: An optional .pptx file that serves as a template for the generated presentation
       zh_Hans: 可选，一个.pptx文件，作为生成的演示文稿的模板
+      ko_KR: 생성된 프레젠테이션의 템플릿으로 사용할 선택적 .pptx 파일입니다.
     llm_description: An optional .pptx file that serves as a template for the generated presentation
     form: llm
   - name: output_filename
@@ -37,9 +44,11 @@ parameters:
     label:
       en_US: Output Filename
       zh_Hans: 输出文件名
+      ko_KR: 출력 파일명
     human_description:
       en_US: Optional custom output file name, and the filename suffix is not required.
       zh_Hans: 可选的自定义输出文件名，后缀名无需指定
+      ko_KR: 선택적 사용자 지정 출력 파일명입니다. 파일 확장자는 지정할 필요가 없습니다.
     form: llm
 extra:
   python:

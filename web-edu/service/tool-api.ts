@@ -7,6 +7,7 @@ export interface ToolTestResultItem {
   blob_base64?: string
   mime_type?: string
   filename?: string
+  url?: string
 }
 
 export interface ToolTestResult {

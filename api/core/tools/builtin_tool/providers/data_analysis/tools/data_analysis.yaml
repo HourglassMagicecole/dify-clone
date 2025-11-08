@@ -4,12 +4,14 @@ identity:
   label:
     en_US: data_analysis
     zh_Hans: 数据分析
+    ko_KR: 데이터 분석
     pt_BR: data_analysis
 description:
   human:
     en_US: natural language based data analysis
     zh_Hans: 通过自然语言执行精准数据检索
     pt_BR: natural language based data analysis
+    ko_KR: 자연어 기반 데이터 분석 도구입니다.
   llm: natural language based data analysis
 parameters:
   - name: query
@@ -19,12 +21,15 @@ parameters:
       en_US: Query string
       zh_Hans: 用户的查询语句
       pt_BR: Query string
+      ko_KR: 쿼리 문자열
     human_description:
       en_US: Query string
       zh_Hans: 用户的查询语句
       pt_BR: Query string
+      ko_KR: 사용자의 쿼리 문자열입니다.
     llm_description: Query string
     form: llm
+    default: "매출이 가장 높은 제품을 찾아주세요"
   - name: input_data
     type: string
     required: false
@@ -32,12 +37,15 @@ parameters:
       en_US: markdown data
       zh_Hans: 表格通过文档提取器输出的markdown文本
       pt_BR: markdown data
+      ko_KR: 마크다운 데이터
     human_description:
       en_US: markdown data
       zh_Hans: 表格通过文档提取器输出的markdown文本
       pt_BR: markdown data
+      ko_KR: 문서 추출기를 통해 출력된 표의 마크다운 텍스트입니다.
     llm_description: markdown text output by the table through the Doc Extractor. The "input_data" parameter and the "file" parameter only need to be passed in one. When both are passed in, only "file" is used
     form: llm
+    default: "| 제품명 | 판매량 | 매출액 |\n|--------|--------|--------|\n| 제품A | 150 | 1500000 |\n| 제품B | 230 | 3450000 |\n| 제품C | 180 | 2700000 |"
   - name: input_file
     type: file
     required: false
@@ -45,10 +53,12 @@ parameters:
       en_US: file
       zh_Hans: 上传的文件
       pt_BR: file
+      ko_KR: 파일
     human_description:
       en_US: file(.xlsx/.xls/.csv)
       zh_Hans: 上传的文件(.xlsx/.xls/.csv)
       pt_BR: file(.xlsx/.xls/.csv)
+      ko_KR: 업로드된 파일(.xlsx/.xls/.csv)입니다.
     llm_description: file(.xlsx/.xls/.csv). The "input_data" parameter and the "file" parameter only need to be passed in one. When both are passed in, only "file" is used
     form: llm
 extra:

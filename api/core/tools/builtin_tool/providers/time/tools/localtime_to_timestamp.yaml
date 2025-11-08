@@ -4,10 +4,12 @@ identity:
   label:
     en_US: localtime to timestamp
     zh_Hans: 获取时间戳
+    ko_KR: 현지 시간을 타임스탬프로
 description:
   human:
     en_US: A tool for localtime convert to timestamp
     zh_Hans: 获取时间戳
+    ko_KR: 현지 시간을 타임스탬프로 변환하는 도구입니다.
   llm: A tool for localtime convert to timestamp
 parameters:
   - name: localtime
@@ -17,9 +19,12 @@ parameters:
     label:
       en_US: localtime
       zh_Hans: 本地时间
+      ko_KR: 현지 시간
     human_description:
       en_US: localtime, such as 2024-1-1 0:0:0
       zh_Hans: 本地时间，比如 2024-1-1 0:0:0
+      ko_KR: "현지 시간 (예: 2024-1-1 0:0:0)"
+    default: "2025-1-1 9:0:0"
   - name: timezone
     type: string
     required: false
@@ -27,7 +32,9 @@ parameters:
     label:
       en_US: Timezone
       zh_Hans: 时区
+      ko_KR: 시간대
     human_description:
       en_US: Timezone, such as Asia/Shanghai
       zh_Hans: 时区，比如 Asia/Shanghai
+      ko_KR: "시간대 (예: Asia/Seoul)"
     default: Asia/Shanghai

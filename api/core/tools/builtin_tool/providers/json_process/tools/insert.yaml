@@ -3,6 +3,7 @@ description:
     en_US: A tool for inserting JSON content
     pt_BR: A tool for inserting JSON content
     zh_Hans: 一个插入 JSON 内容的工具
+    ko_KR: JSON 콘텐츠를 삽입하는 도구입니다.
   llm: A tool for inserting JSON content
 extra:
   python:
@@ -13,6 +14,7 @@ identity:
     en_US: JSON Insert
     pt_BR: JSON Insert
     zh_Hans: JSON 插入
+    ko_KR: JSON 삽입
   name: json_insert
 parameters:
 - form: llm
@@ -20,50 +22,61 @@ parameters:
     en_US: JSON content
     pt_BR: JSON content
     zh_Hans: JSON 内容
+    ko_KR: JSON 콘텐츠
   label:
     en_US: JSON content
     pt_BR: JSON content
     zh_Hans: JSON 内容
+    ko_KR: JSON 콘텐츠
   llm_description: JSON content to be processed
   name: content
   required: true
   type: string
+  default: '{"name": "홍길동", "age": 30}'
 - form: llm
   human_description:
     en_US: Object to insert
     pt_BR: Object to insert
     zh_Hans: 待插入的对象
+    ko_KR: 삽입할 객체
   label:
     en_US: Query
     pt_BR: Query
     zh_Hans: 查询
+    ko_KR: 쿼리
   llm_description: JSONPath query to locate the element to insert
   name: query
   required: true
   type: string
+  default: "$.city"
 - form: llm
   human_description:
     en_US: New Value
     pt_BR: New Value
     zh_Hans: 插入的新值
+    ko_KR: 삽입할 새 값
   label:
     en_US: New Value
     pt_BR: New Value
     zh_Hans: 新值
+    ko_KR: 새 값
   llm_description: New Value to insert
   name: new_value
   required: true
   type: string
+  default: "서울"
 - default: false
   form: form
   human_description:
     en_US: Whether to decode the value to a JSON object
     pt_BR: Whether to decode the value to a JSON object
     zh_Hans: 是否将值解码为 JSON 对象
+    ko_KR: 값을 JSON 객체로 디코딩할지 여부
   label:
     en_US: Decode Value
     pt_BR: Decode Value
     zh_Hans: 解码值
+    ko_KR: 값 디코딩
   name: value_decode
   type: boolean
 - default: 'False'
@@ -72,21 +85,25 @@ parameters:
     en_US: Whether to create a path when the path does not exist
     pt_BR: Whether to create a path when the path does not exist
     zh_Hans: 查询路径不存在时是否创建路径
+    ko_KR: 경로가 존재하지 않을 때 경로를 생성할지 여부
   label:
     en_US: Whether to create a path
     pt_BR: Whether to create a path
     zh_Hans: 是否创建路径
+    ko_KR: 경로 생성 여부
   name: create_path
   options:
   - label:
       en_US: 'Yes'
       pt_BR: 'Yes'
       zh_Hans: 是
+      ko_KR: '예'
     value: 'True'
   - label:
       en_US: 'No'
       pt_BR: 'No'
       zh_Hans: 否
+      ko_KR: '아니오'
     value: 'False'
   required: true
   type: select
@@ -96,9 +113,11 @@ parameters:
     en_US: Ensure the JSON output is ASCII encoded
     pt_BR: Ensure the JSON output is ASCII encoded
     zh_Hans: 确保输出的 JSON 是 ASCII 编码
+    ko_KR: JSON 출력이 ASCII로 인코딩되도록 보장합니다.
   label:
     en_US: Ensure ASCII
     pt_BR: Ensure ASCII
     zh_Hans: 确保 ASCII
+    ko_KR: ASCII 보장
   name: ensure_ascii
   type: boolean

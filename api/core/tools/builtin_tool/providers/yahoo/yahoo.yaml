@@ -9,11 +9,13 @@ identity:
     pt_BR: Finance, and Yahoo! get the latest news, stock quotes, and interactive
       chart with Yahoo!
     zh_Hans: 雅虎财经，获取并整理出最新的新闻、股票报价等一切你想要的财经信息。
+    ko_KR: Yahoo 파이낸스를 통해 최신 뉴스, 주식 시세 및 인터랙티브 차트를 확인하세요.
   icon: icon.png
   label:
     en_US: YahooFinance
     pt_BR: YahooFinance
     zh_Hans: 雅虎财经
+    ko_KR: Yahoo 금융
   name: yahoo
   tags:
   - business

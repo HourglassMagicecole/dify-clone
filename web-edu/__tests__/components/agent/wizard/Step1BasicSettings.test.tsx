@@ -28,6 +28,18 @@ jest.mock('@/context/ToastContext', () => ({
   }),
 }))
 
+// Mock useSession hook
+jest.mock('@/context/SessionContext', () => ({
+  useSession: () => ({
+    currentSession: { id: 'test-session-123', session_name: 'Test Session', is_active: true },
+    sessions: [{ id: 'test-session-123', session_name: 'Test Session', is_active: true }],
+    isLoading: false,
+    error: null,
+    selectSession: jest.fn(),
+    refreshSessions: jest.fn(),
+  }),
+}))
+
 // Mock react-i18next with stable function reference
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({

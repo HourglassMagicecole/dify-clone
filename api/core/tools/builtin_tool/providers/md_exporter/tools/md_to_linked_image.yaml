@@ -13,12 +13,15 @@ parameters:
   - name: md_text
     type: string
     required: true
+    default: "# 이미지 예제\n\n![샘플 이미지](https://via.placeholder.com/150)"
     label:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 텍스트
     human_description:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 텍스트
     form: llm
   - name: is_compress
     type: select

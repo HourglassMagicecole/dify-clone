@@ -29,6 +29,12 @@ from tasks.remove_app_and_related_data_task import remove_app_and_related_data_t
 
 logger = logging.getLogger(__name__)
 
+# Mapping: Tool Provider → Model Provider
+# For tools that depend on Model Provider credentials (e.g., DALL-E uses OpenAI API Key)
+TOOL_TO_MODEL_PROVIDER_MAP = {
+    "openai_tool": "openai",  # DALL-E tools use OpenAI Model Provider credential
+}
+
 
 class AppService:
     def get_paginate_apps(self, user_id: str, tenant_id: str, args: dict) -> Pagination | None:
@@ -54,6 +60,7 @@ class AppService:
 
         if args.get("is_created_by_me", False):
             filters.append(App.created_by == user_id)
+            logger.info("Filtering apps by created_by=%s", user_id)
         if args.get("name"):
             name = args["name"][:30]
             filters.append(App.name.ilike(f"%{name}%"))
@@ -77,8 +84,23 @@ class AppService:
             )
             if edu_resource_ids and len(edu_resource_ids) > 0:
                 filters.append(App.id.in_(edu_resource_ids))
+                logger.info("Session filter applied: found %d apps with SessionResourceTag", len(edu_resource_ids))
             else:
-                return None
+                # No SessionResourceTag found: fallback to created_by filter
+                logger.info(
+                    "No SessionResourceTag found for session_id=%s, account_id=%s, falling back to created_by filter",
+                    args.get("session_id"),
+                    args.get("edu_account_id"),
+                )
+                filters.append(App.created_by == user_id)
+
+        logger.info(
+            "get_paginate_apps filters: tenant_id=%s, is_created_by_me=%s, session_id=%s, user_id=%s",
+            tenant_id,
+            args.get("is_created_by_me"),
+            args.get("session_id"),
+            user_id,
+        )
 
         app_models = db.paginate(
             sa.select(App).where(*filters).order_by(App.created_at.desc()),
@@ -86,6 +108,11 @@ class AppService:
             per_page=args["limit"],
             error_out=False,
         )
+
+        logger.info("get_paginate_apps result: total=%s, items=%s", app_models.total, len(app_models.items))
+        if app_models.items:
+            for app in app_models.items:
+                logger.debug("  - App id=%s, name=%s, created_by=%s", app.id, app.name, app.created_by)
 
         return app_models
 
@@ -99,12 +126,40 @@ class AppService:
         app_mode = AppMode.value_of(args["mode"])
         app_template = default_app_templates[app_mode]
 
-        # get model config
-        default_model_config = app_template.get("model_config")
-        default_model_config = default_model_config.copy() if default_model_config else None
-        if default_model_config and "model" in default_model_config:
+        # get model config - prioritize args over template
+        from_wizard = False
+        if args.get("model_config"):
+            # Use model_config from Agent Wizard
+            from_wizard = True
+            wizard_config = args["model_config"].copy()
+            # Convert from {provider, name, mode, completion_params, stop} format
+            model_dict = {
+                "provider": wizard_config.get("provider"),
+                "name": wizard_config.get("name"),
+                "mode": wizard_config.get("mode", "chat"),
+                "completion_params": wizard_config.get("completion_params", {}),
+            }
+            # Build AppModelConfig-compatible dict
+            default_model_config = {
+                "model": json.dumps(model_dict),
+                "configs": wizard_config.get("configs", {}),
+            }
+        else:
+            # Use template default
+            default_model_config = app_template.get("model_config")
+            default_model_config = default_model_config.copy() if default_model_config else None
+
+        # Process template model config (skip for Agent Wizard as it's already processed)
+        if (
+            not from_wizard
+            and default_model_config
+            and "model" in default_model_config
+            and isinstance(default_model_config["model"], dict)
+        ):
             # get model provider
             model_manager = ModelManager()
+            # Extract model dict for type safety
+            model_dict_from_config = cast(dict, default_model_config["model"])
 
             # get default model instance
             try:
@@ -118,11 +173,10 @@ class AppService:
                 model_instance = None
 
             if model_instance:
-                if (
-                    model_instance.model == default_model_config["model"]["name"]
-                    and model_instance.provider == default_model_config["model"]["provider"]
-                ):
-                    default_model_dict = default_model_config["model"]
+                if model_instance.model == model_dict_from_config.get(
+                    "name"
+                ) and model_instance.provider == model_dict_from_config.get("provider"):
+                    default_model_dict = model_dict_from_config
                 else:
                     llm_model = cast(LargeLanguageModel, model_instance.model_type_instance)
                     model_schema = llm_model.get_model_schema(model_instance.model, model_instance.credentials)
@@ -139,9 +193,9 @@ class AppService:
                 provider, model = model_manager.get_default_provider_model_name(
                     tenant_id=account.current_tenant_id or "", model_type=ModelType.LLM
                 )
-                default_model_config["model"]["provider"] = provider
-                default_model_config["model"]["name"] = model
-                default_model_dict = default_model_config["model"]
+                model_dict_from_config["provider"] = provider
+                model_dict_from_config["name"] = model
+                default_model_dict = model_dict_from_config
 
             default_model_config["model"] = json.dumps(default_model_dict)
 
@@ -166,6 +220,285 @@ class AppService:
             app_model_config.app_id = app.id
             app_model_config.created_by = account.id
             app_model_config.updated_by = account.id
+
+            # Apply Agent Wizard settings
+            if args.get("pre_prompt"):
+                app_model_config.pre_prompt = args["pre_prompt"]
+            if args.get("opening_statement"):
+                app_model_config.opening_statement = args["opening_statement"]
+            if args.get("suggested_questions"):
+                app_model_config.suggested_questions_list = args["suggested_questions"]
+            if args.get("user_input_form"):
+                app_model_config.user_input_form = json.dumps(args["user_input_form"])
+            if args.get("agent_mode"):
+                # Set agent mode for agent-chat type
+                agent_mode_data = args["agent_mode"]
+                logger.info("Saving agent_mode with %d tools", len(agent_mode_data.get("tools", [])))
+
+                # Copy credentials to BuiltinToolProvider for Dify UI compatibility
+                # Priority: UserToolConfig (user-level) > Model Provider (workspace-level)
+                if agent_mode_data.get("tools"):
+                    from core.tools.entities.tool_entities import CredentialType
+                    from models.education.user_tool_config import UserToolConfig
+                    from models.tools import BuiltinToolProvider
+                    from services.education_management.encryption_service import APIKeyEncryptionService
+
+                    for tool in agent_mode_data["tools"]:
+                        provider_id = tool.get("provider_id")
+                        logger.info("Processing tool provider: %s", provider_id)
+                        if not provider_id:
+                            continue
+
+                        # Priority 1: Check if user has credential in UserToolConfig
+                        user_config = (
+                            db.session.query(UserToolConfig)
+                            .filter_by(user_id=account.id, provider=provider_id, is_active=True)
+                            .first()
+                        )
+                        logger.info("UserToolConfig found: %s", bool(user_config))
+
+                        if user_config:
+                            # Check if BuiltinToolProvider already exists for this tenant
+                            existing_provider = (
+                                db.session.query(BuiltinToolProvider)
+                                .filter_by(tenant_id=tenant_id, provider=provider_id)
+                                .first()
+                            )
+
+                            if not existing_provider:
+                                # Copy UserToolConfig credential to BuiltinToolProvider
+                                logger.info("Copying user credential to workspace for provider: %s", provider_id)
+
+                                # Decrypt from UserToolConfig
+                                encryption_service = APIKeyEncryptionService()
+                                decrypted_key = encryption_service.decrypt(user_config.api_key_encrypted)
+
+                                # Get provider schema
+                                from core.tools.tool_manager import ToolManager
+
+                                provider_controller = ToolManager.get_builtin_provider(provider_id, tenant_id)
+                                credentials_schema = provider_controller.get_credentials_schema()
+
+                                if credentials_schema:
+                                    # Build credential dict
+                                    credentials_dict = {}
+                                    for cred_field in credentials_schema:
+                                        credentials_dict[cred_field.name] = decrypted_key
+
+                                    # Encrypt using Dify's encrypter
+                                    from core.helper.provider_cache import ToolProviderCredentialsCache
+                                    from core.tools.utils.encryption import create_provider_encrypter
+
+                                    encrypter, _ = create_provider_encrypter(
+                                        tenant_id=tenant_id,
+                                        config=[x.to_basic_provider_config() for x in credentials_schema],
+                                        cache=ToolProviderCredentialsCache(
+                                            tenant_id=tenant_id,
+                                            provider=provider_id,
+                                            credential_id=f"copied_from_user_{account.id}",
+                                        ),
+                                    )
+                                    encrypted_credentials_dict = encrypter.encrypt(credentials_dict)
+                                    encrypted_credentials = json.dumps(encrypted_credentials_dict)
+
+                                    # Create BuiltinToolProvider
+                                    new_provider = BuiltinToolProvider()
+                                    new_provider.tenant_id = tenant_id
+                                    new_provider.user_id = account.id
+                                    new_provider.provider = provider_id
+                                    new_provider.encrypted_credentials = encrypted_credentials
+                                    new_provider.credential_type = CredentialType.API_KEY.value
+                                    new_provider.name = f"API KEY (from {account.name})"
+                                    new_provider.is_default = True
+                                    new_provider.expires_at = -1
+
+                                    db.session.add(new_provider)
+                                    db.session.flush()
+
+                                    logger.info("Created workspace credential for provider %s", provider_id)
+                        else:
+                            # Priority 2: Check if Tool Provider should use Model Provider credential
+                            logger.info("No UserToolConfig, checking Model Provider mapping for: %s", provider_id)
+                            if provider_id in TOOL_TO_MODEL_PROVIDER_MAP:
+                                model_provider_name = TOOL_TO_MODEL_PROVIDER_MAP[provider_id]
+                                logger.info(
+                                    "Tool provider %s mapped to model provider %s", provider_id, model_provider_name
+                                )
+
+                                # Check if BuiltinToolProvider already exists
+                                existing_provider = (
+                                    db.session.query(BuiltinToolProvider)
+                                    .filter_by(tenant_id=tenant_id, provider=provider_id)
+                                    .first()
+                                )
+
+                                logger.info("Existing BuiltinToolProvider: %s", bool(existing_provider))
+
+                                # Get Admin API Key from Education system (Story 1.8)
+                                from models.education.api_key_config import AdminAPIKeyConfig
+
+                                admin_api_key = (
+                                    db.session.query(AdminAPIKeyConfig)
+                                    .filter(
+                                        sa.func.lower(AdminAPIKeyConfig.provider) == model_provider_name.lower(),
+                                        AdminAPIKeyConfig.is_active == True,
+                                    )
+                                    .first()
+                                )
+                                logger.info(
+                                    "AdminAPIKeyConfig found: %s",
+                                    bool(admin_api_key),
+                                )
+                                if admin_api_key:
+                                    logger.info(
+                                        "Provider in DB: %s, key_name: %s",
+                                        admin_api_key.provider,
+                                        admin_api_key.key_name,
+                                    )
+
+                                if admin_api_key and admin_api_key.api_key_encrypted:
+                                    # Delete existing provider if found (to ensure credential is up-to-date)
+                                    if existing_provider:
+                                        logger.info(
+                                            "Deleting existing BuiltinToolProvider to recreate with updated credential"
+                                        )
+                                        db.session.delete(existing_provider)
+                                        db.session.flush()
+
+                                    logger.info("Attempting to copy admin API key to tool provider")
+                                    try:
+                                        # Decrypt Admin API Key
+                                        encryption_service = APIKeyEncryptionService()
+                                        api_key = encryption_service.decrypt(admin_api_key.api_key_encrypted)
+
+                                        if api_key:
+                                            # Get Tool Provider schema
+                                            from core.tools.tool_manager import ToolManager
+
+                                            tool_provider_controller = ToolManager.get_builtin_provider(
+                                                provider_id, tenant_id
+                                            )
+                                            credentials_schema = tool_provider_controller.get_credentials_schema()
+
+                                            if credentials_schema:
+                                                # Build credential dict for Tool Provider
+                                                credentials_dict = {}
+                                                for cred_field in credentials_schema:
+                                                    # Set API key for required fields or 'api_key' named fields
+                                                    if cred_field.required or "api_key" in cred_field.name.lower():
+                                                        credentials_dict[cred_field.name] = api_key
+                                                        logger.info(
+                                                            "Setting credential field: %s (required=%s)",
+                                                            cred_field.name,
+                                                            cred_field.required,
+                                                        )
+                                                    else:
+                                                        logger.info("Skipping optional field: %s", cred_field.name)
+
+                                                # Encrypt using Dify's Tool Provider encrypter
+                                                from core.helper.provider_cache import ToolProviderCredentialsCache
+                                                from core.tools.utils.encryption import create_provider_encrypter
+
+                                                encrypter, _ = create_provider_encrypter(
+                                                    tenant_id=tenant_id,
+                                                    config=[x.to_basic_provider_config() for x in credentials_schema],
+                                                    cache=ToolProviderCredentialsCache(
+                                                        tenant_id=tenant_id,
+                                                        provider=provider_id,
+                                                        credential_id=f"copied_from_admin_{admin_api_key.id}",
+                                                    ),
+                                                )
+                                                encrypted_credentials_dict = encrypter.encrypt(credentials_dict)
+                                                encrypted_credentials = json.dumps(encrypted_credentials_dict)
+
+                                                # Create BuiltinToolProvider
+                                                new_provider = BuiltinToolProvider()
+                                                new_provider.tenant_id = tenant_id
+                                                new_provider.user_id = account.id
+                                                new_provider.provider = provider_id
+                                                new_provider.encrypted_credentials = encrypted_credentials
+                                                new_provider.credential_type = CredentialType.API_KEY.value
+                                                new_provider.name = f"API KEY (from Admin: {admin_api_key.key_name})"
+                                                new_provider.is_default = True
+                                                new_provider.expires_at = -1
+
+                                                db.session.add(new_provider)
+                                                db.session.flush()
+
+                                                logger.info(
+                                                    "Created tool provider credential from admin API key: %s",
+                                                    provider_id,
+                                                )
+                                    except Exception as e:
+                                        logger.warning(
+                                            "Failed to copy admin API key to tool provider %s: %s",
+                                            provider_id,
+                                            str(e),
+                                        )
+
+                # Add Dify-required top-level fields
+                agent_mode_data["strategy"] = agent_mode_data.get("strategy", "function_call")
+                agent_mode_data["max_iteration"] = agent_mode_data.get("max_iteration", 10)
+                agent_mode_data["prompt"] = agent_mode_data.get("prompt")
+
+                # Transform tools to Dify format
+                if agent_mode_data.get("tools"):
+                    from core.tools.tool_manager import ToolManager
+                    from core.tools.utils.configuration import ToolParameterConfigurationManager
+
+                    for tool in agent_mode_data["tools"]:
+                        # Helper: Convert snake_case to CamelCase
+                        def to_camel_case(snake_str: str) -> str:
+                            components = snake_str.split("_")
+                            return "".join(x.title() for x in components)
+
+                        # Add Dify-required tool fields
+                        tool["provider_name"] = tool.get("provider_name", tool.get("provider_id"))
+                        tool["tool_label"] = tool.get("tool_label", to_camel_case(tool.get("tool_name", "")))
+                        tool["enabled"] = tool.get("enabled", True)
+                        tool["notAuthor"] = tool.get("notAuthor", True)
+
+                        # Populate tool_parameters from tool schema
+                        try:
+                            agent_tool_entity = AgentToolEntity(**tool)
+                            tool_runtime = ToolManager.get_agent_tool_runtime(
+                                tenant_id=tenant_id,
+                                app_id=app.id,
+                                agent_tool=agent_tool_entity,
+                                user_id=account.id,
+                            )
+
+                            # Build parameter schema with empty values
+                            parameters = {}
+                            for param in tool_runtime.entity.parameters:
+                                parameters[param.name] = ""
+
+                            # Encrypt secret parameters
+                            manager = ToolParameterConfigurationManager(
+                                tenant_id=tenant_id,
+                                tool_runtime=tool_runtime,
+                                provider_name=agent_tool_entity.provider_id,
+                                provider_type=agent_tool_entity.provider_type,
+                                identity_id=f"AGENT.{app.id}",
+                            )
+
+                            encrypted_params = manager.encrypt_tool_parameters(parameters)
+                            tool["tool_parameters"] = encrypted_params
+                            logger.info(
+                                "Configured parameters for tool: %s with %d params",
+                                tool.get("tool_name"),
+                                len(encrypted_params),
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                "Failed to configure tool parameters for %s: %s", tool.get("tool_name"), str(e)
+                            )
+                            # Fallback to empty parameters
+                            tool["tool_parameters"] = {}
+
+                logger.info("Final agent_mode: %s", json.dumps(agent_mode_data, indent=2))
+                app_model_config.agent_mode = json.dumps(agent_mode_data)
+
             db.session.add(app_model_config)
             db.session.flush()
 

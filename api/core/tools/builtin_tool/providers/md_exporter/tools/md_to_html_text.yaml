@@ -4,21 +4,26 @@ identity:
   label:
     en_US: Markdown to HTML text
     zh_Hans: Markdown 转 HTML 文本
+    ko_KR: Markdown을 HTML 텍스트로
 description:
   human:
     en_US: Generate HTML text from Markdown.
     zh_Hans: 将 Markdown 转换为 HTML文本的工具
+    ko_KR: Markdown을 HTML 텍스트로 변환하는 도구입니다.
   llm: Generate HTML file from Markdown text
 parameters:
   - name: md_text
     type: string
     required: true
+    default: "# 샘플 문서\n\n## 소제목\n\n본문 내용입니다.\n\n- 항목 1\n- 항목 2"
     label:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 텍스트
     human_description:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 텍스트
     form: llm
 extra:
   python:

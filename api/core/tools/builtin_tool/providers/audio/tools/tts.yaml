@@ -3,20 +3,25 @@ identity:
   author: hjlarry
   label:
     en_US: Text To Speech
+    ko_KR: 텍스트 음성 변환
 description:
   human:
     en_US: Convert text to audio file.
     zh_Hans: 将文本转换为音频文件。
+    ko_KR: 텍스트를 오디오 파일로 변환합니다.
   llm: Convert text to audio file.
 parameters:
   - name: text
     type: string
     required: true
+    default: "안녕하세요. 텍스트 음성 변환 테스트입니다."
     label:
       en_US: Text
       zh_Hans: 文本
+      ko_KR: 텍스트
     human_description:
       en_US: The text to be converted.
       zh_Hans: 要转换的文本。
+      ko_KR: 변환할 텍스트입니다.
     llm_description: The text to be converted.
     form: llm

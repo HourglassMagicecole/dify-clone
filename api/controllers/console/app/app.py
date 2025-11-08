@@ -100,6 +100,25 @@ class AppListApi(Resource):
 
         args = parser.parse_args()
 
+        # Auto-apply user isolation: session-based OR created_by filter
+        if not args.get("session_id") and not args.get("is_created_by_me"):
+            active_session = get_user_active_session(current_user.id)
+            if active_session:
+                args["session_id"] = active_session.id
+                args["edu_account_id"] = current_user.id
+                logger.info(
+                    "Auto-applied active session %s for user %s",
+                    active_session.id,
+                    current_user.id,
+                )
+            else:
+                # No active session: show only user's own apps
+                args["is_created_by_me"] = True
+                logger.info(
+                    "No active session for user %s, filtering by created_by",
+                    current_user.id,
+                )
+
         # get app list
         app_service = AppService()
         app_pagination = app_service.get_paginate_apps(current_user.id, current_user.current_tenant_id, args)
@@ -150,6 +169,14 @@ class AppListApi(Resource):
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
+        # Agent Wizard - full config support
+        parser.add_argument("model_config", type=dict, location="json", required=False)
+        parser.add_argument("pre_prompt", type=str, location="json", required=False)
+        parser.add_argument("agent_mode", type=dict, location="json", required=False)
+        parser.add_argument("opening_statement", type=str, location="json", required=False)
+        parser.add_argument("suggested_questions", type=list, location="json", required=False)
+        parser.add_argument("user_input_form", type=list, location="json", required=False)
+        parser.add_argument("session_id", type=str, location="json", required=False)
         args = parser.parse_args()
 
         # The role of the current user in the ta table must be admin, owner, or editor
@@ -159,6 +186,32 @@ class AppListApi(Resource):
         if "mode" not in args or args["mode"] is None:
             raise BadRequest("mode is required")
 
+        # Require session_id for all users
+        session_id = args.get("session_id")
+        if not session_id:
+            raise BadRequest("session_id is required to create an agent")
+
+        # Validate session and user membership
+        from sqlalchemy import select
+
+        from models.education.session import EducationSession
+        from models.education.session_member import EducationSessionMember
+
+        stmt = (
+            select(EducationSession)
+            .join(EducationSessionMember, EducationSession.id == EducationSessionMember.session_id)
+            .where(
+                EducationSession.id == session_id,
+                EducationSession.is_active == True,
+                EducationSessionMember.account_id == current_user.id,
+                EducationSessionMember.status == "active",
+            )
+        )
+        active_session = db.session.scalar(stmt)
+
+        if not active_session:
+            raise BadRequest("Invalid session_id or you are not a member of this session")
+
         app_service = AppService()
         if not isinstance(current_user, Account):
             raise ValueError("current_user must be an Account instance")
@@ -166,30 +219,28 @@ class AppListApi(Resource):
             raise ValueError("current_user.current_tenant_id cannot be None")
         app = app_service.create_app(current_user.current_tenant_id, args, current_user)
 
-        # Add session resource tag - automatically find user's active session
-        active_session = get_user_active_session(current_user.id)
-        if active_session:
-            try:
-                resource_tagging_service = ResourceTaggingService()
-                resource_tagging_service.add_tag(
-                    session_id=active_session.id,
-                    resource_type="app",
-                    resource_id=app.id,
-                    account_id=current_user.id,
-                )
-                logger.info(
-                    "Added SessionResourceTag for app %s in session %s",
-                    app.id,
-                    active_session.id,
-                )
-            except Exception as e:
-                # Don't fail app creation if tagging fails
-                logger.error(
-                    "Failed to add SessionResourceTag for app %s: %s",
-                    app.id,
-                    e,
-                    exc_info=True,
-                )
+        # Add session resource tag (required - session is mandatory)
+        try:
+            resource_tagging_service = ResourceTaggingService()
+            resource_tagging_service.add_tag(
+                session_id=active_session.id,
+                resource_type="app",
+                resource_id=app.id,
+                account_id=current_user.id,
+            )
+            logger.info(
+                "Added SessionResourceTag for app %s in session %s",
+                app.id,
+                active_session.id,
+            )
+        except Exception as e:
+            # Log error but don't fail app creation (tag can be added later)
+            logger.error(
+                "Failed to add SessionResourceTag for app %s: %s",
+                app.id,
+                e,
+                exc_info=True,
+            )
 
         return app, 201
 

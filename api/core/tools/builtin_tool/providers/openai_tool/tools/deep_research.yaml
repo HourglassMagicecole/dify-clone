@@ -2,6 +2,7 @@ description:
   human:
     en_US: Use deep research models for complex analysis and research tasks.
     zh_Hans: 使用深度研究模型执行复杂的分析和研究任务。
+    ko_KR: 복잡한 분석 및 연구 작업에 딥 리서치 모델을 사용합니다.
   llm: A tool for running complex analysis and research tasks using OpenAI's deep research models (o3-deep-research, o4-mini-deep-research). It can find, analyze, and synthesize hundreds of sources to create a comprehensive report.
 extra:
   python:
@@ -11,9 +12,11 @@ identity:
   description:
     en_US: Runs a deep research task using OpenAI models to generate a comprehensive report from web searches and data analysis.
     zh_Hans: 使用 OpenAI 模型运行深度研究任务，通过网络搜索和数据分析生成综合报告。
+    ko_KR: OpenAI 모델을 사용하여 딥 리서치 작업을 실행하고 웹 검색 및 데이터 분석을 통해 종합 보고서를 생성합니다.
   label:
     en_US: Deep Research
     zh_Hans: 深度研究
+    ko_KR: 딥 리서치
   name: deep_research
 parameters:
 - name: action
@@ -123,13 +126,16 @@ parameters:
   form: llm
   human_description:
     en_US: A detailed prompt for the research task, including what to do, sources to prioritize, and the desired output format (max 32000 chars). Required only for 'start' action.
-    zh_Hans: 研究任务的详细提示，包括操作内容、优先来源和期望的输出格式（最多 32000 字符）。仅在操作为“开始”时需要。
+    zh_Hans: 研究任务的详细提示，包括操作内容、优先来源和期望的输出格式（最多 32000 字符）。仅在操作为"开始"时需要。
+    ko_KR: 연구 작업의 상세한 프롬프트입니다. 수행할 작업, 우선 순위 소스 및 원하는 출력 형식을 포함합니다(최대 32000자). 'start' 작업에만 필요합니다.
   label:
     en_US: Research Prompt  (for start)
     zh_Hans: 研究提示 (用于开始)
+    ko_KR: 연구 프롬프트 (시작용)
   llm_description: A detailed text description of the research to be performed. It should be analytical, ask for data-backed reasoning, and specify the desired structure of the output. Required for 'start' action.
   required: false
   type: string
+  default: "최신 AI 기술 동향과 주요 발전 사항을 조사하고 요약해주세요."
 - name: response_id
   form: llm
   human_description:

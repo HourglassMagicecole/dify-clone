@@ -4,21 +4,26 @@ identity:
   label:
     en_US: Codeblocks to files
     zh_Hans: 提取 代码片段 为文件
+    ko_KR: 코드 블록을 파일로
 description:
   human:
     en_US: Generate script files from code blocks from Markdown text
     zh_Hans: 提取Markdown中代码片段转换为脚本文件
+    ko_KR: Markdown 텍스트에서 코드 블록을 추출하여 스크립트 파일을 생성하는 도구입니다.
   llm: Generate script files from code blocks from Markdown text
 parameters:
   - name: md_text
     type: string
     required: true
+    default: "```python\nprint('Hello, World!')\n```\n\n```javascript\nconsole.log('Hello');\n```"
     label:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 텍스트
     human_description:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 형식의 텍스트입니다.
     form: llm
   - name: output_filename
     type: string
@@ -26,9 +31,11 @@ parameters:
     label:
       en_US: Output Filename
       zh_Hans: 输出文件名
+      ko_KR: 출력 파일명
     human_description:
       en_US: Optional custom output file name, and the filename suffix is not required.
       zh_Hans: 可选的自定义输出文件名，后缀名无需指定
+      ko_KR: 선택적 사용자 지정 출력 파일명입니다. 파일 확장자는 지정할 필요가 없습니다.
     form: llm
   - name: is_compress
     type: select
@@ -39,16 +46,20 @@ parameters:
         label:
           en_US: "Yes"
           zh_Hans: 是
+          ko_KR: 예
       - value: "false"
         label:
           en_US: "No"
           zh_Hans: 否
+          ko_KR: 아니오
     label:
       en_US: Generate into ZIP file
       zh_Hans: 是否压缩为ZIP文件
+      ko_KR: ZIP 파일로 생성
     human_description:
       en_US: Whether to generate into ZIP file
       zh_Hans: 是否压缩为ZIP文件
+      ko_KR: ZIP 파일로 압축 여부입니다.
     llm_description: Whether to generate into ZIP file, default to "false"
     form: form
 extra:

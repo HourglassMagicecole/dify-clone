@@ -3,10 +3,12 @@ identity:
   author: hjlarry
   label:
     en_US: Speech To Text
+    ko_KR: 음성 텍스트 변환
 description:
   human:
     en_US: Convert audio file to text.
     zh_Hans: 将音频文件转换为文本。
+    ko_KR: 오디오 파일을 텍스트로 변환합니다.
   llm: Convert audio file to text.
 parameters:
   - name: audio_file
@@ -15,8 +17,10 @@ parameters:
     label:
       en_US: Audio File
       zh_Hans: 音频文件
+      ko_KR: 오디오 파일
     human_description:
       en_US: The audio file to be converted.
       zh_Hans: 要转换的音频文件。
+      ko_KR: 변환할 오디오 파일입니다.
     llm_description: The audio file to be converted.
     form: llm

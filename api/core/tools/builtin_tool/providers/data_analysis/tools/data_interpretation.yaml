@@ -4,12 +4,14 @@ identity:
   label:
     en_US: data_interpretation
     zh_Hans: 数据解读
+    ko_KR: 데이터 해석
     pt_BR: data_interpretation
 description:
   human:
     en_US: Automated Insight Generation
     zh_Hans: 自动生成分析结论
     pt_BR: Automated Insight Generation
+    ko_KR: 자동 인사이트 생성 도구입니다.
   llm: Automated Insight Generation
 parameters:
   - name: query
@@ -19,12 +21,15 @@ parameters:
       en_US: Query string
       zh_Hans: 用户的数据解读要求
       pt_BR: Query string
+      ko_KR: 쿼리 문자열
     human_description:
       en_US: Query string
       zh_Hans: 用户的数据解读要求
       pt_BR: Query string
+      ko_KR: 사용자의 데이터 해석 요구사항입니다.
     llm_description: Query string
     form: llm
+    default: "이 데이터의 주요 트렌드와 인사이트를 분석해주세요"
   - name: input_data
     type: string
     required: false
@@ -32,12 +37,15 @@ parameters:
       en_US: markdown data
       zh_Hans: 表格通过文档提取器输出的markdown文本
       pt_BR: markdown data
+      ko_KR: 마크다운 데이터
     human_description:
       en_US: markdown data
       zh_Hans: 表格通过文档提取器输出的markdown文本
       pt_BR: markdown data
+      ko_KR: 문서 추출기를 통해 출력된 표의 마크다운 텍스트입니다.
     llm_description: markdown text output by the table through the Doc Extractor. The "input_data" parameter and the "file" parameter only need to be passed in one. When both are passed in, only "file" is used
     form: llm
+    default: "| 월 | 매출 | 성장률 |\n|-----|---------|--------|\n| 1월 | 5000000 | 5% |\n| 2월 | 5500000 | 10% |\n| 3월 | 6200000 | 13% |"
   - name: input_file
     type: file
     required: false
@@ -45,10 +53,12 @@ parameters:
       en_US: file
       zh_Hans: 上传的文件
       pt_BR: file
+      ko_KR: 파일
     human_description:
       en_US: file(.xlsx/.xls/.csv)
       zh_Hans: 上传的文件(.xlsx/.xls/.csv)
       pt_BR: file(.xlsx/.xls/.csv)
+      ko_KR: 업로드된 파일(.xlsx/.xls/.csv)입니다.
     llm_description: file(.xlsx/.xls/.csv). The "input_data" parameter and the "file" parameter only need to be passed in one. When both are passed in, only "file" is used
     form: llm
 extra:

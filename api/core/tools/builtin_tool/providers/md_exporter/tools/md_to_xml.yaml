@@ -4,21 +4,26 @@ identity:
   label:
     en_US: Markdown to XML file
     zh_Hans: Markdown 转 XML 文件
+    ko_KR: Markdown을 XML로
 description:
   human:
     en_US: Generate XML file from Markdown text
     zh_Hans: 将 Markdown 转换为 XML 文件的工具
+    ko_KR: Markdown 텍스트에서 XML 파일을 생성하는 도구입니다.
   llm: Generate XML file from Markdown text
 parameters:
   - name: md_text
     type: string
     required: true
+    default: "| 이름 | 나이 | 직업 |\n|------|------|------|\n| 홍길동 | 30 | 개발자 |\n| 김철수 | 25 | 디자이너 |"
     label:
       en_US: Markdown text
       zh_Hans: Markdown格式文本
+      ko_KR: Markdown 텍스트
     human_description:
       en_US: Markdown table text
-      zh_Hans: Markdown格式文本，必须为Markdown表格格式
+      zh_Hans: Markdown格式文본，必须为Markdown表格格式
+      ko_KR: Markdown 표 텍스트
     form: llm
   - name: output_filename
     type: string
@@ -26,9 +31,11 @@ parameters:
     label:
       en_US: Output Filename
       zh_Hans: 输出文件名
+      ko_KR: 출력 파일명
     human_description:
       en_US: Optional custom output file name, and the filename suffix is not required.
       zh_Hans: 可选的自定义输出文件名，后缀名无需指定
+      ko_KR: 선택적 사용자 지정 출력 파일명입니다. 파일 확장자는 지정할 필요가 없습니다.
     form: llm
 extra:
   python:

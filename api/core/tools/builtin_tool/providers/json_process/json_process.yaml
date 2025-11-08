@@ -4,11 +4,13 @@ identity:
     en_US: Tools for processing JSON content using jsonpath_ng
     pt_BR: Tools for processing JSON content using jsonpath_ng
     zh_Hans: 利用 jsonpath_ng 处理 JSON 内容的工具
+    ko_KR: jsonpath_ng를 사용하여 JSON 콘텐츠를 처리하는 도구입니다.
   icon: icon.svg
   label:
     en_US: JSON Process
     pt_BR: JSON Process
     zh_Hans: JSON 处理
+    ko_KR: JSON 처리
   name: json_process
   tags:
   - utilities

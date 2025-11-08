@@ -105,6 +105,53 @@ export class ApiClient {
 
     return response.json()
   }
+
+  /**
+   * GET request for Dify native API (returns data directly without result wrapper)
+   * Use this for endpoints that return { data: ... } instead of { result: 'success', data: ... }
+   */
+  async getDifyNative<T>(endpoint: string): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    }
+
+    const json = await response.json()
+
+    // Wrap native Dify response in our standard format
+    return {
+      result: 'success',
+      data: json.data || json,
+    }
+  }
+
+  /**
+   * POST request for Dify native API (returns data directly without result wrapper)
+   * Use this for endpoints that return app object directly instead of { result: 'success', data: ... }
+   */
+  async postDifyNative<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    }
+
+    const json = await response.json()
+
+    // Wrap native Dify response in our standard format
+    return {
+      result: 'success',
+      data: json.data || json,
+    }
+  }
 }
 
 export const apiClient = new ApiClient()

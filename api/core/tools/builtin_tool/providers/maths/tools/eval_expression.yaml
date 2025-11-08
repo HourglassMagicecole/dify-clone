@@ -3,6 +3,7 @@ description:
     en_US: A tool for evaluating an math expression, calculated locally with NumExpr.
     pt_BR: A tool for evaluating an math expression, calculated locally with NumExpr.
     zh_Hans: 一个用于计算数学表达式的工具，表达式将通过NumExpr本地执行。
+    ko_KR: NumExpr을 사용하여 로컬에서 수학 표현식을 계산하는 도구입니다.
   llm: A tool for evaluating an math expression.
 extra:
   python:
@@ -13,6 +14,7 @@ identity:
     en_US: Evaluate Math Expression
     pt_BR: Evaluate Math Expression
     zh_Hans: 计算数学表达式
+    ko_KR: 수학 표현식 계산
   name: eval_expression
 parameters:
 - form: llm
@@ -20,10 +22,13 @@ parameters:
     en_US: Math Expression
     pt_BR: Math Expression
     zh_Hans: 数学计算表达式
+    ko_KR: 수학 표현식
   label:
     en_US: Math Expression
     pt_BR: Math Expression
     zh_Hans: 数学计算表达式
+    ko_KR: 수학 표현식
   name: expression
   required: true
   type: string
+  default: "2 + 2 * 3"

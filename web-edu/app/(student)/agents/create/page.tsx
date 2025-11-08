@@ -8,11 +8,17 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import { ArrowPathIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import { AgentWizardProvider, useAgentWizard } from '@/context/AgentWizardContext'
+import { useSession } from '@/context/SessionContext'
 import { StepIndicator, Step } from '@/components/common/StepIndicator'
 import { AgentWizardStep } from '@/types/agent'
 import { Button } from '@/components/common/Button'
 import { Step1BasicSettings } from '@/components/agent/wizard/Step1BasicSettings'
+import Step2PromptSettings from '@/components/agent/wizard/Step2PromptSettings'
+import Step3ModelConfig from '@/components/agent/wizard/Step3ModelConfig'
+import Step4ToolsConfig from '@/components/agent/wizard/Step4ToolsConfig'
+import Step5Review from '@/components/agent/wizard/Step5Review'
 
 /**
  * Wizard content component (must be inside Provider)
@@ -20,7 +26,19 @@ import { Step1BasicSettings } from '@/components/agent/wizard/Step1BasicSettings
 function AgentWizardContent(): React.ReactElement {
   const { t } = useTranslation('agent')
   const router = useRouter()
-  const { currentStep, resetWizard, goToStep, previousStep, isInitializing, isDraft } = useAgentWizard()
+  const { currentSession, isLoading: sessionLoading } = useSession()
+  const {
+    currentStep,
+    resetWizard,
+    goToStep,
+    isInitializing,
+    isDraft,
+    isLoading,
+    error,
+    showDraftPrompt,
+    restoreDraft,
+    discardDraft,
+  } = useAgentWizard()
 
   /**
    * Generate steps for StepIndicator
@@ -90,44 +108,16 @@ function AgentWizardContent(): React.ReactElement {
         return <Step1BasicSettings />
 
       case AgentWizardStep.PROMPT:
-        return (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Step 2: Prompt Configuration</p>
-            <p className="text-sm text-gray-400 mt-2">
-              (To be implemented in Story 2.2)
-            </p>
-          </div>
-        )
+        return <Step2PromptSettings />
 
       case AgentWizardStep.MODEL:
-        return (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Step 3: LLM Settings</p>
-            <p className="text-sm text-gray-400 mt-2">
-              (To be implemented in Story 2.2)
-            </p>
-          </div>
-        )
+        return <Step3ModelConfig />
 
       case AgentWizardStep.TOOLS:
-        return (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Step 4: Tools Configuration</p>
-            <p className="text-sm text-gray-400 mt-2">
-              (To be implemented in Story 2.3)
-            </p>
-          </div>
-        )
+        return <Step4ToolsConfig />
 
       case AgentWizardStep.REVIEW:
-        return (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Step 5: Review & Test</p>
-            <p className="text-sm text-gray-400 mt-2">
-              (To be implemented in Story 2.4)
-            </p>
-          </div>
-        )
+        return <Step5Review />
 
       default:
         return <div>Unknown step</div>
@@ -135,7 +125,7 @@ function AgentWizardContent(): React.ReactElement {
   }
 
   // Show loading state while initializing
-  if (isInitializing) {
+  if (isInitializing || sessionLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
         <div className="text-center">
@@ -146,18 +136,98 @@ function AgentWizardContent(): React.ReactElement {
     )
   }
 
+  // Show warning if no active session
+  if (!currentSession) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow p-8">
+            <div className="text-center">
+              <ExclamationCircleIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                세션이 필요합니다
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Agent를 생성하려면 먼저 활성화된 교육 세션에 속해있어야 합니다.
+                <br />
+                관리자에게 문의하여 세션에 등록해주세요.
+              </p>
+              <Button
+                variant="default"
+                onClick={() => router.push('/dashboard')}
+              >
+                대시보드로 돌아가기
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      {/* Draft Restore Prompt Modal */}
+      {showDraftPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              💾 {t('draft.promptTitle') || '저장된 작업 발견'}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              {t('draft.promptMessage') || '이전에 작성하던 Agent 초안이 있습니다. 이어서 작성하시겠습니까?'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={discardDraft}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
+              >
+                {t('draft.startFresh') || '새로 작성'}
+              </button>
+              <button
+                onClick={restoreDraft}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600"
+              >
+                {t('draft.continue') || '이어서 작성'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex items-center gap-4">
+            <ArrowPathIcon className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              Agent 생성 중...
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             {t('wizard.title')}
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             5단계로 구성된 마법사를 통해 새로운 Agent를 생성하세요
           </p>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 flex items-start gap-3 p-4 border border-red-300 rounded-lg bg-red-50 dark:bg-red-900/20 dark:border-red-800">
+            <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">오류가 발생했습니다</h3>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
+            </div>
+          </div>
+        )}
 
         {/* Step Indicator */}
         <div className="mb-8">
@@ -200,16 +270,6 @@ function AgentWizardContent(): React.ReactElement {
             >
               {t('buttons.cancel')}
             </Button>
-
-            {/* Previous button - show on steps 2-5 */}
-            {currentStep > AgentWizardStep.BASIC && (
-              <Button
-                variant="outline"
-                onClick={previousStep}
-              >
-                {t('buttons.previous')}
-              </Button>
-            )}
           </div>
 
           <div className="flex items-center space-x-4">

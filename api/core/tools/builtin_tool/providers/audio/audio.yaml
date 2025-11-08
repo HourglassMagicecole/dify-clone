@@ -3,9 +3,11 @@ identity:
   name: audio
   label:
     en_US: Audio
+    ko_KR: 오디오
   description:
     en_US: A tool for tts and asr.
     zh_Hans: 一个用于文本转语音和语音转文本的工具。
+    ko_KR: 텍스트 음성 변환(TTS) 및 음성 인식(ASR)을 위한 도구입니다.
   icon: icon.svg
   tags:
     - utilities

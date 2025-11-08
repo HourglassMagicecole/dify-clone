@@ -5,11 +5,13 @@ identity:
     en_US: Current Time
     zh_Hans: 获取当前时间
     pt_BR: Current Time
+    ko_KR: 현재 시간
 description:
   human:
     en_US: A tool for getting the current time.
     zh_Hans: 一个用于获取当前时间的工具。
     pt_BR: A tool for getting the current time.
+    ko_KR: 현재 시간을 가져오는 도구입니다.
   llm: A tool for getting the current time.
 parameters:
   - name: format
@@ -19,10 +21,12 @@ parameters:
       en_US: Format
       zh_Hans: 格式
       pt_BR: Format
+      ko_KR: 형식
     human_description:
       en_US: Time format in strftime standard.
       zh_Hans: strftime 标准的时间格式。
       pt_BR: Time format in strftime standard.
+      ko_KR: strftime 표준 시간 형식입니다.
     form: form
     default: "%Y-%m-%d %H:%M:%S"
   - name: timezone
@@ -32,10 +36,12 @@ parameters:
       en_US: Timezone
       zh_Hans: 时区
       pt_BR: Timezone
+      ko_KR: 시간대
     human_description:
       en_US: Timezone
       zh_Hans: 时区
       pt_BR: Timezone
+      ko_KR: 시간대
     form: form
     default: UTC
     options:
@@ -94,6 +100,7 @@ parameters:
           en_US: Asia/Seoul
           zh_Hans: 亚洲/首尔
           pt_BR: Asia/Seoul
+          ko_KR: 아시아/서울
       - value: Asia/Singapore
         label:
           en_US: Asia/Singapore

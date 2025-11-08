@@ -18,6 +18,7 @@ export default function ToolList({ selectedTools, onToolsChange }: ToolListProps
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [configTool, setConfigTool] = useState<Tool | null>(null)
+  const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadTools()
@@ -30,7 +31,28 @@ export default function ToolList({ selectedTools, onToolsChange }: ToolListProps
       const response = await listTools()
 
       if (response.result === 'success' && response.data) {
-        setToolProviders(response.data)
+        // Reorder tools within data_analysis provider
+        const reorderedProviders = response.data.map((provider) => {
+          if (provider.name === 'data_analysis') {
+            // Custom order for data_analysis tools
+            const toolOrder = ['data_analysis', 'data_visualization', 'data_interpretation', 'query_database', 'merge_to_multisheet', 'time_identify']
+            const sortedTools = [...provider.tools].sort((a, b) => {
+              const indexA = toolOrder.indexOf(a.name)
+              const indexB = toolOrder.indexOf(b.name)
+              // If not in custom order, keep original position
+              if (indexA === -1 && indexB === -1)
+                return 0
+              if (indexA === -1)
+                return 1
+              if (indexB === -1)
+                return -1
+              return indexA - indexB
+            })
+            return { ...provider, tools: sortedTools }
+          }
+          return provider
+        })
+        setToolProviders(reorderedProviders)
       }
       else {
         setError(response.message || 'Failed to load tools')
@@ -52,6 +74,17 @@ export default function ToolList({ selectedTools, onToolsChange }: ToolListProps
     else {
       onToolsChange([...selectedTools, toolName])
     }
+  }
+
+  const toggleProvider = (providerName: string) => {
+    const newExpanded = new Set(expandedProviders)
+    if (newExpanded.has(providerName)) {
+      newExpanded.delete(providerName)
+    }
+    else {
+      newExpanded.add(providerName)
+    }
+    setExpandedProviders(newExpanded)
   }
 
   const handleConfigure = async (tool: Tool) => {
@@ -114,31 +147,61 @@ export default function ToolList({ selectedTools, onToolsChange }: ToolListProps
 
   return (
     <>
-      <div className="space-y-6">
-        {toolProviders.map(provider => (
-          <div key={provider.name}>
-            <h2 className="text-xl font-semibold mb-4">
-              {provider.label.ko_KR || provider.label.en_US}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {provider.tools.map(tool => (
-                <ToolCard
-                  key={`${provider.name}/${tool.name}`}
-                  tool={{ ...tool, provider: provider.name }}
-                  selected={selectedTools.includes(tool.name)}
-                  onToggle={handleToggleTool}
-                  onConfigure={handleConfigure}
-                />
-              ))}
+      <div className="space-y-4">
+        {toolProviders.map((provider) => {
+          const isExpanded = expandedProviders.has(provider.name)
+          return (
+            <div key={provider.name} className="border border-gray-200 rounded-lg overflow-hidden">
+              {/* Collapsible Header */}
+              <button
+                onClick={() => toggleProvider(provider.name)}
+                className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 flex items-center justify-between transition-colors"
+              >
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {provider.label.ko_KR || provider.label.en_US}
+                  <span className="ml-2 text-sm text-gray-500">
+                    ({provider.tools.length})
+                  </span>
+                </h2>
+                <svg
+                  className={`w-5 h-5 text-gray-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Collapsible Content */}
+              {isExpanded && (
+                <div className="p-4 bg-white">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {provider.tools.map(tool => (
+                      <ToolCard
+                        key={`${provider.name}/${tool.name}`}
+                        tool={{ ...tool, provider: provider.name }}
+                        selected={selectedTools.includes(tool.name)}
+                        onToggle={handleToggleTool}
+                        onConfigure={handleConfigure}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Tool Configuration Modal */}
       <ToolConfigModal
         tool={configTool}
         onClose={() => setConfigTool(null)}
+        onApiKeySaved={() => {
+          // API Key 저장 후 도구 목록을 새로고침하여 user_has_key 상태 업데이트
+          loadTools()
+        }}
       />
     </>
   )

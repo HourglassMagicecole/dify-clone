@@ -3,6 +3,7 @@ description:
     en_US: A tool for get analytics about a ticker from Yahoo Finance.
     pt_BR: Uma ferramenta para obter análises sobre um ticker do Yahoo Finance.
     zh_Hans: 一个用于从雅虎财经获取分析数据的工具。
+    ko_KR: Yahoo 파이낸스에서 분석 데이터를 가져오는 도구입니다.
   llm: A tool for get analytics from Yahoo Finance. Input should be the ticker symbol
     like AAPL.
 extra:
@@ -15,6 +16,7 @@ identity:
     en_US: Analytics
     pt_BR: Análises
     zh_Hans: 分析
+    ko_KR: 분석
   name: yahoo_finance_analytics
 parameters:
 - form: llm
@@ -22,39 +24,48 @@ parameters:
     en_US: The ticker symbol of the company you want to analyze.
     pt_BR: O símbolo do ticker da empresa que você deseja analisar.
     zh_Hans: 你想要搜索的公司的股票代码。
+    ko_KR: 분석하려는 회사의 주식 티커 기호입니다.
   label:
     en_US: Ticker symbol
     pt_BR: Símbolo do ticker
     zh_Hans: 股票代码
+    ko_KR: 주식 티커
   llm_description: The ticker symbol of the company you want to analyze.
   name: symbol
   required: true
   type: string
+  default: "AAPL"
 - form: llm
   human_description:
-    en_US: The start date of the analytics.
-    pt_BR: A data de início das análises.
-    zh_Hans: 分析的开始日期。
+    en_US: "Start date of the analytics (format: YYYY-MM-DD, e.g., 2024-01-01). If left empty, defaults to 3 months ago."
+    pt_BR: "Data de início das análises (formato: AAAA-MM-DD, ex: 2024-01-01). Se deixado vazio, padrão é 3 meses atrás."
+    zh_Hans: "分析的开始日期（格式：YYYY-MM-DD，例如：2024-01-01）。如果留空，默认为3个月前。"
+    ko_KR: "분석 시작 날짜 (형식: YYYY-MM-DD, 예: 2024-01-01). 비워두면 3개월 전으로 설정됩니다."
   label:
     en_US: Start date
     pt_BR: Data de início
     zh_Hans: 开始日期
+    ko_KR: 시작 날짜
   llm_description: The start date of the analytics, the format of the date must be
-    YYYY-MM-DD like 2020-01-01.
+    YYYY-MM-DD like 2020-01-01. If not provided, defaults to 3 months ago from today.
   name: start_date
   required: false
   type: string
+  default: ""
 - form: llm
   human_description:
-    en_US: The end date of the analytics.
-    pt_BR: A data de término das análises.
-    zh_Hans: 分析的结束日期。
+    en_US: "End date of the analytics (format: YYYY-MM-DD, e.g., 2025-01-01). If left empty, defaults to today."
+    pt_BR: "Data de término das análises (formato: AAAA-MM-DD, ex: 2025-01-01). Se deixado vazio, padrão é hoje."
+    zh_Hans: "分析的结束日期（格式：YYYY-MM-DD，例如：2025-01-01）。如果留空，默认为今天。"
+    ko_KR: "분석 종료 날짜 (형식: YYYY-MM-DD, 예: 2025-01-01). 비워두면 오늘 날짜로 설정됩니다."
   label:
     en_US: End date
     pt_BR: Data de término
     zh_Hans: 结束日期
+    ko_KR: 종료 날짜
   llm_description: The end date of the analytics, the format of the date must be YYYY-MM-DD
-    like 2024-01-01.
+    like 2024-01-01. If not provided, defaults to today.
   name: end_date
   required: false
   type: string
+  default: ""

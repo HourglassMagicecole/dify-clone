@@ -5,10 +5,12 @@ identity:
     en_US: WebScraper
     zh_Hans: 网页抓取
     pt_BR: WebScraper
+    ko_KR: 웹 스크래퍼
   description:
     en_US: Web Scrapper tool kit is used to scrape web
     zh_Hans: 一个用于抓取网页的工具。
     pt_BR: Web Scrapper tool kit is used to scrape web
+    ko_KR: 웹 페이지를 스크래핑하는 도구입니다.
   icon: icon.svg
   tags:
     - productivity

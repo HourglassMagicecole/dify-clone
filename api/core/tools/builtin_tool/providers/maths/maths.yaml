@@ -4,11 +4,13 @@ identity:
     en_US: A tool for maths.
     pt_BR: A tool for maths.
     zh_Hans: 一个用于数学计算的工具。
+    ko_KR: 수학 계산을 위한 도구입니다.
   icon: icon.svg
   label:
     en_US: Maths
     pt_BR: Maths
     zh_Hans: 数学工具
+    ko_KR: 수학
   name: maths
   tags:
   - utilities

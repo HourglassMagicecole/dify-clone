@@ -4,21 +4,26 @@ identity:
   label:
     en_US: Markdown to XLSX file
     zh_Hans: Markdown 转 XLSX 文件
+    ko_KR: Markdown을 XLSX로
 description:
   human:
     en_US: Generate XLSX file from Markdown tables
     zh_Hans: 将 Markdown 表格转换为 XLSX 文件的工具
+    ko_KR: Markdown 표에서 XLSX 파일을 생성하는 도구입니다.
   llm: Generate XLSX file from Markdown tables
 parameters:
   - name: md_text
     type: string
     required: true
+    default: "# 시트1\n\n| 이름 | 나이 | 직업 |\n|------|------|------|\n| 홍길동 | 30 | 개발자 |\n| 김철수 | 25 | 디자이너 |\n| 이영희 | 28 | 기획자 |"
     label:
       en_US: Markdown table text
       zh_Hans: Markdown 表格文本
+      ko_KR: Markdown 표 텍스트
     human_description:
       en_US: "Input text of single or multiple Markdown tables, with worksheets supported. All the heading texts (eg. #, ##) will be used as worksheet names in order."
       zh_Hans: "单个或多个 Markdown 表格的文本输入，支持工作表。所有标题文本（例如 #, ##）将依次用作工作表名称。"
+      ko_KR: "단일 또는 여러 Markdown 표의 입력 텍스트입니다. 워크시트가 지원됩니다. 모든 제목 텍스트(예: #, ##)가 순서대로 워크시트 이름으로 사용됩니다."
     form: llm
   - name: force_text_value
     type: select
@@ -29,16 +34,20 @@ parameters:
         label:
           en_US: "Yes"
           zh_Hans: 是
+          ko_KR: 예
       - value: "false"
         label:
           en_US: "No"
           zh_Hans: 否
+          ko_KR: 아니오
     label:
       en_US: Enforce text type
       zh_Hans: 强制单元格值为文本类型
+      ko_KR: 텍스트 형식 강제
     human_description:
       en_US: Convert cell values into text type to void decimal precision loss in display
       zh_Hans: 转换单元格值为文本类型，避免显示时的小数精度丢失
+      ko_KR: 셀 값을 텍스트 형식으로 변환하여 소수점 정밀도 손실을 방지합니다.
     llm_description: Whether to convert cell values into string type, default to "true"
     form: form
   - name: output_filename
@@ -47,9 +56,11 @@ parameters:
     label:
       en_US: Output Filename
       zh_Hans: 输出文件名
+      ko_KR: 출력 파일명
     human_description:
       en_US: Optional custom output file name, and the filename suffix is not required.
       zh_Hans: 可选的自定义输出文件名，后缀名无需指定
+      ko_KR: 선택적 사용자 지정 출력 파일명입니다. 파일 확장자는 지정할 필요가 없습니다.
     form: llm
 extra:
   python:

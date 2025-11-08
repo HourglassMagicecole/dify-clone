@@ -14,6 +14,7 @@ parameters:
   - name: json_string
     type: string
     required: true
+    default: '{"name": "홍길동", "age": 30, "job": "개발자"}'
     label:
       en_US: JSON String
       ko_KR: JSON 문자열

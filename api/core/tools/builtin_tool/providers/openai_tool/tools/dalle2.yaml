@@ -2,6 +2,7 @@ description:
   human:
     en_US: DALL-E is a text to image tool
     zh_Hans: DALL-E 是一个文本到图像的工具
+    ko_KR: DALL-E는 텍스트에서 이미지를 생성하는 도구입니다.
   llm: DALL-E is a tool used to generate images from text
 extra:
   python:
@@ -13,44 +14,54 @@ identity:
       on your prompt
       on your prompt
     zh_Hans: DALL-E 2 是一个强大的绘画工具，它可以根据您的提示词绘制出您想要的图像
+    ko_KR: DALL-E 2는 프롬프트를 기반으로 원하는 이미지를 그릴 수 있는 도구입니다.
   label:
     en_US: DALL-E 2
     zh_Hans: DALL-E 2 绘画
+    ko_KR: DALL-E 2
   name: dalle2
 parameters:
 - form: llm
   human_description:
     en_US: Image prompt, you can check the official documentation of DallE 2
     zh_Hans: 图像提示词，您可以查看 DallE 2 的官方文档
+    ko_KR: 이미지 프롬프트입니다. DallE 2 공식 문서를 참조하세요.
   label:
     en_US: Prompt
     zh_Hans: 提示词
+    ko_KR: 프롬프트
   llm_description: Image prompt of DallE 2, you should describe the image you want
     to generate as a list of words as possible as detailed
   name: prompt
   required: true
   type: string
+  default: "A cute cat sitting on a laptop keyboard, digital art"
 - default: 1024x1024
   form: form
   human_description:
     en_US: used for selecting the image size
     zh_Hans: 用于选择图像大小
+    ko_KR: 이미지 크기 선택에 사용됩니다.
   label:
     en_US: Image size
     zh_Hans: 图像大小
+    ko_KR: 이미지 크기
   name: size
   options:
   - label:
       en_US: Small(256x256)
       zh_Hans: 小(256x256)
+      ko_KR: 작음(256x256)
     value: 256x256
   - label:
       en_US: Medium(512x512)
       zh_Hans: 中(512x512)
+      ko_KR: 중간(512x512)
     value: 512x512
   - label:
       en_US: Large(1024x1024)
       zh_Hans: 大(1024x1024)
+      ko_KR: 큼(1024x1024)
     value: 1024x1024
   required: true
   type: select
@@ -59,9 +70,11 @@ parameters:
   human_description:
     en_US: used for selecting the number of images
     zh_Hans: 用于选择图像数量
+    ko_KR: 이미지 개수를 선택합니다.
   label:
     en_US: Number of images
     zh_Hans: 图像数量
+    ko_KR: 이미지 개수
   max: 10
   min: 1
   name: n

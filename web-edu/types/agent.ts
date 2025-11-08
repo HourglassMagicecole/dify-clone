@@ -77,15 +77,207 @@ export interface Agent {
 }
 
 /**
- * Agent model configuration (used in Step 3)
+ * Step 2: User input form field definition
+ */
+export interface UserInputForm {
+  variable: string                    // Variable name (e.g., "query")
+  label: string                       // Display label
+  input_type: 'text-input' | 'paragraph' | 'select' | 'number'
+  required: boolean
+  max_length?: number
+  options?: string[]                  // For select type only
+  default_value?: string
+}
+
+/**
+ * Step 2: Prompt configuration settings
+ */
+export interface AgentPromptSettings {
+  pre_prompt: string                   // System prompt (role definition)
+  prompt_type: 'simple' | 'advanced'  // Prompt mode
+  user_input_form?: UserInputForm[]   // User input form (completion mode only)
+  opening_statement?: string          // Conversation starter message (chat mode only)
+  suggested_questions?: string[]      // Suggested questions (chat mode only, max 5)
+}
+
+/**
+ * Step 3: LLM parameter rule definition
+ */
+export interface ParameterRule {
+  name: string                        // Parameter name
+  type: 'int' | 'float' | 'string' | 'boolean'
+  use_template: string                // Default value template
+  label: { en_US: string }
+  help?: { en_US: string }            // Help text
+  required: boolean
+  default?: number | string | boolean
+  min?: number
+  max?: number
+  precision?: number                  // Float precision
+  options?: string[]                  // Selection options
+}
+
+/**
+ * Step 3: Model information
+ */
+export interface ModelInfo {
+  model: string                       // Model ID
+  label: { en_US: string }            // Model display name
+  model_type: 'llm' | 'text-embedding'
+  features: string[]                  // Supported features (e.g., ["agent-thought"])
+  model_properties: {
+    context_size: number              // Context size
+    max_chunks: number
+    mode: string
+  }
+  parameter_rules: ParameterRule[]    // Parameter rules
+}
+
+/**
+ * Step 3: Model provider information
+ */
+export interface ModelProvider {
+  provider: string                    // Provider name
+  label: string                       // Display name
+  icon_small: { en_US: string }       // Icon URL
+  supported_model_types: string[]     // Supported model types
+  models: ModelInfo[]                 // Available models
+  status: 'active' | 'no-configure'   // Activation status
+  original_provider?: string          // Original provider name from API (optional)
+}
+
+/**
+ * Step 3: Agent model configuration
  */
 export interface AgentModelConfig {
-  provider?: string
-  model_id?: string
-  mode?: string
+  provider: string                    // Provider (e.g., "openai", "anthropic")
+  original_provider?: string          // Original provider name (e.g., "langgenius/openai/openai")
+  model: string                       // Model (e.g., "gpt-4", "claude-3-sonnet")
+  mode: 'chat' | 'completion'         // Mode (auto-set by agent type)
+  completion_params: {
+    temperature: number               // 0.0 - 2.0 (default: 1.0)
+    top_p: number                     // 0.0 - 1.0 (default: 1.0)
+    presence_penalty: number          // -2.0 - 2.0 (default: 0.0)
+    frequency_penalty: number         // -2.0 - 2.0 (default: 0.0)
+    max_tokens: number                // Model-specific max (e.g., 4096)
+    stop: string[]                    // Stop sequences (optional)
+  }
+}
+
+/**
+ * Step 4: Selected tool information
+ */
+export interface SelectedTool {
+  provider_id: string                 // Provider ID (e.g., "edu_tools")
+  provider_type: 'builtin' | 'api'    // Tool type
+  provider_name: string               // Provider display name
+  tool_name: string                   // Tool name (e.g., "calculator")
+  tool_label: string                  // Tool display name
+  tool_parameters: Record<string, unknown> // Tool parameters (API Key, etc.)
+  enabled: boolean                    // Enabled status
+}
+
+/**
+ * Step 4: Tools configuration
+ */
+export interface AgentToolsConfig {
+  tools: SelectedTool[]               // Selected tools
+}
+
+/**
+ * Step 5: Test message for agent testing
+ */
+export interface AgentTestMessage {
+  role: 'user' | 'assistant'
+  content: string
+  created_at: Date
+}
+
+/**
+ * Step 5: Test session state
+ */
+export interface AgentTestSession {
+  messages: AgentTestMessage[]
+  isLoading: boolean
+  error: string | null
+}
+
+/**
+ * Step 5: Agent configuration summary
+ */
+export interface AgentSummary {
+  basic: AgentBasicSettings
+  prompt: AgentPromptSettings
+  model: AgentModelConfig
+  tools: AgentToolsConfig
+}
+
+/**
+ * Agent wizard state (all steps)
+ */
+export interface AgentWizardState {
+  currentStep: AgentWizardStep
+  basicSettings: AgentBasicSettings | null      // Step 1 (Story 2.1)
+  promptSettings: AgentPromptSettings | null    // Step 2 (NEW)
+  modelConfig: AgentModelConfig | null          // Step 3 (NEW)
+  toolsConfig: AgentToolsConfig | null          // Step 4 (NEW)
+  isDraft: boolean
+  isLoading: boolean
+  error: string | null
+  createdAppId: string | null                   // Created agent ID (NEW)
+}
+
+/**
+ * Dify App API response (backend API spec)
+ */
+export interface DifyApp {
+  id: string
+  name: string
+  description: string
+  mode: 'chat' | 'agent-chat' | 'completion'
+  icon: string
+  icon_background: string
+  model_config: {
+    provider: string
+    model: string
+    parameters: Record<string, unknown>
+    stop: string[]
+  }
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Create app request payload for Dify API
+ */
+export interface CreateAppRequest {
+  name: string
+  description?: string
+  mode: 'chat' | 'agent-chat' | 'completion'
+  icon: string
+  icon_background: string
+  session_id: string
+  model_config: {
+    provider: string
+    name: string
+    mode: 'chat' | 'completion'
+    completion_params: Record<string, unknown>
+    stop: string[]
+  }
+  user_input_form?: UserInputForm[]
   pre_prompt?: string
-  user_input_form?: unknown[]
-  // Additional fields will be added in Story 2.2
+  opening_statement?: string
+  suggested_questions?: string[]
+  agent_mode?: {
+    enabled: boolean
+    strategy?: string
+    tools: Array<{
+      provider_id: string
+      provider_type: string
+      tool_name: string
+      tool_parameters: Record<string, unknown>
+    }>
+  }
 }
 
 /**

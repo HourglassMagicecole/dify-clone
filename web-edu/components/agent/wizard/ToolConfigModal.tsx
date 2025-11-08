@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import dynamic from 'next/dynamic'
 import { Modal } from '@/components/common/Modal'
 import { Button } from '@/components/common/Button'
+import { Tooltip } from '@/components/common/Tooltip'
 import {
   createUserToolConfig,
   deleteUserToolConfig,
@@ -22,9 +23,10 @@ const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
 interface ToolConfigModalProps {
   tool: Tool | null
   onClose: () => void
+  onApiKeySaved?: () => void  // API Key 저장 후 도구 목록 새로고침 콜백
 }
 
-export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps) {
+export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolConfigModalProps) {
   const { t, i18n } = useTranslation('agent')
   // Convert i18n language code (ko-KR) to API format (ko_KR)
   const currentLang = (i18n.language.replace('-', '_') || 'en_US') as 'en_US' | 'ko_KR'
@@ -61,6 +63,10 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
       }
     })
     setTestParams(defaultParams)
+
+    // Reset test results when switching tools
+    setTestResult(null)
+    setAudioUrl(null)
   }, [tool])
 
   // Load user API key configuration on tool change
@@ -84,6 +90,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
     // Reset states when tool changes
     setUserApiKey('')
     setApiKeyMessage(null)
+    setAudioFile(null)
   }, [tool])
 
   if (!tool)
@@ -291,7 +298,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
   // API Key: Save or update user API key
   const handleSaveApiKey = async () => {
     if (!tool.provider || !userApiKey.trim()) {
-      setApiKeyMessage({ type: 'error', text: 'Please enter an API key' })
+      setApiKeyMessage({ type: 'error', text: t('tools.pleaseEnterApiKey') })
       return
     }
 
@@ -306,11 +313,13 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
         })
         if (response.result === 'success' && response.data) {
           setUserConfig(response.data)
-          setApiKeyMessage({ type: 'success', text: 'API Key updated successfully' })
+          setApiKeyMessage({ type: 'success', text: t('tools.apiKeyUpdatedSuccess') })
           setUserApiKey('') // Clear input after save
+          // Notify parent to refresh tool list
+          onApiKeySaved?.()
         }
         else {
-          setApiKeyMessage({ type: 'error', text: response.message || 'Failed to update API key' })
+          setApiKeyMessage({ type: 'error', text: response.message || t('tools.failedToUpdateApiKey') })
         }
       }
       else {
@@ -321,18 +330,20 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
         })
         if (response.result === 'success' && response.data) {
           setUserConfig(response.data)
-          setApiKeyMessage({ type: 'success', text: 'API Key saved successfully' })
+          setApiKeyMessage({ type: 'success', text: t('tools.apiKeySavedSuccess') })
           setUserApiKey('') // Clear input after save
+          // Notify parent to refresh tool list
+          onApiKeySaved?.()
         }
         else {
-          setApiKeyMessage({ type: 'error', text: response.message || 'Failed to save API key' })
+          setApiKeyMessage({ type: 'error', text: response.message || t('tools.failedToSaveApiKey') })
         }
       }
     }
     catch (error) {
       setApiKeyMessage({
         type: 'error',
-        text: error instanceof Error ? error.message : 'Failed to save API key',
+        text: error instanceof Error ? error.message : t('tools.failedToSaveApiKey'),
       })
     }
     finally {
@@ -344,7 +355,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
   const handleDeleteApiKey = async () => {
     if (!userConfig) return
 
-    if (!confirm('Are you sure you want to delete this API key?')) return
+    if (!confirm(t('tools.deleteApiKeyConfirm'))) return
 
     setSavingApiKey(true)
     setApiKeyMessage(null)
@@ -353,16 +364,18 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
       const response = await deleteUserToolConfig(userConfig.id)
       if (response.result === 'success') {
         setUserConfig(null)
-        setApiKeyMessage({ type: 'success', text: 'API Key deleted successfully' })
+        setApiKeyMessage({ type: 'success', text: t('tools.apiKeyDeletedSuccess') })
+        // Notify parent to refresh tool list
+        onApiKeySaved?.()
       }
       else {
-        setApiKeyMessage({ type: 'error', text: response.message || 'Failed to delete API key' })
+        setApiKeyMessage({ type: 'error', text: response.message || t('tools.failedToDeleteApiKey') })
       }
     }
     catch (error) {
       setApiKeyMessage({
         type: 'error',
-        text: error instanceof Error ? error.message : 'Failed to delete API key',
+        text: error instanceof Error ? error.message : t('tools.failedToDeleteApiKey'),
       })
     }
     finally {
@@ -376,7 +389,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
       {/* Model Selection */}
       <div>
         <label className="block text-sm font-medium mb-1">
-          TTS Model <span className="text-red-500">*</span>
+          {t('tools.ttsModel')} <span className="text-red-500">*</span>
         </label>
         <select
           value={String(testParams.model || 'openai#tts-1')}
@@ -391,13 +404,13 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
       {/* Text Input */}
       <div>
         <label className="block text-sm font-medium mb-1">
-          Text to Convert <span className="text-red-500">*</span>
+          {t('tools.textToConvert')} <span className="text-red-500">*</span>
         </label>
         <textarea
           value={String(testParams.text || '')}
           onChange={e => handleParamChange('text', e.target.value)}
           className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter text to convert to speech..."
+          placeholder={t('tools.enterTextPlaceholder')}
           rows={4}
         />
       </div>
@@ -412,22 +425,22 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
         disabled={testing || !testParams.text}
         variant="default"
       >
-        {testing ? 'Generating...' : 'Generate Audio'}
+        {testing ? t('tools.generating') : t('tools.generateAudio')}
       </Button>
 
       {/* Audio Player */}
       {audioUrl && (
         <div className="p-4 bg-green-50 border border-green-200 rounded">
-          <h4 className="font-semibold mb-2">Generated Audio:</h4>
+          <h4 className="font-semibold mb-2">{t('tools.generatedAudio')}</h4>
           <audio controls src={audioUrl} className="w-full">
-            Your browser does not support the audio element.
+            {t('tools.browserNoAudioSupport')}
           </audio>
           <a
             href={audioUrl}
             download="tts-output.wav"
             className="mt-2 inline-block text-blue-600 hover:underline text-sm"
           >
-            Download Audio
+            {t('tools.downloadAudio')}
           </a>
         </div>
       )}
@@ -440,7 +453,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
       {/* Model Selection */}
       <div>
         <label className="block text-sm font-medium mb-1">
-          STT Model <span className="text-red-500">*</span>
+          {t('tools.sttModel')} <span className="text-red-500">*</span>
         </label>
         <select
           value={String(testParams.model || 'openai#whisper-1')}
@@ -453,26 +466,26 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
 
       {/* Recording Controls */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium">Record Audio:</label>
+        <label className="block text-sm font-medium">{t('tools.recordAudio')}</label>
         <div className="flex gap-2">
           {!isRecording ? (
             <Button onClick={startRecording} variant="default">
-              🎤 Start Recording
+              🎤 {t('tools.startRecording')}
             </Button>
           ) : (
             <Button onClick={stopRecording} variant="default">
-              ⏹️ Stop Recording
+              ⏹️ {t('tools.stopRecording')}
             </Button>
           )}
         </div>
         {isRecording && (
-          <p className="text-sm text-red-600">Recording in progress...</p>
+          <p className="text-sm text-red-600">{t('tools.recordingInProgress')}</p>
         )}
       </div>
 
       {/* File Upload */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium">Or Upload Audio File:</label>
+        <label className="block text-sm font-medium">{t('tools.orUploadAudioFile')}</label>
         <input
           ref={fileInputRef}
           type="file"
@@ -490,7 +503,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
       {/* Selected File Info */}
       {audioFile && (
         <div className="p-2 bg-gray-100 rounded text-sm">
-          Selected: {audioFile.name} ({(audioFile.size / 1024).toFixed(2)} KB)
+          {t('tools.selected')} {audioFile.name} ({(audioFile.size / 1024).toFixed(2)} KB)
         </div>
       )}
 
@@ -505,7 +518,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
         disabled={testing || !audioFile}
         variant="default"
       >
-        {testing ? 'Converting...' : 'Convert to Text'}
+        {testing ? t('tools.converting') : t('tools.convertToText')}
       </Button>
     </div>
   )
@@ -517,16 +530,16 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
 
     return (
       <div className="space-y-4 pb-4 border-b border-gray-200">
-        <h3 className="font-semibold text-lg">API Key Configuration</h3>
+        <h3 className="font-semibold text-lg">{t('tools.apiKeyConfiguration')}</h3>
 
         {/* Current API Key Status */}
         {userConfig ? (
           <div className="p-3 bg-green-50 border border-green-200 rounded">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-800">API Key Configured</p>
+                <p className="text-sm font-medium text-green-800">{t('tools.apiKeyConfigured')}</p>
                 <p className="text-xs text-green-600 mt-1">
-                  Key: {userConfig.api_key_masked}
+                  {t('tools.apiKeyConfiguredDesc')}: {userConfig.api_key_masked}
                 </p>
               </div>
               <Button
@@ -535,14 +548,14 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
                 variant="default"
                 className="text-sm text-red-600 hover:text-red-700"
               >
-                Delete
+                {t('tools.deleteApiKey')}
               </Button>
             </div>
           </div>
         ) : (
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
             <p className="text-sm text-yellow-800">
-              No API key configured. Please enter your API key below.
+              {t('tools.noApiKeyConfigured')}
             </p>
           </div>
         )}
@@ -550,7 +563,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
         {/* API Key Input */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            {userConfig ? 'Update API Key' : 'Enter API Key'}
+            {userConfig ? t('tools.updateApiKey') : t('tools.enterApiKey')}
             <span className="text-red-500 ml-1">*</span>
           </label>
           <input
@@ -558,10 +571,10 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
             value={userApiKey}
             onChange={e => setUserApiKey(e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder={`Enter your ${tool.provider} API key...`}
+            placeholder={t('tools.apiKeyPlaceholder')}
           />
           <p className="text-xs text-gray-500 mt-1">
-            Your API key will be encrypted and stored securely.
+            {t('tools.apiKeySecureNote')}
           </p>
         </div>
 
@@ -571,7 +584,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
           disabled={savingApiKey || !userApiKey.trim()}
           variant="default"
         >
-          {savingApiKey ? 'Saving...' : userConfig ? 'Update API Key' : 'Save API Key'}
+          {savingApiKey ? t('tools.savingApiKey') : userConfig ? t('tools.updateApiKey') : t('tools.saveApiKey')}
         </Button>
 
         {/* Success/Error Message */}
@@ -756,15 +769,14 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
       {tool.parameters && tool.parameters.length > 0 ? (
         tool.parameters.map(param => (
           <div key={param.name}>
-            <label className="block text-sm font-medium mb-1">
-              {param.label[currentLang] || param.label.en_US}
-              {param.required && <span className="text-red-500 ml-1">*</span>}
+            <label className="flex items-center gap-1 text-sm font-medium mb-1">
+              <span>
+                {param.label[currentLang] || param.label.en_US}
+                {param.required && <span className="text-red-500 ml-1">*</span>}
+              </span>
+              <Tooltip content={param.description[currentLang] || param.description.en_US} />
             </label>
             {renderParameterInput(param)}
-            {/* Show description as help text */}
-            <p className="text-xs text-gray-500 mt-1">
-              {param.description[currentLang] || param.description.en_US}
-            </p>
           </div>
         ))
       ) : (
@@ -777,7 +789,7 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
         disabled={testing}
         variant="default"
       >
-        {testing ? t('common.testing') : t('tools.test')}
+        {testing ? t('common:testing') : t('tools.test')}
       </Button>
     </div>
   )
@@ -809,26 +821,29 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
               {testResult.success ? t('tools.testSuccess') : t('tools.testFailed')}
             </h4>
 
-            {/* Render blob results (images, documents, audio files, etc.) */}
-            {testResult.success && testResult.results && testResult.results.some(r => r.type === 'blob') ? (
+            {/* Error Message */}
+            {testResult.error && (
+              <div className="text-red-800 text-sm mb-3">
+                {testResult.error}
+              </div>
+            )}
+
+            {/* Render results based on type */}
+            {testResult.success && testResult.results && testResult.results.length > 0 ? (
               <div className="space-y-3">
                 {testResult.results.map((result, index) => {
+                  // Blob type: images, documents, audio files
                   if (result.type === 'blob' && result.blob_base64) {
-                    // Convert base64 blob to data URL
                     const mimeType = result.mime_type || 'application/octet-stream'
                     const dataUrl = `data:${mimeType};base64,${result.blob_base64}`
                     const isImage = mimeType.startsWith('image/')
-
-                    // Get filename or generate default
                     const filename = result.filename || (() => {
-                      // Generate filename based on MIME type
                       const ext = mimeType.split('/')[1]?.split(';')[0] || 'bin'
                       return `file-${index + 1}.${ext}`
                     })()
 
                     return (
                       <div key={index} className="bg-white p-3 rounded border">
-                        {/* Render image preview if it's an image */}
                         {isImage ? (
                           <>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -846,13 +861,11 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
                             </a>
                           </>
                         ) : (
-                          /* Render download link for non-image files */
                           <div className="flex items-center gap-3">
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">{filename}</p>
                               <p className="text-xs text-gray-500">
                                 {(() => {
-                                  // Convert MIME type to user-friendly format
                                   if (mimeType.includes('wordprocessingml')) return 'Word Document'
                                   if (mimeType.includes('spreadsheetml')) return 'Excel Spreadsheet'
                                   if (mimeType.includes('presentationml')) return 'PowerPoint Presentation'
@@ -879,20 +892,76 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
                       </div>
                     )
                   }
-                  return null
-                })}
-              </div>
-            ) : (
-              /* Render JSON results or ECharts visualization */
-              <div className="space-y-3">
-                {testResult.results && testResult.results.map((result, index) => {
-                  // Check if result is a JSON message with ECharts configuration
+
+                  // Text type: simple text output
+                  if (result.type === 'text' && result.message) {
+                    // Deep parse nested JSON strings
+                    const deepParse = (value: unknown): unknown => {
+                      if (typeof value === 'string') {
+                        try {
+                          // Try to parse JSON string
+                          const parsed = JSON.parse(value)
+                          // Recursively parse in case of nested JSON
+                          return deepParse(parsed)
+                        }
+                        catch {
+                          // Not JSON, return as-is
+                          return value
+                        }
+                      }
+                      else if (typeof value === 'object' && value !== null) {
+                        // Parse object properties recursively
+                        if (Array.isArray(value)) {
+                          return value.map(item => deepParse(item))
+                        }
+                        else {
+                          const result: Record<string, unknown> = {}
+                          for (const key in value) {
+                            result[key] = deepParse((value as Record<string, unknown>)[key])
+                          }
+                          return result
+                        }
+                      }
+                      return value
+                    }
+
+                    const parsed = deepParse(result.message)
+                    const textContent = typeof parsed === 'string'
+                      ? parsed
+                      : JSON.stringify(parsed, null, 2)
+
+                    return (
+                      <div key={index} className="bg-white p-3 rounded border">
+                        <pre className="whitespace-pre-wrap text-sm font-sans text-gray-800">
+                          {textContent}
+                        </pre>
+                      </div>
+                    )
+                  }
+
+                  // Link type: clickable links
+                  if (result.type === 'link' && result.url) {
+                    return (
+                      <div key={index} className="bg-white p-3 rounded border">
+                        <a
+                          href={result.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline break-all"
+                        >
+                          {result.message || result.url}
+                        </a>
+                      </div>
+                    )
+                  }
+
+                  // JSON type with ECharts config
                   if (result.type === 'json' && result.message) {
                     const jsonData = typeof result.message === 'string'
                       ? JSON.parse(result.message)
                       : result.message
 
-                    // Detect ECharts configuration (has series or xAxis/yAxis)
+                    // Detect ECharts configuration
                     const isEChartsConfig = jsonData && (
                       jsonData.series
                       || (jsonData.xAxis && jsonData.yAxis)
@@ -902,7 +971,6 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
                     if (isEChartsConfig) {
                       return (
                         <div key={index} className="space-y-2">
-                          {/* Render ECharts */}
                           <div className="bg-white p-4 rounded border">
                             <ReactECharts
                               option={jsonData}
@@ -910,8 +978,6 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
                               opts={{ renderer: 'svg' }}
                             />
                           </div>
-
-                          {/* Show JSON config in collapsible section */}
                           <details className="bg-gray-50 p-3 rounded border">
                             <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
                               View Chart Configuration (JSON)
@@ -923,24 +989,36 @@ export default function ToolConfigModal({ tool, onClose }: ToolConfigModalProps)
                         </div>
                       )
                     }
-                  }
-                  return null
-                })}
 
-                {/* Fallback: Show all results as JSON if no charts detected */}
-                {!testResult.results?.some(r => {
-                  if (r.type === 'json' && r.message) {
-                    const jsonData = typeof r.message === 'string' ? JSON.parse(r.message) : r.message
-                    return jsonData && (jsonData.series || (jsonData.xAxis && jsonData.yAxis) || jsonData.radar)
+                    // Regular JSON (not ECharts)
+                    return (
+                      <div key={index} className="bg-white p-3 rounded border">
+                        <details open>
+                          <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 mb-2">
+                            Result {index + 1} (JSON)
+                          </summary>
+                          <pre className="text-xs overflow-auto max-h-64 p-2 bg-gray-50 rounded border">
+                            {JSON.stringify(jsonData, null, 2)}
+                          </pre>
+                        </details>
+                      </div>
+                    )
                   }
-                  return false
-                }) && (
-                  <pre className="text-sm overflow-auto max-h-64 bg-white p-2 rounded border">
-                    {JSON.stringify(testResult, null, 2)}
-                  </pre>
-                )}
+
+                  // Unknown type: fallback to JSON
+                  return (
+                    <div key={index} className="bg-white p-3 rounded border">
+                      <p className="text-xs text-gray-500 mb-1">Type: {result.type}</p>
+                      <pre className="text-xs overflow-auto max-h-48 p-2 bg-gray-50 rounded border">
+                        {JSON.stringify(result, null, 2)}
+                      </pre>
+                    </div>
+                  )
+                })}
               </div>
-            )}
+            ) : testResult.success ? (
+              <p className="text-sm text-gray-600">No output from tool</p>
+            ) : null}
           </div>
         )}
       </div>

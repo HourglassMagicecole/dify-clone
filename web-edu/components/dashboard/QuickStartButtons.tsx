@@ -16,21 +16,21 @@ export function QuickStartButtons() {
       label: t('dashboard.quickStart.createAgent'),
       description: t('dashboard.quickStart.createAgentDesc'),
       icon: '🤖',
-      href: '/student/agents/create',
+      href: '/agents/create',
       color: 'bg-blue-600 hover:bg-blue-700'
     },
     {
       label: t('dashboard.quickStart.createWorkflow'),
       description: t('dashboard.quickStart.createWorkflowDesc'),
       icon: '🔄',
-      href: '/student/workflows/create',
+      href: '/workflows/create',
       color: 'bg-green-600 hover:bg-green-700'
     },
     {
       label: t('dashboard.quickStart.createDataset'),
       description: t('dashboard.quickStart.createDatasetDesc'),
       icon: '📚',
-      href: '/student/datasets/create',
+      href: '/datasets/create',
       color: 'bg-purple-600 hover:bg-purple-700'
     }
   ]

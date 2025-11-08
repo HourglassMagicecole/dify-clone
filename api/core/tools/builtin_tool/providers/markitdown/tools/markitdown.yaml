@@ -5,11 +5,13 @@ identity:
     en_US: markitdown
     zh_Hans: markitdown
     pt_BR: markitdown
+    ko_KR: MarkItDown
 description:
   human:
     en_US: Python tool for converting files and office documents to Markdown.
     zh_Hans: Python tool for converting files and office documents to Markdown.
     pt_BR: Python tool for converting files and office documents to Markdown.
+    ko_KR: 파일과 오피스 문서를 Markdown으로 변환하는 Python 도구입니다.
   llm: Python tool for converting files and office documents to Markdown.
 parameters:
   - name: files
@@ -19,10 +21,12 @@ parameters:
       en_US: Files
       zh_Hans: 文件
       pt_BR: Arquivos
+      ko_KR: 파일
     human_description:
       en_US: Upload files for processing
       zh_Hans: 上传文件进行处理
       pt_BR: Carregar arquivos para processamento
+      ko_KR: 처리할 파일을 업로드하세요.
     form: llm
 extra:
   python:

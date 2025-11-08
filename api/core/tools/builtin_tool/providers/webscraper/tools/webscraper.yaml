@@ -5,24 +5,29 @@ identity:
     en_US: Web Scraper
     zh_Hans: 网页爬虫
     pt_BR: Web Scraper
+    ko_KR: 웹 스크래퍼
 description:
   human:
     en_US: A tool for scraping webpages.
     zh_Hans: 一个用于爬取网页的工具。
     pt_BR: A tool for scraping webpages.
+    ko_KR: 웹 페이지를 스크래핑하는 도구입니다.
   llm: A tool for scraping webpages. Input should be a URL.
 parameters:
   - name: url
     type: string
     required: true
+    default: "https://ko.wikipedia.org"
     label:
       en_US: URL
       zh_Hans: 网页链接
       pt_BR: URL
+      ko_KR: URL
     human_description:
       en_US: used for linking to webpages
       zh_Hans: 用于链接到网页
       pt_BR: used for linking to webpages
+      ko_KR: 웹 페이지 링크
     llm_description: url for scraping
     form: llm
   - name: user_agent
@@ -32,10 +37,12 @@ parameters:
       en_US: User Agent
       zh_Hans: User Agent
       pt_BR: User Agent
+      ko_KR: User Agent
     human_description:
       en_US: used for identifying the browser.
       zh_Hans: 用于识别浏览器。
       pt_BR: used for identifying the browser.
+      ko_KR: 브라우저 식별에 사용됩니다.
     form: form
     default: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.1000.0 Safari/537.36
   - name: generate_summary
@@ -44,17 +51,21 @@ parameters:
     label:
       en_US: Whether to generate summary
       zh_Hans: 是否生成摘要
+      ko_KR: 요약 생성 여부
     human_description:
       en_US: If true, the crawler will only return the page summary content.
       zh_Hans: 如果启用，爬虫将仅返回页面摘要内容。
+      ko_KR: 활성화하면 크롤러가 페이지 요약 내용만 반환합니다.
     form: form
     options:
       - value: "true"
         label:
           en_US: "Yes"
           zh_Hans: 是
+          ko_KR: "예"
       - value: "false"
         label:
           en_US: "No"
           zh_Hans: 否
+          ko_KR: "아니오"
     default: "false"

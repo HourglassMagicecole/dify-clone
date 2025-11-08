@@ -3,6 +3,7 @@ description:
     en_US: A tool for replacing JSON content
     pt_BR: A tool for replacing JSON content
     zh_Hans: 一个替换 JSON 内容的工具
+    ko_KR: JSON 콘텐츠를 교체하는 도구입니다.
   llm: A tool for replacing JSON content
 extra:
   python:
@@ -13,6 +14,7 @@ identity:
     en_US: JSON Replace
     pt_BR: JSON Replace
     zh_Hans: JSON 替换
+    ko_KR: JSON 교체
   name: json_replace
 parameters:
 - form: llm
@@ -20,53 +22,65 @@ parameters:
     en_US: JSON content
     pt_BR: JSON content
     zh_Hans: JSON 内容
+    ko_KR: JSON 콘텐츠
   label:
     en_US: JSON content
     pt_BR: JSON content
     zh_Hans: JSON 内容
+    ko_KR: JSON 콘텐츠
   llm_description: JSON content to be processed
   name: content
   required: true
   type: string
+  default: '{"name": "홍길동", "age": 30}'
 - form: llm
   human_description:
     en_US: Query
     pt_BR: Query
     zh_Hans: 查询
+    ko_KR: 쿼리
   label:
     en_US: Query
     pt_BR: Query
     zh_Hans: 查询
+    ko_KR: 쿼리
   llm_description: JSONPath query to locate the element to replace
   name: query
   required: true
   type: string
+  default: "$.age"
 - form: llm
   human_description:
     en_US: String to be replaced
     pt_BR: String to be replaced
     zh_Hans: 待替换字符串
+    ko_KR: 교체할 문자열
   label:
     en_US: String to be replaced
     pt_BR: String to be replaced
     zh_Hans: 待替换字符串
+    ko_KR: 교체할 문자열
   llm_description: String to be replaced
   name: replace_pattern
   required: false
   type: string
+  default: "30"
 - form: llm
   human_description:
     en_US: New Value
     pt_BR: New Value
     zh_Hans: 新值
+    ko_KR: 새 값
   label:
     en_US: Replace Value
     pt_BR: Replace Value
     zh_Hans: 替换值
+    ko_KR: 교체 값
   llm_description: New Value to replace
   name: replace_value
   required: true
   type: string
+  default: "31"
 - default: false
   form: form
   human_description:
@@ -75,10 +89,12 @@ parameters:
     pt_BR: Whether to decode the value to a JSON object (Does not apply to replace
       key)
     zh_Hans: 是否将值解码为 JSON 对象 (不适用于键替换)
+    ko_KR: 값을 JSON 객체로 디코딩할지 여부 (키 교체에는 적용되지 않음)
   label:
     en_US: Decode Value
     pt_BR: Decode Value
     zh_Hans: 解码值
+    ko_KR: 값 디코딩
   name: value_decode
   type: boolean
 - default: pattern
@@ -87,26 +103,31 @@ parameters:
     en_US: Replace Model
     pt_BR: Replace Model
     zh_Hans: 替换模式
+    ko_KR: 교체 모드
   label:
     en_US: Replace Model
     pt_BR: Replace Model
     zh_Hans: 替换模式
+    ko_KR: 교체 모드
   name: replace_model
   options:
   - label:
       en_US: replace key
       pt_BR: replace key
       zh_Hans: 键替换
+      ko_KR: 키 교체
     value: key
   - label:
       en_US: replace value
       pt_BR: replace value
       zh_Hans: 值替换
+      ko_KR: 값 교체
     value: value
   - label:
       en_US: replace string
       pt_BR: replace string
       zh_Hans: 字符串替换
+      ko_KR: 문자열 교체
     value: pattern
   required: true
   type: select
@@ -116,9 +137,11 @@ parameters:
     en_US: Ensure the JSON output is ASCII encoded
     pt_BR: Ensure the JSON output is ASCII encoded
     zh_Hans: 确保输出的 JSON 是 ASCII 编码
+    ko_KR: JSON 출력이 ASCII로 인코딩되도록 보장합니다.
   label:
     en_US: Ensure ASCII
     pt_BR: Ensure ASCII
     zh_Hans: 确保 ASCII
+    ko_KR: ASCII 보장
   name: ensure_ascii
   type: boolean

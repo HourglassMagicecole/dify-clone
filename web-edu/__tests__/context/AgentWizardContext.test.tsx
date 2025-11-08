@@ -23,6 +23,18 @@ jest.mock('@/context/ToastContext', () => ({
   }),
 }))
 
+// Mock useSession hook
+jest.mock('@/context/SessionContext', () => ({
+  useSession: () => ({
+    currentSession: { id: 'test-session-123', session_name: 'Test Session', is_active: true },
+    sessions: [{ id: 'test-session-123', session_name: 'Test Session', is_active: true }],
+    isLoading: false,
+    error: null,
+    selectSession: jest.fn(),
+    refreshSessions: jest.fn(),
+  }),
+}))
+
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -228,10 +240,21 @@ describe('AgentWizardContext', () => {
 
     const { result } = renderHook(() => useAgentWizard(), { wrapper })
 
-    // Context should load the draft
+    // Context should show draft prompt and store draft data
+    expect(result.current.showDraftPrompt).toBe(true)
+    expect(result.current.draftData).toEqual(draftData)
+    expect(result.current.currentStep).toBe(AgentWizardStep.BASIC) // Not yet restored
+
+    // Restore the draft
+    act(() => {
+      result.current.restoreDraft()
+    })
+
+    // After restore, draft should be applied
     expect(result.current.currentStep).toBe(AgentWizardStep.PROMPT)
     expect(result.current.basicSettings).toEqual(testSettings)
     expect(result.current.isDraft).toBe(true)
+    expect(result.current.showDraftPrompt).toBe(false)
   })
 
   it('should reset wizard to initial state', async () => {

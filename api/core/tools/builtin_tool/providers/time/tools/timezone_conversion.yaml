@@ -4,10 +4,12 @@ identity:
   label:
     en_US: convert time to equivalent time zone
     zh_Hans: 时区转换
+    ko_KR: 시간대 변환
 description:
   human:
     en_US: A tool to convert time to equivalent time zone
     zh_Hans: 时区转换
+    ko_KR: 시간을 다른 시간대로 변환하는 도구입니다.
   llm: A tool to convert time to equivalent time zone
 parameters:
   - name: current_time
@@ -17,9 +19,12 @@ parameters:
     label:
       en_US: current time
       zh_Hans: 当前时间
+      ko_KR: 현재 시간
     human_description:
       en_US: current time, such as 2024-1-1 0:0:0
       zh_Hans: 当前时间，比如 2024-1-1 0:0:0
+      ko_KR: "현재 시간 (예: 2024-1-1 0:0:0)"
+    default: "2025-1-1 9:0:0"
   - name: current_timezone
     type: string
     required: true
@@ -27,9 +32,11 @@ parameters:
     label:
       en_US: Current Timezone
       zh_Hans: 当前时区
+      ko_KR: 현재 시간대
     human_description:
       en_US: Current Timezone, such as Asia/Shanghai
       zh_Hans: 当前时区，比如 Asia/Shanghai
+      ko_KR: "현재 시간대 (예: Asia/Seoul)"
     default: Asia/Shanghai
   - name: target_timezone
     type: string
@@ -38,7 +45,9 @@ parameters:
     label:
       en_US: Target Timezone
       zh_Hans: 目标时区
+      ko_KR: 대상 시간대
     human_description:
       en_US: Target Timezone, such as Asia/Tokyo
       zh_Hans: 目标时区，比如 Asia/Tokyo
+      ko_KR: "대상 시간대 (예: Asia/Tokyo)"
     default: Asia/Tokyo

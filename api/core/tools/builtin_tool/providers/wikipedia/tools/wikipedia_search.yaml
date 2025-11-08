@@ -18,6 +18,7 @@ parameters:
   - name: query
     type: string
     required: true
+    default: "인공지능"
     label:
       en_US: Query string
       zh_Hans: 查询语句
@@ -33,6 +34,7 @@ parameters:
   - name: language
     type: string
     required: true
+    default: ko
     label:
       en_US: Language
       zh_Hans: 语言

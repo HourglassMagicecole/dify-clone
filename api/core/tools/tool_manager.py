@@ -51,6 +51,7 @@ from core.tools.utils.uuid_utils import is_valid_uuid
 from core.tools.workflow_as_tool.provider import WorkflowToolProviderController
 from core.tools.workflow_as_tool.tool import WorkflowTool
 from extensions.ext_database import db
+from models.education.user_tool_config import UserToolConfig
 from models.provider_ids import ToolProviderID
 from models.tools import ApiToolProvider, BuiltinToolProvider, MCPToolProvider, WorkflowToolProvider
 from services.enterprise.plugin_manager_service import PluginCredentialType
@@ -157,6 +158,7 @@ class ToolManager:
         invoke_from: InvokeFrom = InvokeFrom.DEBUGGER,
         tool_invoke_from: ToolInvokeFrom = ToolInvokeFrom.AGENT,
         credential_id: str | None = None,
+        user_id: str | None = None,
     ) -> Union[BuiltinTool, PluginTool, ApiTool, WorkflowTool, MCPTool]:
         """
         get the tool runtime
@@ -210,6 +212,65 @@ class ToolManager:
                     if builtin_provider is None:
                         raise ToolProviderNotFoundError(f"provider has been deleted: {credential_id}")
 
+                # Try user-specific credential first (if user_id provided)
+                if builtin_provider is None and user_id:
+                    try:
+                        user_config = (
+                            db.session.query(UserToolConfig)
+                            .filter_by(user_id=user_id, provider=provider_id, is_active=True)
+                            .first()
+                        )
+
+                        if user_config:
+                            # Decrypt user's API key using Education's encryption service
+                            from services.education_management.encryption_service import APIKeyEncryptionService
+
+                            encryption_service = APIKeyEncryptionService()
+                            decrypted_key = encryption_service.decrypt(user_config.api_key_encrypted)
+
+                            # Get provider schema to find credential field names
+                            credentials_schema = provider_controller.get_credentials_schema()
+                            if not credentials_schema or len(credentials_schema) == 0:
+                                logger.warning("Provider %s has no credentials schema", provider_id)
+                                builtin_provider = None
+                            else:
+                                # Build credential dict in Dify format
+                                credentials_dict = {}
+                                for cred_field in credentials_schema:
+                                    credentials_dict[cred_field.name] = decrypted_key
+
+                                # Encrypt using Dify's provider encrypter
+                                encrypter, _cache = create_provider_encrypter(
+                                    tenant_id=tenant_id,
+                                    config=[x.to_basic_provider_config() for x in credentials_schema],
+                                    cache=ToolProviderCredentialsCache(
+                                        tenant_id=tenant_id,
+                                        provider=provider_id,
+                                        credential_id=f"user_config_{user_config.id}",
+                                    ),
+                                )
+                                encrypted_credentials_dict = encrypter.encrypt(credentials_dict)
+                                encrypted_credentials = json.dumps(encrypted_credentials_dict)
+
+                                # Create temporary BuiltinToolProvider
+                                builtin_provider = BuiltinToolProvider()
+                                builtin_provider.id = f"user_config_{user_config.id}"
+                                builtin_provider.tenant_id = tenant_id
+                                builtin_provider.user_id = user_id
+                                builtin_provider.provider = provider_id
+                                builtin_provider.encrypted_credentials = encrypted_credentials
+                                builtin_provider.credential_type = CredentialType.API_KEY.value
+                                builtin_provider.expires_at = -1  # Never expires
+                                builtin_provider.created_at = user_config.created_at
+                                builtin_provider.updated_at = user_config.updated_at
+
+                                logger.info(
+                                    "Using user-specific credential for provider %s (user: %s)", provider_id, user_id
+                                )
+                    except Exception as e:
+                        logger.warning("Failed to load user credential for provider %s: %s", provider_id, str(e))
+                        builtin_provider = None
+
                 # fallback to the default provider
                 if builtin_provider is None:
                     # use the default provider
@@ -226,12 +287,76 @@ class ToolManager:
                     if builtin_provider is None:
                         raise ToolProviderNotFoundError(f"no default provider for {provider_id}")
             else:
-                builtin_provider = (
-                    db.session.query(BuiltinToolProvider)
-                    .where(BuiltinToolProvider.tenant_id == tenant_id, (BuiltinToolProvider.provider == provider_id))
-                    .order_by(BuiltinToolProvider.is_default.desc(), BuiltinToolProvider.created_at.asc())
-                    .first()
-                )
+                # Try user-specific credential first (if user_id provided)
+                builtin_provider = None
+                if user_id:
+                    try:
+                        user_config = (
+                            db.session.query(UserToolConfig)
+                            .filter_by(user_id=user_id, provider=provider_id, is_active=True)
+                            .first()
+                        )
+
+                        if user_config:
+                            # Decrypt user's API key using Education's encryption service
+                            from services.education_management.encryption_service import APIKeyEncryptionService
+
+                            encryption_service = APIKeyEncryptionService()
+                            decrypted_key = encryption_service.decrypt(user_config.api_key_encrypted)
+
+                            # Get provider schema to find credential field names
+                            credentials_schema = provider_controller.get_credentials_schema()
+                            if not credentials_schema or len(credentials_schema) == 0:
+                                logger.warning("Provider %s has no credentials schema", provider_id)
+                                builtin_provider = None
+                            else:
+                                # Build credential dict in Dify format
+                                credentials_dict = {}
+                                for cred_field in credentials_schema:
+                                    credentials_dict[cred_field.name] = decrypted_key
+
+                                # Encrypt using Dify's provider encrypter
+                                encrypter, _cache = create_provider_encrypter(
+                                    tenant_id=tenant_id,
+                                    config=[x.to_basic_provider_config() for x in credentials_schema],
+                                    cache=ToolProviderCredentialsCache(
+                                        tenant_id=tenant_id,
+                                        provider=provider_id,
+                                        credential_id=f"user_config_{user_config.id}",
+                                    ),
+                                )
+                                encrypted_credentials_dict = encrypter.encrypt(credentials_dict)
+                                encrypted_credentials = json.dumps(encrypted_credentials_dict)
+
+                                # Create temporary BuiltinToolProvider
+                                builtin_provider = BuiltinToolProvider()
+                                builtin_provider.id = f"user_config_{user_config.id}"
+                                builtin_provider.tenant_id = tenant_id
+                                builtin_provider.user_id = user_id
+                                builtin_provider.provider = provider_id
+                                builtin_provider.encrypted_credentials = encrypted_credentials
+                                builtin_provider.credential_type = CredentialType.API_KEY.value
+                                builtin_provider.expires_at = -1  # Never expires
+                                builtin_provider.created_at = user_config.created_at
+                                builtin_provider.updated_at = user_config.updated_at
+
+                                logger.info(
+                                    "Using user-specific credential for provider %s (user: %s)", provider_id, user_id
+                                )
+                    except Exception as e:
+                        logger.warning("Failed to load user credential for provider %s: %s", provider_id, str(e))
+                        builtin_provider = None
+
+                # Fallback to workspace/admin credential
+                if builtin_provider is None:
+                    builtin_provider = (
+                        db.session.query(BuiltinToolProvider)
+                        .where(
+                            BuiltinToolProvider.tenant_id == tenant_id, (BuiltinToolProvider.provider == provider_id)
+                        )
+                        .order_by(BuiltinToolProvider.is_default.desc(), BuiltinToolProvider.created_at.asc())
+                        .first()
+                    )
 
                 if builtin_provider is None:
                     raise ToolProviderNotFoundError(f"builtin provider {provider_id} not found")
@@ -361,6 +486,7 @@ class ToolManager:
         agent_tool: AgentToolEntity,
         invoke_from: InvokeFrom = InvokeFrom.DEBUGGER,
         variable_pool: Optional["VariablePool"] = None,
+        user_id: str | None = None,
     ) -> Tool:
         """
         get the agent tool runtime
@@ -373,6 +499,7 @@ class ToolManager:
             invoke_from=invoke_from,
             tool_invoke_from=ToolInvokeFrom.AGENT,
             credential_id=agent_tool.credential_id,
+            user_id=user_id,
         )
         runtime_parameters = {}
         parameters = tool_entity.get_merged_runtime_parameters()

@@ -3,6 +3,7 @@ description:
     en_US: A tool for deleting JSON content
     pt_BR: A tool for deleting JSON content
     zh_Hans: 一个删除 JSON 内容的工具
+    ko_KR: JSON 콘텐츠를 삭제하는 도구입니다.
   llm: A tool for deleting JSON content
 extra:
   python:
@@ -13,6 +14,7 @@ identity:
     en_US: JSON Delete
     pt_BR: JSON Delete
     zh_Hans: JSON 删除
+    ko_KR: JSON 삭제
   name: json_delete
 parameters:
 - form: llm
@@ -20,36 +22,44 @@ parameters:
     en_US: JSON content to be processed
     pt_BR: JSON content to be processed
     zh_Hans: 待处理的 JSON 内容
+    ko_KR: 처리할 JSON 콘텐츠
   label:
     en_US: JSON content
     pt_BR: JSON content
     zh_Hans: JSON 内容
+    ko_KR: JSON 콘텐츠
   llm_description: JSON content to be processed
   name: content
   required: true
   type: string
+  default: '{"name": "홍길동", "age": 30, "job": "개발자"}'
 - form: llm
   human_description:
     en_US: JSONPath query to locate the element to delete
     pt_BR: JSONPath query to locate the element to delete
     zh_Hans: 用于定位要删除元素的 JSONPath 查询
+    ko_KR: 삭제할 요소를 찾기 위한 JSONPath 쿼리
   label:
     en_US: Query
     pt_BR: Query
     zh_Hans: 查询
+    ko_KR: 쿼리
   llm_description: JSONPath query to locate the element to delete
   name: query
   required: true
   type: string
+  default: "$.job"
 - default: true
   form: form
   human_description:
     en_US: Ensure the JSON output is ASCII encoded
     pt_BR: Ensure the JSON output is ASCII encoded
     zh_Hans: 确保输出的 JSON 是 ASCII 编码
+    ko_KR: JSON 출력이 ASCII로 인코딩되도록 보장합니다.
   label:
     en_US: Ensure ASCII
     pt_BR: Ensure ASCII
     zh_Hans: 确保 ASCII
+    ko_KR: ASCII 보장
   name: ensure_ascii
   type: boolean

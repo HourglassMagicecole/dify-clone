@@ -4,12 +4,14 @@ identity:
   label:
     en_US: time_identify
     zh_Hans: 时间识别
+    ko_KR: 시간 식별
     pt_BR: time_identify
 description:
   human:
     en_US: Identify time in natural language
     zh_Hans: 识别自然语言中的时间
     pt_BR: Identify time in natural language
+    ko_KR: 자연어에서 시간을 식별하는 도구입니다.
   llm: Identify time in natural language
 parameters:
   - name: query
@@ -19,12 +21,15 @@ parameters:
       en_US: Query string
       zh_Hans: 用户的查询语句
       pt_BR: Query string
+      ko_KR: 쿼리 문자열
     human_description:
       en_US: Query string
       zh_Hans: 用户的查询语句
       pt_BR: Query string
+      ko_KR: 사용자의 쿼리 문자열입니다.
     llm_description: Query string
     form: llm
+    default: "다음 주 월요일 오후 3시"
 extra:
   python:
     source: tools/time_identify.py

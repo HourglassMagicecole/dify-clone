@@ -5,10 +5,12 @@ identity:
     en_US: Data Analysis
     zh_Hans: 数据分析
     pt_BR: Data Analysis
+    ko_KR: 데이터 분석
   description:
     en_US: An intelligent data analysis tool based on LLM and natural language interaction, featuring built-in data query and data visualization, as well as report generation capabilities.
     zh_Hans: 基于大模型和自然语言交互的智能数据分析工具，内置数据查询和数据可视化（ChatBI），以及报告生成功能。
     pt_BR: An intelligent data analysis tool based on LLM and natural language interaction, featuring built-in data query and data visualization, as well as report generation capabilities.
+    ko_KR: LLM 및 자연어 상호작용 기반의 지능형 데이터 분석 도구로, 데이터 쿼리, 데이터 시각화 및 보고서 생성 기능이 내장되어 있습니다.
   icon: icon.svg
 credentials_for_provider:
   tips:
@@ -18,6 +20,7 @@ credentials_for_provider:
       en_US: You can create API keys after registration
       zh_Hans: 注册后可以创建API key：
       pt_BR: You can create API keys after registration
+      ko_KR: 등록 후 API 키를 생성할 수 있습니다
     default: https://ada.im/home?ada_data_=&utm_source=dify&utm_medium=landingpage&utm_infeluncer=landingpage&utm_campain=landingpage&utm_content=landingpage
   digitforce_api_key:
     type: secret-input
@@ -25,12 +28,15 @@ credentials_for_provider:
     label:
       en_US: API key
       zh_Hans: API key
+      ko_KR: API 키
     placeholder:
       en_US: Please input your API key
       zh_Hans: 请输入你的API key
+      ko_KR: API 키를 입력하세요
     help:
       en_US: You can create API keys after registering at https://ada.im
       zh_Hans: https://ada.im注册后创建API key
+      ko_KR: https://ada.im에서 등록 후 API 키를 생성하세요
     url: https://ada.im/home?ada_data_=&utm_source=dify&utm_medium=landingpage&utm_infeluncer=landingpage&utm_campain=landingpage&utm_content=landingpage
 tools:
   - tools/data_analysis.yaml

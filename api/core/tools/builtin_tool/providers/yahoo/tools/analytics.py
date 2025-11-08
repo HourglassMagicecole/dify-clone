@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from requests.exceptions import ConnectionError, HTTPError, ReadTimeout
@@ -41,7 +41,7 @@ class YahooFinanceAnalyticsTool(BuiltinTool):
         if start_date:
             time_range[0] = start_date
         else:
-            time_range[0] = "1800-01-01"
+            time_range[0] = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
 
         end_date = tool_parameters.get("end_date", "")
         if end_date:

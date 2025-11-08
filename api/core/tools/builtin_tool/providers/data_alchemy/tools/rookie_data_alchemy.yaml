@@ -5,11 +5,13 @@ identity:
     en_US: rookie_data_alchemy
     zh_Hans: rookie_data_alchemy
     pt_BR: rookie_data_alchemy
+    ko_KR: 초보자 데이터 연금술
 description:
   human:
     en_US: Visualizing structured data as charts
     zh_Hans: Visualizing structured data as charts
     pt_BR: Visualizing structured data as charts
+    ko_KR: 구조화된 데이터를 차트로 시각화하는 도구입니다.
   llm: Visualizing structured data as charts
 parameters:
   - name: model # the name of the model parameter
@@ -21,10 +23,12 @@ parameters:
       en_US: Model
       zh_Hans: 模型
       pt_BR: Model
+      ko_KR: 모델
     human_description:
       en_US: LLM model for rookie_data_alchemy.
       zh_Hans: LLM model for rookie_data_alchemy.
       pt_BR: LLM model for rookie_data_alchemy.
+      ko_KR: rookie_data_alchemy를 위한 LLM 모델입니다.
     llm_description: LLM model for text2data.
   - name: data
     type: string
@@ -33,10 +37,12 @@ parameters:
       en_US: data
       zh_Hans: 待处理的数据，建议为json格式或md
       pt_BR: data
+      ko_KR: 데이터
     human_description:
       en_US: wait for data
       zh_Hans: 待处理的数据，建议为json格式或md
       pt_BR: wait for data
+      ko_KR: 처리할 데이터입니다. JSON 형식 또는 마크다운을 권장합니다.
     llm_description: wait for data
     form: llm
   - name: title
@@ -47,10 +53,12 @@ parameters:
       en_US: title
       zh_Hans: 图表标题，不填则大模型推理生成
       pt_BR: title
+      ko_KR: 제목
     human_description:
       en_US: title
       zh_Hans: 图表标题，不填则大模型推理生成
       pt_BR: title
+      ko_KR: 차트 제목입니다. 입력하지 않으면 대규모 모델이 추론하여 생성합니다.
     llm_description: title
   - name: chart_type
     type: string
@@ -60,11 +68,14 @@ parameters:
       en_US: chart type
       zh_Hans: 图表类型
       pt_BR: chart type
+      ko_KR: 차트 유형
     human_description:
       en_US: chart type
       zh_Hans: 图表类型
       pt_BR: chart type
+      ko_KR: 차트 유형입니다.
     llm_description: chart type
+    default: "bar"
   - name: custom_requirements
     type: string
     required: false
@@ -73,10 +84,12 @@ parameters:
       en_US: custom requirements
       zh_Hans: 自定义需求
       pt_BR: custom requirements
+      ko_KR: 사용자 지정 요구사항
     human_description:
       en_US: custom requirements
       zh_Hans: 自定义需求
       pt_BR: custom requirements
+      ko_KR: 사용자 지정 요구사항입니다.
     llm_description: custom requirements
 extra:
   python:

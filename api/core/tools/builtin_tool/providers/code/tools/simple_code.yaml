@@ -5,24 +5,29 @@ identity:
     en_US: Code Interpreter
     zh_Hans: 代码解释器
     pt_BR: Interpretador de Código
+    ko_KR: 코드 인터프리터
 description:
   human:
     en_US: Run code and get the result back. When you're using a lower quality model, please make sure there are some tips help LLM to understand how to write the code.
     zh_Hans: 运行一段代码并返回结果。当您使用较低质量的模型时，请确保有一些提示帮助 LLM 理解如何编写代码。
     pt_BR: Execute um trecho de código e obtenha o resultado de volta. quando você estiver usando um modelo de qualidade inferior, certifique-se de que existam algumas dicas para ajudar o LLM a entender como escrever o código.
+    ko_KR: 코드를 실행하고 결과를 반환합니다. 낮은 품질의 모델을 사용하는 경우 LLM이 코드 작성 방법을 이해하는 데 도움이 되는 팁을 제공하세요.
   llm: A tool for running code and getting the result back. Only native packages are allowed, network/IO operations are disabled. and you must use print() or console.log() to output the result or result will be empty.
 parameters:
   - name: language
     type: string
     required: true
+    default: python3
     label:
       en_US: Language
       zh_Hans: 语言
       pt_BR: Idioma
+      ko_KR: 언어
     human_description:
       en_US: The programming language of the code
       zh_Hans: 代码的编程语言
       pt_BR: A linguagem de programação do código
+      ko_KR: 코드의 프로그래밍 언어
     llm_description: language of the code, only "python3" and "javascript" are supported
     form: llm
     options:
@@ -39,13 +44,16 @@ parameters:
   - name: code
     type: string
     required: true
+    default: "print('Hello, World!')"
     label:
       en_US: Code
       zh_Hans: 代码
       pt_BR: Código
+      ko_KR: 코드
     human_description:
       en_US: The code to be executed
       zh_Hans: 要执行的代码
       pt_BR: O código a ser executado
+      ko_KR: 실행할 코드
     llm_description: code to be executed, only native packages are allowed, network/IO operations are disabled.
     form: llm

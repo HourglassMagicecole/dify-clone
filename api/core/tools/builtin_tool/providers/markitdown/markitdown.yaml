@@ -5,10 +5,12 @@ identity:
     en_US: markitdown
     zh_Hans: markitdown
     pt_BR: markitdown
+    ko_KR: markitdown
   description:
     en_US: Python tool for converting files and office documents to Markdown.
     zh_Hans: Python tool for converting files and office documents to Markdown.
     pt_BR: Python tool for converting files and office documents to Markdown.
+    ko_KR: 파일 및 Office 문서를 Markdown으로 변환하는 Python 도구입니다.
   icon: micro.png
 tools:
   - tools/markitdown.yaml

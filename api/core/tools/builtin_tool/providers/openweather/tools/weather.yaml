@@ -3,6 +3,7 @@ description:
     en_US: Weather forecast inquiry
     pt_BR: Inquérito sobre previsão meteorológica
     zh_Hans: 天气查询
+    ko_KR: 날씨 조회
   llm: A tool when you want to ask about the weather or weather-related question
 extra:
   python:
@@ -14,6 +15,7 @@ identity:
     en_US: Open Weather Query
     pt_BR: Previsão do tempo
     zh_Hans: 天气查询
+    ko_KR: 날씨 조회
   name: weather
 parameters:
 - form: llm
@@ -21,10 +23,12 @@ parameters:
     en_US: Target city for weather forecast query
     pt_BR: Cidade de destino para consulta de previsão do tempo
     zh_Hans: 天气预报查询的目标城市
+    ko_KR: 날씨 예보 조회 대상 도시
   label:
-    en_US: city
-    pt_BR: cidade
+    en_US: City
+    pt_BR: Cidade
     zh_Hans: 城市
+    ko_KR: 도시
   llm_description: If you don't know you can extract the city name from the question
     or you can reply：Please tell me your city. You have to extract the Chinese city
     name from the question.If the input region is in Chinese characters for China,
@@ -33,27 +37,32 @@ parameters:
   name: city
   required: true
   type: string
+  default: "Seoul"
 - default: zh_cn
   form: form
   human_description:
     en_US: language
     pt_BR: language
     zh_Hans: 语言
+    ko_KR: 언어
   label:
-    en_US: language
-    pt_BR: language
+    en_US: Language
+    pt_BR: Idioma
     zh_Hans: 语言
+    ko_KR: 언어
   name: lang
   options:
   - label:
-      en_US: cn
-      pt_BR: cn
+      en_US: Chinese
+      pt_BR: Chinês
       zh_Hans: 中国
+      ko_KR: 중국어
     value: zh_cn
   - label:
-      en_US: usa
-      pt_BR: usa
+      en_US: English
+      pt_BR: Inglês
       zh_Hans: 美国
+      ko_KR: 영어
     value: en_us
   required: true
   type: select
@@ -63,21 +72,25 @@ parameters:
     en_US: units for temperature
     pt_BR: units for temperature
     zh_Hans: 温度单位
+    ko_KR: 온도 단위
   label:
-    en_US: units
-    pt_BR: units
+    en_US: Temperature units
+    pt_BR: Unidades
     zh_Hans: 单位
+    ko_KR: 온도 단위
   name: units
   options:
   - label:
-      en_US: metric
-      pt_BR: metric
+      en_US: Celsius (℃)
+      pt_BR: Celsius (℃)
       zh_Hans: ℃
+      ko_KR: 섭씨 (℃)
     value: metric
   - label:
-      en_US: imperial
-      pt_BR: imperial
+      en_US: Fahrenheit (℉)
+      pt_BR: Fahrenheit (℉)
       zh_Hans: ℉
+      ko_KR: 화씨 (℉)
     value: imperial
   required: true
   type: select
