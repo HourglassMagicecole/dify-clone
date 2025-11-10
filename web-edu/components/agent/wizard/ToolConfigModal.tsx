@@ -78,7 +78,7 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
       try {
         const response = await listUserToolConfigs(tool.provider)
         if (response.result === 'success' && response.data && response.data.length > 0) {
-          setUserConfig(response.data[0])
+          setUserConfig(response.data[0] || null)
         }
       }
       catch (error) {

@@ -324,5 +324,11 @@
     "createButton": "Create New Agent",
     "emptyTitle": "No agents created yet",
     "emptyDescription": "Create your first agent to get started"
+  },
+  "table": {
+    "name": "Name",
+    "owner": "Owner",
+    "type": "Type",
+    "createdAt": "Created At"
   }
 }

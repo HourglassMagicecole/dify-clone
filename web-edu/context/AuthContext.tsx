@@ -59,6 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: userRole, // 시스템 역할 (TenantAccountJoin.role) - Dify 호환
           actualRole, // 실제 역할 ('owner' | 'admin' | 'student')
         })
+
+        // 역할별 리다이렉트 제거 (Story 2.2B - 공용 /dashboard로 통합)
+        // 모든 역할이 이제 /dashboard를 사용하므로 리다이렉트 불필요
       }
       catch (error) {
         console.error('[AUTH] Failed to get user info, clearing tokens:', error)
@@ -68,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
     }
     initAuth()
-  }, [])
+  }, [router])
 
   // 로그인 함수 (AC5)
   const signIn = useCallback(async (email: string, password: string) => {
@@ -106,6 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: userRole, // 시스템 역할 (TenantAccountJoin.role) - Dify 호환
       actualRole, // 실제 역할 ('owner' | 'admin' | 'student')
     })
+
+    // 모든 역할이 공용 /dashboard로 이동 (Story 2.2B - 통합 완료)
     router.push('/dashboard')
   }, [router])
 

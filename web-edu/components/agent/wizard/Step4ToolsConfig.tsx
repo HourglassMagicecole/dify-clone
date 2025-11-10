@@ -108,7 +108,7 @@ export default function Step4ToolsConfig() {
     setValue,
     formState: { isValid },
   } = useForm<ToolsConfigFormData>({
-    resolver: zodResolver(toolsConfigSchema),
+    resolver: zodResolver(toolsConfigSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     mode: 'onChange',
     defaultValues: toolsConfig || { tools: [] },
   })

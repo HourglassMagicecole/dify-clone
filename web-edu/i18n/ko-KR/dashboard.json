@@ -1,46 +1,93 @@
 {
-  "dashboard": {
-    "title": "대시보드",
-    "subtitle": "내 학습 현황과 리소스를 확인하세요",
-    "resourceSummary": {
-      "agents": "Agents",
-      "workflows": "Workflows",
-      "datasets": "Datasets"
+  "title": "대시보드",
+  "subtitle": "내 학습 현황과 리소스를 확인하세요",
+  "resourceSummary": {
+    "agents": "Agents",
+    "workflows": "Workflows",
+    "datasets": "Datasets"
+  },
+  "recentActivity": {
+    "title": "최근 활동",
+    "empty": "아직 활동 내역이 없습니다",
+    "actions": {
+      "created": "생성됨",
+      "updated": "수정됨",
+      "executed": "실행됨",
+      "deleted": "삭제됨"
+    }
+  },
+  "apiUsage": {
+    "title": "API 사용량",
+    "totalCalls": "총 호출",
+    "totalTokens": "총 토큰",
+    "estimatedCost": "추정 비용",
+    "empty": "아직 API 사용 데이터가 없습니다"
+  },
+  "quickStart": {
+    "title": "빠른 시작",
+    "createAgent": "Agent 생성",
+    "createAgentDesc": "대화형 AI Agent 만들기",
+    "createWorkflow": "Workflow 생성",
+    "createWorkflowDesc": "AI 워크플로우 구성하기",
+    "createDataset": "Dataset 생성",
+    "createDatasetDesc": "RAG 지식베이스 만들기"
+  },
+  "empty": {
+    "title": "아직 생성한 리소스가 없습니다",
+    "description": "Agent, Workflow, Dataset을 생성하여 AI 학습을 시작하세요",
+    "button": "시작하기"
+  },
+  "error": {
+    "title": "데이터 로딩 실패",
+    "description": "대시보드 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요."
+  },
+  "contextBanner": {
+    "owner": {
+      "title": "소유자 대시보드",
+      "description": "전체 시스템 리소스를 관리합니다"
     },
-    "recentActivity": {
-      "title": "최근 활동",
-      "empty": "아직 활동 내역이 없습니다",
-      "actions": {
-        "created": "생성됨",
-        "updated": "수정됨",
-        "executed": "실행됨",
-        "deleted": "삭제됨"
+    "admin": {
+      "title": "관리자 대시보드",
+      "description": "세션: {{sessionName}} - 내가 생성한 리소스를 관리합니다"
+    },
+    "student": {
+      "title": "학습 대시보드",
+      "description": "세션: {{sessionName}} - 내 학습 활동을 확인합니다"
+    }
+  },
+  "scope": {
+    "system": "전체",
+    "my": "내"
+  },
+  "multiSession": {
+    "title": "여러 세션에 참여 중입니다",
+    "description": "현재 {{count}}개의 세션에 참여하고 있습니다. 상단의 세션 선택기에서 세션을 전환할 수 있습니다."
+  },
+  "suggestedNextSteps": {
+    "title": "학습 진행 상황",
+    "checklist": {
+      "agent": "Agent 생성",
+      "workflow": "Workflow 생성",
+      "dataset": "Dataset 생성"
+    },
+    "steps": {
+      "createAgent": {
+        "title": "Agent 만들기",
+        "description": "AI Agent를 생성하여 대화형 도우미를 만들어보세요"
+      },
+      "createWorkflow": {
+        "title": "Workflow 만들기",
+        "description": "Workflow를 생성하여 복잡한 작업을 자동화하세요"
+      },
+      "createDataset": {
+        "title": "RAG 지식베이스 만들기",
+        "description": "Dataset을 생성하여 AI에게 지식을 제공하세요"
+      },
+      "connectAll": {
+        "title": "Agent와 RAG 연결하기",
+        "description": "Agent에 Dataset을 연결하여 더 똑똑하게 만드세요"
       }
     },
-    "apiUsage": {
-      "title": "API 사용량",
-      "totalCalls": "총 호출",
-      "totalTokens": "총 토큰",
-      "estimatedCost": "추정 비용",
-      "empty": "아직 API 사용 데이터가 없습니다"
-    },
-    "quickStart": {
-      "title": "빠른 시작",
-      "createAgent": "Agent 생성",
-      "createAgentDesc": "대화형 AI Agent 만들기",
-      "createWorkflow": "Workflow 생성",
-      "createWorkflowDesc": "AI 워크플로우 구성하기",
-      "createDataset": "Dataset 생성",
-      "createDatasetDesc": "RAG 지식베이스 만들기"
-    },
-    "empty": {
-      "title": "아직 생성한 리소스가 없습니다",
-      "description": "Agent, Workflow, Dataset을 생성하여 AI 학습을 시작하세요",
-      "button": "시작하기"
-    },
-    "error": {
-      "title": "데이터 로딩 실패",
-      "description": "대시보드 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요."
-    }
+    "startButton": "시작하기"
   }
 }

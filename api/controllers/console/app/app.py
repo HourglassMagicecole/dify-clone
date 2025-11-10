@@ -24,7 +24,6 @@ from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
 from services.edu.resource_tagging_service import ResourceTaggingService
-from services.edu.session_helper import get_user_active_session
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
 
@@ -97,26 +96,36 @@ class AppListApi(Resource):
         parser.add_argument("is_created_by_me", type=inputs.boolean, location="args", required=False)
         parser.add_argument("session_id", type=str, location="args", required=False)
         parser.add_argument("edu_account_id", type=str, location="args", required=False)
+        parser.add_argument("admin_id", type=str, location="args", required=False)
 
         args = parser.parse_args()
 
-        # Auto-apply user isolation: session-based OR created_by filter
-        if not args.get("session_id") and not args.get("is_created_by_me"):
-            active_session = get_user_active_session(current_user.id)
-            if active_session:
-                args["session_id"] = active_session.id
+        # Session-based resource filtering (Story 2.2B)
+        # - Students: see only their own resources within session
+        # - Administrators: see all resources within session
+        # - Owners: filter by admin_id if specified (2-tier filtering)
+        if args.get("session_id") and not args.get("edu_account_id"):
+            if not current_user.is_admin_or_owner:
+                # Student: filter by account_id
                 args["edu_account_id"] = current_user.id
                 logger.info(
-                    "Auto-applied active session %s for user %s",
-                    active_session.id,
+                    "Student filter: session_id=%s, edu_account_id=%s",
+                    args.get("session_id"),
                     current_user.id,
                 )
-            else:
-                # No active session: show only user's own apps
-                args["is_created_by_me"] = True
+            elif args.get("admin_id"):
+                # Owner with admin_id: filter by specific admin
+                args["edu_account_id"] = args.get("admin_id")
                 logger.info(
-                    "No active session for user %s, filtering by created_by",
-                    current_user.id,
+                    "Owner filter: session_id=%s, admin_id=%s",
+                    args.get("session_id"),
+                    args.get("admin_id"),
+                )
+            else:
+                # Administrator/Owner without admin_id: see all resources in session
+                logger.info(
+                    "Admin/Owner filter: session_id=%s (all resources)",
+                    args.get("session_id"),
                 )
 
         # get app list

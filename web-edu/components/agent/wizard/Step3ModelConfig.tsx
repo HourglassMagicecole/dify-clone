@@ -98,7 +98,7 @@ export default function Step3ModelConfig() {
     trigger,
     formState: { errors, isValid },
   } = useForm<ModelConfigFormData>({
-    resolver: zodResolver(modelConfigSchema),
+    resolver: zodResolver(modelConfigSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     mode: 'onChange',
     defaultValues: modelConfig || {
       provider: '',

@@ -70,10 +70,11 @@ export interface Agent {
   enable_site: boolean
   enable_api: boolean
   model_config: AgentModelConfig
-  created_at: string        // ISO 8601 format
-  updated_at: string        // ISO 8601 format
+  created_at: number | string  // Unix timestamp (seconds) or ISO 8601 format
+  updated_at: number | string  // Unix timestamp (seconds) or ISO 8601 format
   created_by?: string
   updated_by?: string
+  author_name?: string         // Creator's name (for Administrator view)
 }
 
 /**
@@ -290,6 +291,7 @@ export interface CreateAgentRequest {
   icon_type?: 'emoji' | 'image'
   icon?: string
   icon_background?: string
+  session_id?: string  // Session-based resource tagging (Story 2.2)
 }
 
 /**

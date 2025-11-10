@@ -18,7 +18,7 @@ export function RecentActivityTimeline({ activities, isLoading = false }: Recent
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">{t('dashboard.recentActivity.title')}</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('recentActivity.title')}</h3>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex items-start animate-pulse">
@@ -38,10 +38,10 @@ export function RecentActivityTimeline({ activities, isLoading = false }: Recent
   if (activities.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">{t('dashboard.recentActivity.title')}</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('recentActivity.title')}</h3>
         <div className="text-center py-8">
           <div className="text-4xl mb-2">📋</div>
-          <p className="text-gray-600">{t('dashboard.recentActivity.empty')}</p>
+          <p className="text-gray-600">{t('recentActivity.empty')}</p>
         </div>
       </div>
     )

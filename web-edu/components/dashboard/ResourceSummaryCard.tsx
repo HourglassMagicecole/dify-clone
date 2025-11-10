@@ -6,6 +6,8 @@ import type { ResourceSummary } from '../../types/dashboard'
 
 interface ResourceSummaryCardProps {
   summary: ResourceSummary
+  scope: 'system' | 'my_resources'
+  sessionName?: string
   isLoading?: boolean
 }
 
@@ -13,8 +15,16 @@ interface ResourceSummaryCardProps {
  * 리소스 요약 카드 컴포넌트
  * Agent, Workflow, Dataset 개수를 카드 형태로 표시
  */
-export function ResourceSummaryCard({ summary, isLoading = false }: ResourceSummaryCardProps) {
+export function ResourceSummaryCard({
+  summary,
+  scope,
+  sessionName,
+  isLoading = false,
+}: ResourceSummaryCardProps) {
   const { t } = useTranslation('dashboard')
+
+  // scope에 따른 라벨
+  const scopeLabel = scope === 'system' ? t('scope.system') : t('scope.my')
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -30,46 +40,61 @@ export function ResourceSummaryCard({ summary, isLoading = false }: ResourceSumm
 
   const resources = [
     {
-      label: t('dashboard.resourceSummary.agents'),
+      label: t('resourceSummary.agents'),
       count: summary.agents,
       icon: '🤖',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
-      label: t('dashboard.resourceSummary.workflows'),
-      count: summary.workflows,
-      icon: '🔄',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
-    {
-      label: t('dashboard.resourceSummary.datasets'),
+      label: t('resourceSummary.datasets'),
       count: summary.datasets,
       icon: '📚',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
+    },
+    {
+      label: t('resourceSummary.workflows'),
+      count: summary.workflows,
+      icon: '🔄',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
     }
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {resources.map((resource) => (
-        <div
-          key={resource.label}
-          className={`${resource.bgColor} rounded-lg shadow p-6 hover:shadow-lg transition-shadow duration-200`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">{resource.label}</p>
-              <p className={`text-3xl font-bold ${resource.color} mt-2`}>
-                {resource.count}
-              </p>
+    <div>
+      {/* scope 라벨 및 세션명 표시 */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-gray-600">
+          {scopeLabel} 리소스
+        </h3>
+        {sessionName && (
+          <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+            세션: {sessionName}
+          </span>
+        )}
+      </div>
+
+      {/* 리소스 카드 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {resources.map((resource) => (
+          <div
+            key={resource.label}
+            className={`${resource.bgColor} rounded-lg shadow p-6 hover:shadow-lg transition-shadow duration-200`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">{resource.label}</p>
+                <p className={`text-3xl font-bold ${resource.color} mt-2`}>
+                  {resource.count}
+                </p>
+              </div>
+              <div className="text-4xl">{resource.icon}</div>
             </div>
-            <div className="text-4xl">{resource.icon}</div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
@@ -93,16 +118,16 @@ export function EmptyResourceState() {
     <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
       <div className="text-6xl mb-4">📦</div>
       <h3 className="text-lg font-medium text-gray-900 mb-2">
-        {t('dashboard.empty.title')}
+        {t('empty.title')}
       </h3>
       <p className="text-gray-600 mb-6">
-        {t('dashboard.empty.description')}
+        {t('empty.description')}
       </p>
       <button
         className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         onClick={handleGetStarted}
       >
-        {t('dashboard.empty.button')}
+        {t('empty.button')}
       </button>
     </div>
   )

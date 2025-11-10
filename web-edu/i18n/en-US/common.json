@@ -33,6 +33,7 @@
     "my_sessions": "My Sessions",
     "sessions": "Sessions",
     "users": "User Management",
-    "api_keys": "API Keys"
+    "api_keys": "API Keys",
+    "monitoring": "Monitoring"
   }
 }

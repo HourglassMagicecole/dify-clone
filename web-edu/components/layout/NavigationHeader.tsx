@@ -8,7 +8,9 @@ import { Dropdown } from '@/components/common/Dropdown';
 import { DropdownItem } from '@/components/common/DropdownItem';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
 import { SessionSelector } from '@/components/session/SessionSelector';
+import { AdminSelector } from '@/components/admin/AdminSelector';
 import { useAuth } from '@/hooks/useAuth';
+import { useSession } from '@/context/SessionContext';
 
 /**
  * NavigationHeader component displays the main navigation bar
@@ -24,6 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 export function NavigationHeader() {
   const { t } = useTranslation(['navigation', 'common']);
   const { user, isLoading, signOut } = useAuth();
+  const { sessions, selectedAdminId, selectAdmin } = useSession();
   const [isMounted, setIsMounted] = useState(false);
 
   // Prevent hydration mismatch by only rendering after client mount
@@ -73,6 +76,11 @@ export function NavigationHeader() {
     // TODO: Implement settings navigation
   };
 
+  // 모든 역할이 공용 /dashboard로 이동 (Story 2.2B - Task 10.2, 통합 완료)
+  const getDashboardUrl = () => {
+    return '/dashboard'
+  }
+
   return (
     <header className="bg-white border-b border-gray-200">
       {/* Top bar: Logo + Language + User */}
@@ -85,8 +93,24 @@ export function NavigationHeader() {
 
           {/* Right menu section */}
           <div className="flex items-center gap-4">
-            {/* Session selector (admin only) */}
-            {user.role === 'admin' && <SessionSelector />}
+            {/* Admin selector (owner only) - Story 2.2B */}
+            {user.actualRole === 'owner' && (
+              <AdminSelector
+                sessions={sessions}
+                selectedAdminId={selectedAdminId}
+                onAdminChange={selectAdmin}
+              />
+            )}
+
+            {/* Session selector (owner, admin, and student) - Story 2.2B */}
+            {/* Owner: selectedAdminId가 있을 때만 SessionSelector 표시 (특정 관리자 선택 시) */}
+            {user.actualRole === 'owner' && selectedAdminId && (
+              <SessionSelector userRole={user.actualRole} />
+            )}
+            {/* Admin and Student: 항상 SessionSelector 표시 */}
+            {(user.actualRole === 'admin' || user.actualRole === 'student') && (
+              <SessionSelector userRole={user.actualRole} />
+            )}
 
             {/* Language selector (AC: 4) */}
             <LanguageSelector />
@@ -124,7 +148,7 @@ export function NavigationHeader() {
         <div className="max-w-7xl mx-auto">
           <div className="flex h-12 items-center space-x-8">
             <Link
-              href="/dashboard"
+              href={getDashboardUrl()}
               className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
             >
               {t('common:nav.dashboard')}
@@ -136,16 +160,16 @@ export function NavigationHeader() {
               {t('common:nav.agents')}
             </Link>
             <Link
-              href="/workflows"
-              className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-            >
-              {t('common:nav.workflows')}
-            </Link>
-            <Link
               href="/datasets"
               className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
             >
               {t('common:nav.datasets')}
+            </Link>
+            <Link
+              href="/workflows"
+              className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+            >
+              {t('common:nav.workflows')}
             </Link>
             {/* Regular user: My Session */}
             {user.role !== 'admin' && (
@@ -175,12 +199,20 @@ export function NavigationHeader() {
             )}
             {/* Owner-only navigation (API Keys management) */}
             {user.actualRole === 'owner' && (
-              <Link
-                href="/api-keys"
-                className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              >
-                {t('common:nav.api_keys')}
-              </Link>
+              <>
+                <Link
+                  href="/admin/api-keys"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  {t('common:nav.api_keys')}
+                </Link>
+                <Link
+                  href="/owner/monitoring"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  {t('common:nav.monitoring')}
+                </Link>
+              </>
             )}
           </div>
         </div>

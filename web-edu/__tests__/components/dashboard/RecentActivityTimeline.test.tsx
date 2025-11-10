@@ -2,6 +2,19 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { RecentActivityTimeline } from '@/components/dashboard/RecentActivityTimeline'
 
+// Mock useTranslation
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        'recentActivity.title': '최근 활동',
+        'recentActivity.empty': '아직 활동이 없습니다',
+      }
+      return translations[key] || key
+    },
+  }),
+}))
+
 describe('RecentActivityTimeline', () => {
   it('활동 목록을 올바르게 표시', () => {
     const mockActivities = [
@@ -24,8 +37,8 @@ describe('RecentActivityTimeline', () => {
   it('빈 활동 목록 상태를 표시', () => {
     render(<RecentActivityTimeline activities={[]} />)
 
-    // i18n 키가 렌더링되는지 확인 (mock 없이 테스트)
-    expect(screen.getByText(/dashboard\.recentActivity\.empty/)).toBeInTheDocument()
+    // 빈 상태 메시지 확인
+    expect(screen.getByText('아직 활동이 없습니다')).toBeInTheDocument()
   })
 
   it('로딩 상태를 표시', () => {

@@ -8,6 +8,18 @@ jest.mock('@/hooks/useAuth');
 jest.mock('react-i18next', () => ({
   useTranslation: jest.fn(),
 }));
+jest.mock('@/context/SessionContext', () => ({
+  useSession: () => ({
+    sessions: [],
+    filteredSessions: [],
+    currentSession: null,
+    selectedAdminId: null,
+    selectAdmin: jest.fn(),
+    selectSession: jest.fn(),
+    refreshSessions: jest.fn(),
+    isLoading: false,
+  }),
+}));
 
 describe('NavigationHeader', () => {
   const mockSignOut = jest.fn();
@@ -27,6 +39,7 @@ describe('NavigationHeader', () => {
     name: 'Test User',
     avatar: undefined,
     role: 'normal' as const,
+    actualRole: 'student' as const,
   };
 
   beforeEach(() => {

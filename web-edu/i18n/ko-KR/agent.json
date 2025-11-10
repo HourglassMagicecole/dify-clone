@@ -324,5 +324,11 @@
     "createButton": "새 Agent 만들기",
     "emptyTitle": "아직 생성된 Agent가 없습니다",
     "emptyDescription": "첫 번째 Agent를 만들어 시작하세요"
+  },
+  "table": {
+    "name": "이름",
+    "owner": "소유자",
+    "type": "유형",
+    "createdAt": "생성일"
   }
 }

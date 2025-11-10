@@ -91,7 +91,7 @@ class TestResourceSummary:
         mock_db.session.query.return_value.filter.return_value.scalar.return_value = 0
 
         # Act
-        result = service._get_resource_summary(mock_user_id)
+        result = service._get_resource_summary(mock_user_id, "my_resources")
 
         # Assert
         assert result["agents"] == 0
@@ -108,7 +108,7 @@ class TestResourceSummary:
         mock_db.session.query.return_value.join.return_value.filter.return_value.scalar.side_effect = [5, 3, 2]
 
         # Act
-        result = service._get_resource_summary(mock_user_id)
+        result = service._get_resource_summary(mock_user_id, "my_resources")
 
         # Assert
         assert result["agents"] == 5
@@ -129,7 +129,7 @@ class TestResourceSummary:
         mock_db.session.query.return_value = mock_query
 
         # Act
-        service._get_resource_summary(mock_user_id)
+        service._get_resource_summary(mock_user_id, "my_resources")
 
         # Assert - 모든 filter 호출에 account_id가 포함되어야 함
         # filter가 호출되었는지 확인 (최소 3번 - agents, workflows, datasets)
@@ -160,7 +160,7 @@ class TestRecentActivities:
         mock_chain.order_by.return_value.limit.return_value = mock_query
 
         # Act
-        result = service._get_recent_activities(mock_user_id)
+        result = service._get_recent_activities(mock_user_id, "my_resources")
 
         # Assert
         assert result == []
@@ -192,7 +192,7 @@ class TestRecentActivities:
         mock_chain.order_by.return_value.limit.return_value = mock_query
 
         # Act
-        result = service._get_recent_activities(mock_user_id, limit=10)
+        result = service._get_recent_activities(mock_user_id, "my_resources", limit=10)
 
         # Assert
         assert len(result) == 10
@@ -226,7 +226,7 @@ class TestRecentActivities:
         mock_chain.order_by.return_value.limit.return_value = mock_query
 
         # Act
-        result = service._get_recent_activities(mock_user_id)
+        result = service._get_recent_activities(mock_user_id, "my_resources")
 
         # Assert - Dataset should come first (more recent)
         assert len(result) == 2
@@ -254,7 +254,7 @@ class TestRecentActivities:
         mock_chain.order_by.return_value.limit.return_value = mock_query
 
         # Act
-        result = service._get_recent_activities(mock_user_id)
+        result = service._get_recent_activities(mock_user_id, "my_resources")
 
         # Assert - Verify all required fields
         assert len(result) == 1
@@ -293,7 +293,7 @@ class TestErrorHandling:
 
         # Act & Assert
         with pytest.raises(SQLAlchemyError, match="Database connection error"):
-            service._get_resource_summary(mock_user_id)
+            service._get_resource_summary(mock_user_id, "my_resources")
 
     @patch("services.education_management.dashboard_service.db")
     def test_get_recent_activities_handles_database_error(self, mock_db, service, mock_user_id):
@@ -303,7 +303,7 @@ class TestErrorHandling:
 
         # Act & Assert
         with pytest.raises(SQLAlchemyError, match="Database query failed"):
-            service._get_recent_activities(mock_user_id)
+            service._get_recent_activities(mock_user_id, "my_resources")
 
     @patch("services.education_management.dashboard_service.db")
     def test_get_user_dashboard_handles_database_error(self, mock_db, service, mock_user_id):

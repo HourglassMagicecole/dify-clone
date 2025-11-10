@@ -81,5 +81,7 @@
   "failed_to_load_members": "멤버 목록 로딩 실패",
   "delete_confirm_detail": "이 세션을 삭제하시겠습니까? 모든 멤버와 관련 데이터가 제거됩니다.",
   "filter_by_creator": "생성자별 필터",
-  "filter_all": "전체"
+  "filter_all": "전체",
+  "noSessionsStudent": "참여 중인 세션이 없습니다. 관리자에게 문의하세요.",
+  "noSessionsAdmin": "세션이 없습니다. 세션을 생성하세요."
 }

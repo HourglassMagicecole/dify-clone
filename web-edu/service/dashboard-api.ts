@@ -15,15 +15,26 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
 export class DashboardAPI {
   /**
    * 사용자 대시보드 데이터 조회
+   * @param sessionId - 세션 ID (Admin/Student용)
+   * @param adminId - 관리자 ID (Owner 전용, 특정 관리자의 리소스만 필터링)
    * @returns 대시보드 데이터
    */
-  static async getDashboardData(): Promise<DashboardData> {
+  static async getDashboardData(sessionId?: string, adminId?: string): Promise<DashboardData> {
     const accessToken = getAccessToken()
     if (!accessToken) {
       throw new Error('No access token available')
     }
 
-    const response = await fetch(`${API_BASE_URL}/console/api/edu/dashboard`, {
+    // Build URL with optional query parameters
+    const url = new URL(`${API_BASE_URL}/console/api/edu/dashboard`, window.location.origin)
+    if (sessionId) {
+      url.searchParams.append('session_id', sessionId)
+    }
+    if (adminId) {
+      url.searchParams.append('admin_id', adminId)
+    }
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,

@@ -86,13 +86,13 @@ class AppService:
                 filters.append(App.id.in_(edu_resource_ids))
                 logger.info("Session filter applied: found %d apps with SessionResourceTag", len(edu_resource_ids))
             else:
-                # No SessionResourceTag found: fallback to created_by filter
+                # No resources in this session: return empty result
                 logger.info(
-                    "No SessionResourceTag found for session_id=%s, account_id=%s, falling back to created_by filter",
+                    "No SessionResourceTag found for session_id=%s, account_id=%s, returning empty result",
                     args.get("session_id"),
                     args.get("edu_account_id"),
                 )
-                filters.append(App.created_by == user_id)
+                return None
 
         logger.info(
             "get_paginate_apps filters: tenant_id=%s, is_created_by_me=%s, session_id=%s, user_id=%s",

@@ -13,31 +13,31 @@ export function QuickStartButtons() {
 
   const quickActions = [
     {
-      label: t('dashboard.quickStart.createAgent'),
-      description: t('dashboard.quickStart.createAgentDesc'),
+      label: t('quickStart.createAgent'),
+      description: t('quickStart.createAgentDesc'),
       icon: '🤖',
       href: '/agents/create',
       color: 'bg-blue-600 hover:bg-blue-700'
     },
     {
-      label: t('dashboard.quickStart.createWorkflow'),
-      description: t('dashboard.quickStart.createWorkflowDesc'),
-      icon: '🔄',
-      href: '/workflows/create',
-      color: 'bg-green-600 hover:bg-green-700'
-    },
-    {
-      label: t('dashboard.quickStart.createDataset'),
-      description: t('dashboard.quickStart.createDatasetDesc'),
+      label: t('quickStart.createDataset'),
+      description: t('quickStart.createDatasetDesc'),
       icon: '📚',
       href: '/datasets/create',
       color: 'bg-purple-600 hover:bg-purple-700'
+    },
+    {
+      label: t('quickStart.createWorkflow'),
+      description: t('quickStart.createWorkflowDesc'),
+      icon: '🔄',
+      href: '/workflows/create',
+      color: 'bg-green-600 hover:bg-green-700'
     }
   ]
 
   return (
     <div className="bg-white rounded-lg shadow p-6" data-testid="quick-start-buttons">
-      <h3 className="text-lg font-semibold mb-4">{t('dashboard.quickStart.title')}</h3>
+      <h3 className="text-lg font-semibold mb-4">{t('quickStart.title')}</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {quickActions.map((action) => (
           <Link

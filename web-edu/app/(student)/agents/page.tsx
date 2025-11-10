@@ -4,9 +4,12 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { PlusIcon, ArrowPathIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
-import { difyAPI, type App } from '@/service/dify-api'
+import { agentAPI } from '@/service/agent-api'
+import type { Agent } from '@/types/agent'
 import { useSession } from '@/context/SessionContext'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/common/Button'
+import { AgentTable } from '@/components/agent/AgentTable'
 
 /**
  * Agent List Page
@@ -19,10 +22,14 @@ import { Button } from '@/components/common/Button'
 export default function AgentsPage() {
   const { t } = useTranslation('agent')
   const router = useRouter()
-  const { currentSession, isLoading: sessionLoading } = useSession()
-  const [agents, setAgents] = useState<App[]>([])
+  const { user } = useAuth()
+  const { currentSession, selectedAdminId, isLoading: sessionLoading } = useSession()
+  const [agents, setAgents] = useState<Agent[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Determine if user should see table view (Owner and Administrator)
+  const useTableView = user?.actualRole === 'owner' || user?.actualRole === 'admin'
 
   const loadAgents = useCallback(async () => {
     if (!currentSession) return
@@ -30,11 +37,15 @@ export default function AgentsPage() {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await difyAPI.getApps(currentSession.id)
+      const params: Record<string, string> = { session_id: currentSession.id }
 
-      if (response.result === 'success' && Array.isArray(response.data)) {
-        setAgents(response.data)
+      // Owner: admin_id 파라미터 추가 (특정 관리자의 리소스만 필터링)
+      if (user?.actualRole === 'owner' && selectedAdminId) {
+        params.admin_id = selectedAdminId
       }
+
+      const response = await agentAPI.getAgents(params)
+      setAgents(response.data)
     }
     catch (err) {
       console.error('Failed to load agents:', err)
@@ -43,13 +54,13 @@ export default function AgentsPage() {
     finally {
       setIsLoading(false)
     }
-  }, [currentSession])
+  }, [currentSession, user?.actualRole, selectedAdminId])
 
   useEffect(() => {
-    if (!sessionLoading && currentSession) {
+    if (!sessionLoading && currentSession && user) {
       loadAgents()
     }
-  }, [currentSession, sessionLoading, loadAgents])
+  }, [currentSession, sessionLoading, loadAgents, user])
 
   const handleCreateAgent = () => {
     router.push('/agents/create')
@@ -138,40 +149,46 @@ export default function AgentsPage() {
           </div>
         )}
 
-        {/* Agent Grid */}
+        {/* Agent List - Owner/Administrator: Table View, Student: Card Grid */}
         {!isLoading && !error && currentSession && agents.length > 0 && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {agents.map(agent => (
-              <div
-                key={agent.id}
-                className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700"
-                onClick={() => {
-                  // TODO: Navigate to agent detail page (Story 2.3+)
-                  // router.push(`/agents/${agent.id}`)
-                }}
-              >
-                <div className="flex items-start gap-4">
+          <>
+            {useTableView ? (
+              <AgentTable agents={agents} isLoading={isLoading} />
+            ) : (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {agents.map(agent => (
                   <div
-                    className="h-12 w-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
-                    style={{ backgroundColor: agent.icon_background || '#3B82F6' }}
+                    key={agent.id}
+                    className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700"
+                    onClick={() => {
+                      // TODO: Navigate to agent detail page (Story 2.3+)
+                      // router.push(`/agents/${agent.id}`)
+                    }}
                   >
-                    {agent.icon || '🤖'}
+                    <div className="flex items-start gap-4">
+                      <div
+                        className="h-12 w-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
+                        style={{ backgroundColor: agent.icon_background || '#3B82F6' }}
+                      >
+                        {agent.icon || '🤖'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
+                          {agent.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {t(`types.${agent.mode === 'agent-chat' ? 'chat' : agent.mode}.title`)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                          {new Date(typeof agent.created_at === 'number' ? agent.created_at * 1000 : agent.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
-                      {agent.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {t(`types.${agent.mode === 'agent-chat' ? 'chat' : agent.mode}.title`)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                      {new Date(agent.created_at * 1000).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -84,7 +84,7 @@ export function Step1BasicSettings(): React.ReactElement {
     setValue,
     reset,
   } = useForm<BasicSettingsFormData>({
-    resolver: zodResolver(basicSettingsSchema),
+    resolver: zodResolver(basicSettingsSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     mode: 'onChange',
     defaultValues: basicSettings || {
       name: '',

@@ -28,7 +28,7 @@ export default function Step2PromptSettings() {
     watch,
     formState: { errors, isValid },
   } = useForm<PromptSettingsFormData>({
-    resolver: zodResolver(promptSettingsSchema),
+    resolver: zodResolver(promptSettingsSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     mode: 'onChange',
     defaultValues: promptSettings || {
       pre_prompt: basicSettings?.role || '',
@@ -41,13 +41,14 @@ export default function Step2PromptSettings() {
   // Check if current mode is chat (for conditional rendering)
   const isChatMode = basicSettings?.mode === 'chat'
 
+  // Type assertion needed: TypeScript has trouble inferring array field types when multiple arrays exist in schema
   const {
     fields: questionFields,
     append: appendQuestion,
     remove: removeQuestion,
   } = useFieldArray({
     control,
-    name: 'suggested_questions' as const,
+    name: 'suggested_questions' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
   })
 
   const prePromptValue = watch('pre_prompt')

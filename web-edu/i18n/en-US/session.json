@@ -81,5 +81,7 @@
   "failed_to_load_members": "Failed to load members",
   "delete_confirm_detail": "Are you sure you want to delete this session? All members and associated data will be removed.",
   "filter_by_creator": "Filter by Creator",
-  "filter_all": "All"
+  "filter_all": "All",
+  "noSessionsStudent": "No sessions enrolled. Please contact your administrator.",
+  "noSessionsAdmin": "No sessions available. Create a session."
 }

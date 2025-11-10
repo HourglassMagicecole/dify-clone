@@ -2,6 +2,26 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { ResourceSummaryCard, EmptyResourceState } from '@/components/dashboard/ResourceSummaryCard'
 
+// Mock useTranslation
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        'resourceSummary.agents': 'Agents',
+        'resourceSummary.workflows': 'Workflows',
+        'resourceSummary.datasets': 'Datasets',
+        'resourceSummary.title': '리소스 요약',
+        'scope.system': '전체',
+        'scope.my': '내',
+        'empty.title': '아직 리소스가 없습니다',
+        'empty.description': 'Agent, Workflow, Dataset을 생성하여 시작하세요',
+        'empty.button': '시작하기',
+      }
+      return translations[key] || key
+    },
+  }),
+}))
+
 describe('ResourceSummaryCard', () => {
   it('리소스 요약을 올바르게 표시', () => {
     const mockSummary = {
@@ -43,10 +63,10 @@ describe('ResourceSummaryCard', () => {
 
     render(<ResourceSummaryCard summary={mockSummary} />)
 
-    // i18n 키가 렌더링되는지 확인 (mock 없이 테스트)
-    expect(screen.getByText(/dashboard\.resourceSummary\.agents/)).toBeInTheDocument()
-    expect(screen.getByText(/dashboard\.resourceSummary\.workflows/)).toBeInTheDocument()
-    expect(screen.getByText(/dashboard\.resourceSummary\.datasets/)).toBeInTheDocument()
+    // 리소스 타입 라벨 확인
+    expect(screen.getByText('Agents')).toBeInTheDocument()
+    expect(screen.getByText('Workflows')).toBeInTheDocument()
+    expect(screen.getByText('Datasets')).toBeInTheDocument()
   })
 })
 
@@ -54,16 +74,16 @@ describe('EmptyResourceState', () => {
   it('빈 상태를 올바르게 표시', () => {
     render(<EmptyResourceState />)
 
-    // i18n 키가 렌더링되는지 확인 (mock 없이 테스트)
-    expect(screen.getByText(/dashboard\.empty\.title/)).toBeInTheDocument()
-    expect(screen.getByText(/dashboard\.empty\.description/)).toBeInTheDocument()
+    // 빈 상태 메시지 확인
+    expect(screen.getByText('아직 리소스가 없습니다')).toBeInTheDocument()
+    expect(screen.getByText(/Agent, Workflow, Dataset을 생성하여/)).toBeInTheDocument()
   })
 
   it('시작하기 버튼이 렌더링됨', () => {
     render(<EmptyResourceState />)
 
-    // i18n 키로 버튼 검색 (mock 없이 테스트)
-    const button = screen.getByRole('button', { name: /dashboard\.empty\.button/ })
+    // 시작하기 버튼 확인
+    const button = screen.getByRole('button', { name: '시작하기' })
     expect(button).toBeInTheDocument()
   })
 })
