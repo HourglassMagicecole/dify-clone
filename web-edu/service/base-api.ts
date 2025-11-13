@@ -103,6 +103,11 @@ export class ApiClient {
       throw new Error(`API Error: ${response.status} ${response.statusText}`)
     }
 
+    // 204 No Content는 body가 없으므로 빈 객체 반환
+    if (response.status === 204) {
+      return { result: 'success' } as ApiResponse<T>
+    }
+
     return response.json()
   }
 
@@ -136,6 +141,30 @@ export class ApiClient {
   async postDifyNative<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    }
+
+    const json = await response.json()
+
+    // Wrap native Dify response in our standard format
+    return {
+      result: 'success',
+      data: json.data || json,
+    }
+  }
+
+  /**
+   * PUT request for Dify native API (returns data directly without result wrapper)
+   * Use this for endpoints that return app object directly instead of { result: 'success', data: ... }
+   */
+  async putDifyNative<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify(data),
     })

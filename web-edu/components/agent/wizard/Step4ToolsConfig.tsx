@@ -89,7 +89,7 @@ const DEFAULT_TOOL_ICON = '🛠️'
 
 export default function Step4ToolsConfig() {
   const { t, i18n } = useTranslation('agent')
-  const { toolsConfig, setToolsConfig, nextStep, previousStep } = useAgentWizard()
+  const { toolsConfig, setToolsConfig, nextStep, previousStep, isEditMode } = useAgentWizard()
 
   // 현재 언어 설정 ('ko-KR' → 'ko_KR' 변환)
   const currentLang = (i18n.language || 'en-US').replace('-', '_')
@@ -106,10 +106,11 @@ export default function Step4ToolsConfig() {
   const {
     handleSubmit,
     setValue,
-    formState: { isValid },
+    trigger,
   } = useForm<ToolsConfigFormData>({
-    resolver: zodResolver(toolsConfigSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-    mode: 'onChange',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(toolsConfigSchema) as any,
+    mode: isEditMode ? 'all' : 'onChange',
     defaultValues: toolsConfig || { tools: [] },
   })
 
@@ -123,8 +124,15 @@ export default function Step4ToolsConfig() {
     if (!hasRestoredRef.current && toolsConfig && toolsConfig.tools) {
       setSelectedTools(toolsConfig.tools)
       hasRestoredRef.current = true
+
+      // Trigger validation in edit mode
+      if (isEditMode) {
+        setTimeout(() => {
+          trigger()
+        }, 100)
+      }
     }
-  }, [toolsConfig])
+  }, [toolsConfig, isEditMode, trigger])
 
   // Update form when selectedTools changes
   useEffect(() => {
@@ -326,6 +334,11 @@ export default function Step4ToolsConfig() {
     nextStep()
   }
 
+  const handleNext = () => {
+    setToolsConfig({ tools: selectedTools })
+    nextStep()
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-6xl mx-auto">
       {/* Header */}
@@ -372,10 +385,10 @@ export default function Step4ToolsConfig() {
                   <CheckCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   <div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {tool.tool_label}
+                      {getLocalizedText(tool.tool_label, tool.tool_name)}
                     </span>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {tool.provider_name}
+                      {getLocalizedText(tool.provider_name)}
                     </p>
                   </div>
                 </div>
@@ -556,9 +569,9 @@ export default function Step4ToolsConfig() {
           {t('buttons.previous')}
         </button>
         <button
-          type="submit"
-          disabled={!isValid}
-          className="px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-500 dark:hover:bg-blue-600"
+          type="button"
+          onClick={handleNext}
+          className="px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600"
         >
           {t('buttons.next')}
         </button>

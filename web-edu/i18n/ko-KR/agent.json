@@ -157,6 +157,7 @@
   },
   "toasts": {
     "agentCreated": "Agent가 성공적으로 생성되었습니다",
+    "agentUpdated": "Agent가 성공적으로 업데이트되었습니다",
     "agentCreationFailed": "Agent 생성에 실패했습니다",
     "draftSaved": "임시 저장되었습니다",
     "draftLoaded": "저장된 작업을 불러왔습니다",
@@ -323,12 +324,48 @@
     "description": "생성된 Agent를 확인하고 관리하세요",
     "createButton": "새 Agent 만들기",
     "emptyTitle": "아직 생성된 Agent가 없습니다",
-    "emptyDescription": "첫 번째 Agent를 만들어 시작하세요"
+    "emptyDescription": "첫 번째 Agent를 만들어 시작하세요",
+    "searchPlaceholder": "Agent 이름으로 검색...",
+    "searchPlaceholderWithOwner": "Agent 이름, 설명, 소유자로 검색...",
+    "sortLatest": "최신순",
+    "sortName": "이름순",
+    "sortOwner": "소유자순",
+    "actions": {
+      "edit": "편집",
+      "duplicate": "복제",
+      "delete": "삭제"
+    },
+    "deleteDialog": {
+      "title": "Agent 삭제",
+      "message": "Agent를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "messageWithName": "{{name}} Agent를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "confirm": "삭제",
+      "cancel": "취소",
+      "deleting": "삭제 중...",
+      "close": "닫기",
+      "success": "Agent \"{{name}}\"이(가) 삭제되었습니다",
+      "error": "Agent 삭제에 실패했습니다",
+      "notFound": "Agent를 찾을 수 없습니다"
+    },
+    "pagination": {
+      "previous": "이전",
+      "next": "다음",
+      "items": "항목",
+      "ariaLabel": "페이지네이션",
+      "ariaPrevious": "이전 페이지",
+      "ariaNext": "다음 페이지"
+    }
   },
   "table": {
     "name": "이름",
     "owner": "소유자",
     "type": "유형",
-    "createdAt": "생성일"
+    "createdAt": "생성일",
+    "actions": "작업"
+  },
+  "actions": {
+    "edit": "편집",
+    "duplicate": "복제",
+    "delete": "삭제"
   }
 }

@@ -21,8 +21,9 @@ export const basicSettingsSchema = z.object({
   mode: z.nativeEnum(AgentType),
   role: z
     .string()
-    .min(10, 'validation.roleMinLength')
-    .max(2000, 'validation.roleTooLong'),
+    .max(2000, 'validation.roleTooLong')
+    .optional()
+    .or(z.literal('')),
   tool_enabled: z.boolean(),
   icon_type: z.enum(['emoji', 'image']).optional(),
   icon: z.string().optional(),

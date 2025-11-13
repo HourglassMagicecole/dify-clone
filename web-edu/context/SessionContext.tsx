@@ -46,16 +46,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       const data = await sessionAPI.listSessions(true) // 활성 세션만
       setSessions(data.sessions)
 
-      // localStorage에서 마지막 선택 세션 복원
-      const lastSessionId = localStorage.getItem('lastSessionId')
-      if (lastSessionId && data.sessions.find((s) => s.id === lastSessionId)) {
-        setCurrentSession(data.sessions.find((s) => s.id === lastSessionId)!)
-      }
-      else if (data.sessions.length > 0) {
-        // 기본값: 첫 번째 세션
-        setCurrentSession(data.sessions[0]!)
-        localStorage.setItem('lastSessionId', data.sessions[0]!.id)
-      }
+      // currentSession 설정은 별도 useEffect에서 처리 (역할별 로직 분리)
     }
     catch (err) {
       console.error('Failed to load sessions:', err)
@@ -111,42 +102,49 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       refreshSessions()
     }
     else if (!authLoading && !user) {
-      // 비로그인 상태면 로딩만 종료
+      // 비로그인 상태면 상태 초기화
+      setCurrentSession(null)
+      setSelectedAdminId(null)
+      setSessions([])
       setIsLoading(false)
     }
   }, [authLoading, user, refreshSessions])
 
-  // Owner: 초기 로드 시 자신을 Admin으로 선택 (selectedAdminId 설정)
+  // 세션 초기화: 역할별 초기 세션 선택
   useEffect(() => {
-    if (!authLoading && user && sessions.length > 0) {
-      if (user.actualRole === 'owner' && !selectedAdminId) {
-        // Owner 자신을 항상 기본 Admin으로 선택
-        setSelectedAdminId(user.id)
-
-        // Owner 자신이 instructor인 세션이 있는지 확인
+    if (!authLoading && user && sessions.length > 0 && !currentSession) {
+      if (user.actualRole === 'owner') {
+        // Owner: selectedAdminId 설정 + 자신의 첫 번째 세션 선택
+        if (!selectedAdminId) {
+          setSelectedAdminId(user.id)
+        }
         const ownerSessions = sessions.filter((s) => s.instructor_account_id === user.id)
-        if (ownerSessions.length > 0 && !currentSession) {
-          // 자신의 세션이 있으면 첫 번째 세션 선택
+        if (ownerSessions.length > 0) {
           setCurrentSession(ownerSessions[0]!)
           localStorage.setItem('lastSessionId', ownerSessions[0]!.id)
         }
       }
-    }
-  }, [authLoading, user, sessions, selectedAdminId, currentSession])
-
-  // Admin: 초기 로드 시 자신의 세션 자동 선택
-  useEffect(() => {
-    if (!authLoading && user && sessions.length > 0 && !currentSession) {
-      if (user.actualRole === 'admin') {
-        // Admin: 자신이 instructor인 첫 번째 세션 선택
+      else if (user.actualRole === 'admin') {
+        // Admin: 자신의 첫 번째 세션 선택
         const adminSessions = sessions.filter((s) => s.instructor_account_id === user.id)
         if (adminSessions.length > 0) {
           setCurrentSession(adminSessions[0]!)
           localStorage.setItem('lastSessionId', adminSessions[0]!.id)
         }
       }
+      else {
+        // Student: localStorage 복원 또는 첫 번째 세션
+        const lastSessionId = localStorage.getItem('lastSessionId')
+        if (lastSessionId && sessions.find((s) => s.id === lastSessionId)) {
+          setCurrentSession(sessions.find((s) => s.id === lastSessionId)!)
+        }
+        else if (sessions.length > 0) {
+          setCurrentSession(sessions[0]!)
+          localStorage.setItem('lastSessionId', sessions[0]!.id)
+        }
+      }
     }
-  }, [authLoading, user, sessions, currentSession])
+  }, [authLoading, user, sessions, currentSession, selectedAdminId])
 
   const value: SessionContextType = {
     currentSession,

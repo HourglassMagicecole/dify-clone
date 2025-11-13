@@ -157,6 +157,7 @@
   },
   "toasts": {
     "agentCreated": "Agent created successfully",
+    "agentUpdated": "Agent updated successfully",
     "agentCreationFailed": "Failed to create Agent",
     "draftSaved": "Draft saved",
     "draftLoaded": "Draft loaded",
@@ -323,12 +324,48 @@
     "description": "View and manage your created agents",
     "createButton": "Create New Agent",
     "emptyTitle": "No agents created yet",
-    "emptyDescription": "Create your first agent to get started"
+    "emptyDescription": "Create your first agent to get started",
+    "searchPlaceholder": "Search agents by name...",
+    "searchPlaceholderWithOwner": "Search by name, description, or owner...",
+    "sortLatest": "Latest",
+    "sortName": "Name",
+    "sortOwner": "Owner",
+    "actions": {
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete Agent",
+      "message": "Are you sure you want to delete this agent? This action cannot be undone.",
+      "messageWithName": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "close": "Close",
+      "success": "Agent \"{{name}}\" has been deleted",
+      "error": "Failed to delete agent",
+      "notFound": "Agent not found"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "items": "items",
+      "ariaLabel": "Pagination",
+      "ariaPrevious": "Previous page",
+      "ariaNext": "Next page"
+    }
   },
   "table": {
     "name": "Name",
     "owner": "Owner",
     "type": "Type",
-    "createdAt": "Created At"
+    "createdAt": "Created At",
+    "actions": "Actions"
+  },
+  "actions": {
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "delete": "Delete"
   }
 }

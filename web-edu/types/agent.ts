@@ -17,7 +17,7 @@ export interface AgentBasicSettings {
   name: string              // Maximum 255 characters
   description?: string      // Maximum 400 characters (optional)
   mode: AgentType          // Agent type
-  role: string             // Role definition (maps to pre_prompt in Dify)
+  role?: string            // Role definition (deprecated, use promptSettings.pre_prompt instead)
   tool_enabled: boolean    // Whether tools can be used
   icon_type?: 'emoji' | 'image'
   icon?: string
@@ -308,6 +308,46 @@ export interface CreateAgentResponse {
 export interface GetAgentsResponse {
   data: Agent[]
   total: number
-  page?: number
-  limit?: number
+  page: number
+  limit: number
+  has_more: boolean
+}
+
+/**
+ * Update agent request payload (for editing existing agent)
+ */
+export interface UpdateAgentRequest {
+  name?: string
+  description?: string
+  icon?: string
+  icon_type?: 'emoji' | 'image'
+  icon_background?: string
+  use_icon_as_answer_icon?: boolean
+  model_config?: {
+    provider: string
+    model: string
+    mode: 'chat' | 'completion'
+    completion_params: {
+      temperature: number
+      top_p: number
+      presence_penalty: number
+      frequency_penalty: number
+      max_tokens: number
+      stop?: string[]
+    }
+  }
+  user_input_form?: UserInputForm[]
+  pre_prompt?: string
+  opening_statement?: string
+  suggested_questions?: string[]
+  agent_mode?: {
+    enabled: boolean
+    strategy?: string
+    tools: Array<{
+      provider_id: string
+      provider_type: string
+      tool_name: string
+      tool_parameters: Record<string, unknown>
+    }>
+  }
 }

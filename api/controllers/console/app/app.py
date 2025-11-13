@@ -414,6 +414,41 @@ class AppCopyApi(Resource):
             stmt = select(App).where(App.id == result.app_id)
             app = session.scalar(stmt)
 
+        # Copy SessionResourceTag from original app to duplicated app (Story 2.3)
+        if app is not None:
+            try:
+                from models.education.resource_tag import SessionResourceTag
+
+                original_tags = (
+                    db.session.query(SessionResourceTag)
+                    .filter(
+                        SessionResourceTag.resource_type == "app", SessionResourceTag.resource_id == str(app_model.id)
+                    )
+                    .all()
+                )
+
+                for tag in original_tags:
+                    resource_tagging_service = ResourceTaggingService()
+                    resource_tagging_service.add_tag(
+                        session_id=tag.session_id,
+                        resource_type="app",
+                        resource_id=str(app.id),
+                        account_id=current_user.id,
+                    )
+                    logger.info(
+                        "Copied SessionResourceTag for duplicated app %s from original %s in session %s",
+                        app.id,
+                        app_model.id,
+                        tag.session_id,
+                    )
+            except Exception as e:
+                logger.error(
+                    "Failed to copy SessionResourceTag for duplicated app %s: %s",
+                    app.id,
+                    e,
+                    exc_info=True,
+                )
+
         return app, 201
 
 

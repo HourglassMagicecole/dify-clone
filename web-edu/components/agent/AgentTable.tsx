@@ -7,13 +7,22 @@ import type { Agent } from '@/types/agent'
 interface AgentTableProps {
   agents: Agent[]
   isLoading?: boolean
+  onEdit?: (agent: Agent) => void
+  onCopy?: (agent: Agent) => void
+  onDelete?: (agent: Agent) => void
 }
 
 /**
  * AgentTable Component (Administrator View)
  * Displays agents in table format with owner information
  */
-export const AgentTable: FC<AgentTableProps> = ({ agents, isLoading = false }) => {
+export const AgentTable: FC<AgentTableProps> = ({
+  agents,
+  isLoading = false,
+  onEdit,
+  onCopy,
+  onDelete
+}) => {
   const { t } = useTranslation('agent')
 
   if (isLoading) {
@@ -61,6 +70,9 @@ export const AgentTable: FC<AgentTableProps> = ({ agents, isLoading = false }) =
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {t('table.createdAt')}
               </th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('table.actions')}
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -92,6 +104,34 @@ export const AgentTable: FC<AgentTableProps> = ({ agents, isLoading = false }) =
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(typeof agent.created_at === 'number' ? agent.created_at * 1000 : agent.created_at).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex items-center justify-end gap-2">
+                    {onEdit && (
+                      <button
+                        onClick={() => onEdit(agent)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        {t('actions.edit')}
+                      </button>
+                    )}
+                    {onCopy && (
+                      <button
+                        onClick={() => onCopy(agent)}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        {t('actions.duplicate')}
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(agent)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        {t('actions.delete')}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

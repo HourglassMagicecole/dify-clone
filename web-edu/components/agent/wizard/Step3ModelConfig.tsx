@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
@@ -125,6 +125,99 @@ export default function Step3ModelConfig() {
     loadProviders()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Sync form with modelConfig from context (for edit mode)
+  // Use a ref to track if we've already reset to avoid infinite loop
+  const hasResetRef = useRef(false)
+  useEffect(() => {
+    if (modelConfig && !hasResetRef.current) {
+      _reset(modelConfig)
+      hasResetRef.current = true
+    }
+  }, [modelConfig, _reset])
+
+  // Auto-select provider and model when modelConfig is loaded (edit mode)
+  // NOTE: We don't call handleProviderChange to avoid overwriting completion_params
+  useEffect(() => {
+    if (modelConfig && providers.length > 0 && !selectedProvider) {
+      // Try exact match first
+      let provider = providers.find(p => p.provider === modelConfig.provider)
+
+      // If not found, try matching by extracting provider name from path
+      // "langgenius/openai/openai" -> "openai"
+      if (!provider && modelConfig.provider) {
+        const providerName = modelConfig.provider.split('/').pop()
+        provider = providers.find(p => p.provider === providerName)
+      }
+
+      if (provider) {
+        setSelectedProvider(provider)
+
+        // Update form values to use the simplified provider name
+        setValue('provider', provider.provider, { shouldValidate: true })
+        setValue('original_provider', provider.original_provider || provider.provider)
+
+        // Load models for this provider WITHOUT calling handleProviderChange
+        // to preserve completion_params that were already set by _reset()
+        const loadModelsForEditMode = async () => {
+          try {
+            setIsLoadingModels(true)
+            const originalProvider = provider.original_provider || provider.provider
+            const modelsResponse = await difyAPI.getProviderModels(originalProvider)
+
+            let models: ModelInfo[] = []
+
+            if (modelsResponse.result === 'success' && modelsResponse.data) {
+              if (Array.isArray(modelsResponse.data)) {
+                models = modelsResponse.data.filter((m: ModelInfo) => m.model_type === 'llm')
+              }
+              else if (typeof modelsResponse.data === 'object' && 'data' in modelsResponse.data) {
+                const nestedData = (modelsResponse.data as { data?: ModelInfo[] }).data
+                models = nestedData?.filter((m: ModelInfo) => m.model_type === 'llm') || []
+              }
+            }
+
+            // Fallback to hardcoded models if API fails
+            if (models.length === 0) {
+              models = provider.models.filter((m: ModelInfo) => m.model_type === 'llm')
+            }
+
+            setAvailableModels(models)
+
+            // Auto-select the model from modelConfig
+            const model = models.find((m: ModelInfo) => m.model === modelConfig.model)
+            if (model) {
+              setSelectedModel(model)
+              // Update form value to ensure select shows the model
+              setValue('model', model.model, { shouldValidate: true })
+            } else {
+              console.warn('[Step3] Model not found for:', modelConfig.model)
+            }
+          }
+          catch (error) {
+            console.error('Failed to load models for edit mode:', error)
+            // Use fallback models
+            const models = provider.models.filter((m: ModelInfo) => m.model_type === 'llm')
+            setAvailableModels(models)
+
+            const model = models.find((m: ModelInfo) => m.model === modelConfig.model)
+            if (model) {
+              setSelectedModel(model)
+              setValue('model', model.model, { shouldValidate: true })
+            }
+          }
+          finally {
+            setIsLoadingModels(false)
+          }
+        }
+
+        loadModelsForEditMode()
+      } else {
+        console.warn('[Step3] Provider not found for:', modelConfig.provider)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelConfig, providers, selectedProvider])
 
   // Trigger validation when returning to this step
   useEffect(() => {
@@ -522,7 +615,7 @@ export default function Step3ModelConfig() {
               <input
                 {...field}
                 onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                value={field.value}
+                value={field.value ?? 1.0}
                 id="temperature"
                 type="range"
                 min="0"
@@ -557,7 +650,7 @@ export default function Step3ModelConfig() {
               <input
                 {...field}
                 onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                value={field.value}
+                value={field.value ?? 1.0}
                 id="top_p"
                 type="range"
                 min="0"
@@ -592,7 +685,7 @@ export default function Step3ModelConfig() {
               <input
                 {...field}
                 onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                value={field.value}
+                value={field.value ?? 0.0}
                 id="presence_penalty"
                 type="range"
                 min="-2"
@@ -627,7 +720,7 @@ export default function Step3ModelConfig() {
               <input
                 {...field}
                 onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                value={field.value}
+                value={field.value ?? 0.0}
                 id="frequency_penalty"
                 type="range"
                 min="-2"

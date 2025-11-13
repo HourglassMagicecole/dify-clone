@@ -19,7 +19,7 @@ import { Button } from '@/components/common/Button'
 
 export function Step1BasicSettings(): React.ReactElement {
   const { t } = useTranslation('agent')
-  const { basicSettings, setBasicSettings, nextStep } = useAgentWizard()
+  const { basicSettings, setBasicSettings, nextStep, isEditMode } = useAgentWizard()
 
   /**
    * Configuration mode state (Auto or Manual)
@@ -83,9 +83,10 @@ export function Step1BasicSettings(): React.ReactElement {
     watch,
     setValue,
     reset,
+    trigger,
   } = useForm<BasicSettingsFormData>({
     resolver: zodResolver(basicSettingsSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-    mode: 'onChange',
+    mode: isEditMode ? 'all' : 'onChange', // In edit mode, validate on mount
     defaultValues: basicSettings || {
       name: '',
       description: '',
@@ -104,10 +105,34 @@ export function Step1BasicSettings(): React.ReactElement {
   const { errors, isSubmitting, isValid } = formState
 
   /**
+   * Debug: Log validation state in edit mode
+   */
+  React.useEffect(() => {
+    if (isEditMode) {
+      const errorDetails = Object.entries(errors).map(([key, err]) => ({
+        field: key,
+        message: err?.message,
+        type: err?.type
+      }))
+      const hasErrors = Object.keys(errors).length > 0
+      console.warn('[Step1] Edit mode validation state:', {
+        isValid,
+        errorCount: Object.keys(errors).length,
+        errorFields: Object.keys(errors),
+        errorDetails,
+        hasErrors,
+        buttonShouldBeDisabled: hasErrors || isSubmitting,
+        isSubmitting,
+        basicSettings,
+        formValues: watch()
+      })
+    }
+  }, [isEditMode, isValid, errors, basicSettings, watch, isSubmitting])
+
+  /**
    * Watch values for character count and mode
    */
   const descriptionValue = watch('description') || ''
-  const roleValue = watch('role') || ''
   const currentMode = watch('mode')
 
   /**
@@ -131,10 +156,29 @@ export function Step1BasicSettings(): React.ReactElement {
       setConfigMode(ConfigMode.MANUAL)
     } else {
       // Update form with saved data when navigating back
-      reset(basicSettings)
+      // In edit mode, trigger validation after reset
+      reset(basicSettings, {
+        keepDefaultValues: false,
+        keepDirty: false,
+        keepTouched: false,
+      })
       // Don't change configMode - keep user's previous selection
     }
   }, [basicSettings, reset])
+
+  /**
+   * Trigger validation in edit mode after data is loaded
+   * This ensures the "Next" button is enabled when form is pre-filled
+   */
+  React.useEffect(() => {
+    if (isEditMode && basicSettings) {
+      // Trigger validation after a short delay to ensure form is fully initialized
+      const timer = setTimeout(async () => {
+        await trigger()
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+  }, [isEditMode, basicSettings, trigger])
 
   /**
    * Reset form when configuration mode changes
@@ -370,19 +414,21 @@ export function Step1BasicSettings(): React.ReactElement {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Configuration Mode Selection */}
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <h3 className="text-sm font-medium text-gray-900 mb-3">{t('configMode.title')}</h3>
-        <RadioGroup
-          name="config-mode"
-          options={configModeOptions}
-          value={configMode}
-          onChange={(value) => setConfigMode(value as ConfigMode)}
-        />
-      </div>
+      {/* Configuration Mode Selection - Hide in edit mode */}
+      {!isEditMode && (
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-900 mb-3">{t('configMode.title')}</h3>
+          <RadioGroup
+            name="config-mode"
+            options={configModeOptions}
+            value={configMode}
+            onChange={(value) => setConfigMode(value as ConfigMode)}
+          />
+        </div>
+      )}
 
-      {/* Auto Mode: Sample Selection Cards */}
-      {configMode === ConfigMode.AUTO && (
+      {/* Auto Mode: Sample Selection Cards - Hide in edit mode */}
+      {!isEditMode && configMode === ConfigMode.AUTO && (
         <div className="space-y-4">
           {/* Agent Type Selection (for filtering samples) */}
           <Controller
@@ -449,44 +495,48 @@ export function Step1BasicSettings(): React.ReactElement {
       )}
 
       {/* Manual Mode: Full Form */}
-      {configMode === ConfigMode.MANUAL && (
+      {(isEditMode || configMode === ConfigMode.MANUAL) && (
         <>
-          {/* Agent Type Selection */}
-          <Controller
-            name="mode"
-            control={control}
-            render={({ field }) => (
-              <RadioGroup
-                name="agent-type"
-                label={t('basicSettings.typeLabel')}
-                options={agentTypeOptions}
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.mode ? t(errors.mode.message as string) : undefined}
-                required
-              />
-            )}
-          />
+          {/* Agent Type Selection - Hide in edit mode */}
+          {!isEditMode && (
+            <Controller
+              name="mode"
+              control={control}
+              render={({ field }) => (
+                <RadioGroup
+                  name="agent-type"
+                  label={t('basicSettings.typeLabel')}
+                  options={agentTypeOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.mode ? t(errors.mode.message as string) : undefined}
+                  required
+                />
+              )}
+            />
+          )}
 
-          {/* Sample Dropdown */}
-          <div>
-            <label htmlFor="sample-select" className="block text-sm font-medium text-gray-900 mb-2">
-              {t('configMode.selectSample')}
-            </label>
-            <select
-              id="sample-select"
-              onChange={(e) => handleRoleSampleSelect(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              defaultValue=""
-            >
-              <option value="">{t('basicSettings.roleSamplePlaceholder')}</option>
-              {roleSamples.map((sample) => (
-                <option key={sample.id} value={sample.id}>
-                  {sample.icon} {sample.title}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Sample Dropdown - Hide in edit mode */}
+          {!isEditMode && (
+            <div>
+              <label htmlFor="sample-select" className="block text-sm font-medium text-gray-900 mb-2">
+                {t('configMode.selectSample')}
+              </label>
+              <select
+                id="sample-select"
+                onChange={(e) => handleRoleSampleSelect(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                defaultValue=""
+              >
+                <option value="">{t('basicSettings.roleSamplePlaceholder')}</option>
+                {roleSamples.map((sample) => (
+                  <option key={sample.id} value={sample.id}>
+                    {sample.icon} {sample.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Agent Name */}
           <Input
@@ -511,26 +561,6 @@ export function Step1BasicSettings(): React.ReactElement {
             showCharCount
             value={descriptionValue}
           />
-
-          {/* Agent Role Definition */}
-          <div>
-            <label htmlFor="agent-role" className="block text-sm font-medium text-gray-900 mb-2">
-              {t('basicSettings.roleLabel')}
-              <span className="text-red-500 ml-1">*</span>
-            </label>
-            <Textarea
-              {...register('role')}
-              id="agent-role"
-              placeholder={t('basicSettings.rolePlaceholder')}
-              error={errors.role ? t(errors.role.message as string) : undefined}
-              helperText={t('basicSettings.roleHelp')}
-              required
-              maxLength={2000}
-              rows={8}
-              showCharCount
-              value={roleValue}
-            />
-          </div>
         </>
       )}
 
@@ -539,7 +569,7 @@ export function Step1BasicSettings(): React.ReactElement {
         <Button
           type="submit"
           variant="default"
-          disabled={!isValid || isSubmitting}
+          disabled={isEditMode ? (Object.keys(errors).length > 0 || isSubmitting) : (!isValid || isSubmitting)}
         >
           {isSubmitting ? '저장 중...' : t('buttons.next')}
         </Button>

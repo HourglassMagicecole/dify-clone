@@ -87,11 +87,9 @@ describe('Step1BasicSettings', () => {
     expect(nameInput).toHaveAttribute('maxlength', '255')
   })
 
-  it('should have max length attribute for role textarea', () => {
+  it('should render agent type selection', () => {
     renderWithProvider(<Step1BasicSettings />)
-
-    const roleInput = screen.getByPlaceholderText(/basicSettings.rolePlaceholder/i) as HTMLTextAreaElement
-    expect(roleInput).toHaveAttribute('maxlength', '2000')
+    expect(screen.getByText(/types.chat.title/i)).toBeInTheDocument()
   })
 
   it('should allow selecting different agent types', async () => {
@@ -116,12 +114,11 @@ describe('Step1BasicSettings', () => {
     expect(completionRadio).not.toBeChecked()
   })
 
-  it('should show character count for description and role fields', () => {
+  it('should show character count for description field', () => {
     renderWithProvider(<Step1BasicSettings />)
 
-    // Character counts should be visible
-    expect(screen.getByText(/0 \/ 400/i)).toBeInTheDocument() // Description
-    expect(screen.getByText(/0 \/ 2000/i)).toBeInTheDocument() // Role
+    // Character count for description should be visible
+    expect(screen.getByText(/0 \/ 400/i)).toBeInTheDocument()
   })
 
   it('should submit form with valid data', async () => {
@@ -134,9 +131,6 @@ describe('Step1BasicSettings', () => {
 
     const descriptionInput = screen.getByLabelText(/basicSettings.descriptionLabel/i)
     await user.type(descriptionInput, 'This is a test agent')
-
-    const roleInput = screen.getByPlaceholderText(/basicSettings.rolePlaceholder/i)
-    await user.type(roleInput, 'You are a helpful assistant that helps users with their questions')
 
     // Submit form
     const submitButton = screen.getByRole('button', { name: /buttons.next/i })
@@ -157,9 +151,6 @@ describe('Step1BasicSettings', () => {
 
     const descriptionInput = screen.getByLabelText(/basicSettings.descriptionLabel/i)
     expect(descriptionInput).toBeInTheDocument()
-
-    const roleInput = screen.getByPlaceholderText(/basicSettings.rolePlaceholder/i)
-    expect(roleInput).toHaveAttribute('required')
   })
 
   it('should disable submit button when form is invalid', () => {
@@ -178,9 +169,6 @@ describe('Step1BasicSettings', () => {
     // Fill all required fields with valid data
     const nameInput = screen.getByLabelText(/basicSettings.nameLabel/i)
     await user.type(nameInput, 'Test Agent')
-
-    const roleInput = screen.getByPlaceholderText(/basicSettings.rolePlaceholder/i)
-    await user.type(roleInput, 'You are a helpful assistant')
 
     // Wait for form validation
     await waitFor(() => {

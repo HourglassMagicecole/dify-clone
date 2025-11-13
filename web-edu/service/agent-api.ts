@@ -9,6 +9,7 @@ import {
   CreateAgentRequest,
   GetAgentsResponse,
   AgentBasicSettings,
+  UpdateAgentRequest,
 } from '@/types/agent'
 
 /**
@@ -44,37 +45,49 @@ export class AgentAPIService {
 
   /**
    * Get list of Agents
-   * Uses Dify's GET /console/api/apps endpoint
+   * Uses Dify's GET /console/api/apps endpoint with server-side pagination
    */
   async getAgents(filters?: {
     page?: number
     limit?: number
     session_id?: string
+    admin_id?: string
   }): Promise<GetAgentsResponse> {
     const params = new URLSearchParams()
-    if (filters?.page) {
-      params.append('page', String(filters.page))
-    }
-    if (filters?.limit) {
-      params.append('limit', String(filters.limit))
-    }
+    // Default pagination values
+    params.append('page', String(filters?.page || 1))
+    params.append('limit', String(filters?.limit || 20))
+
     if (filters?.session_id) {
       params.append('session_id', filters.session_id)
     }
+    if (filters?.admin_id) {
+      params.append('admin_id', filters.admin_id)
+    }
 
-    const queryString = params.toString()
-    const endpoint = queryString ? `/console/api/apps?${queryString}` : '/console/api/apps'
+    const endpoint = `/console/api/apps?${params.toString()}`
 
-    const response = await apiClient.getDifyNative<Agent[]>(endpoint)
+    // Backend returns paginated response: {data, total, page, limit, has_more}
+    const response = await apiClient.getDifyNative<GetAgentsResponse>(endpoint)
 
     if (response.result !== 'success' || !response.data) {
       throw new Error(response.message || 'Failed to fetch agents')
     }
 
-    // Wrap in GetAgentsResponse format
+    // getDifyNative wraps the response, so response.data is already GetAgentsResponse
+    // Check if response.data has the pagination structure
+    if ('data' in response.data && Array.isArray(response.data.data)) {
+      // Backend pagination response
+      return response.data as GetAgentsResponse
+    }
+
+    // Fallback for old format (shouldn't happen)
     return {
-      data: response.data,
-      total: response.data.length,
+      data: Array.isArray(response.data) ? response.data : [],
+      total: Array.isArray(response.data) ? response.data.length : 0,
+      page: 1,
+      limit: 20,
+      has_more: false,
     }
   }
 
@@ -92,16 +105,29 @@ export class AgentAPIService {
   }
 
   /**
-   * Update Agent
+   * Update Agent basic info (name, description, icon)
+   * Uses Dify's PUT /console/api/apps/{id} endpoint
    */
-  async updateAgent(id: string, updates: Partial<AgentBasicSettings>): Promise<Agent> {
-    const response = await apiClient.put<Agent>(`/console/api/apps/${id}`, updates)
+  async updateAgent(id: string, updates: UpdateAgentRequest): Promise<Agent> {
+    const response = await apiClient.putDifyNative<Agent>(`/console/api/apps/${id}`, updates)
 
     if (response.result !== 'success' || !response.data) {
       throw new Error(response.message || 'Failed to update agent')
     }
 
     return response.data
+  }
+
+  /**
+   * Update Agent model configuration (LLM settings, prompts, tools)
+   * Uses Dify's POST /console/api/apps/{id}/model-config endpoint
+   */
+  async updateModelConfig(id: string, modelConfig: Record<string, unknown>): Promise<void> {
+    const response = await apiClient.post<void>(`/console/api/apps/${id}/model-config`, modelConfig)
+
+    if (response.result !== 'success') {
+      throw new Error(response.message || 'Failed to update model config')
+    }
   }
 
   /**
@@ -113,6 +139,28 @@ export class AgentAPIService {
     if (response.result !== 'success') {
       throw new Error(response.message || 'Failed to delete agent')
     }
+  }
+
+  /**
+   * Copy (Duplicate) Agent
+   * Uses Dify's POST /console/api/apps/{app_id}/copy endpoint
+   */
+  async copyAgent(id: string, name?: string): Promise<Agent> {
+    const payload: { name?: string } = {}
+    if (name) {
+      payload.name = name
+    }
+
+    const response = await apiClient.postDifyNative<Agent>(
+      `/console/api/apps/${id}/copy`,
+      payload
+    )
+
+    if (response.result !== 'success' || !response.data) {
+      throw new Error(response.message || 'Failed to copy agent')
+    }
+
+    return response.data
   }
 }
 

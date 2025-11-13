@@ -17,12 +17,15 @@ import {
   AgentToolsConfig,
   CreateAppRequest,
   AgentType,
+  SelectedTool,
 } from '@/types/agent'
 import { useAuth } from '@/hooks/useAuth'
 import { useSession } from '@/context/SessionContext'
 import { useToast } from '@/context/ToastContext'
 import { useTranslation } from 'react-i18next'
 import { difyAPI } from '@/service/dify-api'
+import { agentAPI } from '@/service/agent-api'
+import { listTools } from '@/service/tool-api'
 import { handleAPIError } from '@/utils/api-error'
 
 /**
@@ -59,6 +62,7 @@ interface AgentWizardContextValue extends AgentWizardState {
   resetWizard: () => void
   restoreDraft: () => void                                     // NEW: Restore draft from prompt
   discardDraft: () => void                                     // NEW: Discard draft and start fresh
+  isEditMode: boolean                                          // NEW: Edit mode flag
 }
 
 /**
@@ -85,15 +89,29 @@ const initialState: AgentWizardState = {
 const AgentWizardContext = createContext<AgentWizardContextValue | undefined>(undefined)
 
 /**
+ * Provider component props
+ */
+interface AgentWizardProviderProps {
+  children: React.ReactNode
+  mode?: 'create' | 'edit'
+  initialAgentId?: string
+}
+
+/**
  * Provider component
  */
-export function AgentWizardProvider({ children }: { children: React.ReactNode }): React.ReactElement {
+export function AgentWizardProvider({
+  children,
+  mode = 'create',
+  initialAgentId
+}: AgentWizardProviderProps): React.ReactElement {
   const [state, setState] = useState<AgentWizardState>(initialState)
   const { user } = useAuth()
   const { currentSession } = useSession()
   const { showToast } = useToast()
   const { t } = useTranslation('agent')
   const hasLoadedRef = useRef(false)
+  const isEditMode = mode === 'edit' && !!initialAgentId
 
   /**
    * Get localStorage key for current user
@@ -108,10 +126,10 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
   }, [user?.id])
 
   /**
-   * Save to localStorage
+   * Save to localStorage (only in create mode)
    */
   const saveToLocalStorage = useCallback(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || isEditMode) {
       return
     }
 
@@ -128,7 +146,7 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
     } catch (error) {
       console.error('Failed to save draft to localStorage:', error)
     }
-  }, [state.basicSettings, state.promptSettings, state.modelConfig, state.toolsConfig, state.currentStep, localStorageKey])
+  }, [state.basicSettings, state.promptSettings, state.modelConfig, state.toolsConfig, state.currentStep, localStorageKey, isEditMode])
 
   /**
    * Reset hasLoadedRef when localStorageKey changes (e.g., after user login)
@@ -138,7 +156,7 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
   }, [localStorageKey])
 
   /**
-   * Load draft from localStorage when component mounts
+   * Load agent data for edit mode or draft from localStorage for create mode
    * Uses state.isInitializing to ensure it runs only once per initialization cycle
    */
   useEffect(() => {
@@ -153,6 +171,137 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
       return
     }
 
+    // Edit mode: Load agent data from API
+    if (isEditMode) {
+      const loadAgentData = async () => {
+        try {
+          const agent = await agentAPI.getAgent(initialAgentId!)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const agentData = agent as any
+
+          // Extract model config with proper structure
+          const modelConfig = agentData.model_config || {}
+          const modelInfo = modelConfig.model || {}
+
+          // Extract pre_prompt from different possible locations
+          const prePrompt = modelConfig.pre_prompt
+            || agentData.pre_prompt
+            || modelConfig.configs?.pre_prompt
+            || ''
+
+          // Fetch full tool information to get i18n labels
+          const enrichToolsWithI18n = async (tools: SelectedTool[]) => {
+            try {
+              const toolsResponse = await listTools()
+
+              if (toolsResponse.result !== 'success' || !toolsResponse.data) {
+                throw new Error('Failed to fetch tools')
+              }
+
+              interface ToolProvider {
+                name: string
+                label: string | Record<string, string>
+                tools: Array<{
+                  name: string
+                  label: string | Record<string, string>
+                }>
+              }
+
+              const allTools = (toolsResponse.data as ToolProvider[]).flatMap((provider) =>
+                provider.tools.map((tool) => ({
+                  provider_name: provider.name,
+                  provider_label: provider.label,
+                  tool_name: tool.name,
+                  tool_label: tool.label,
+                }))
+              )
+
+              return tools.map((tool) => {
+                const fullToolInfo = allTools.find(
+                  t => t.provider_name === tool.provider_id && t.tool_name === tool.tool_name
+                )
+
+                // Convert i18n objects to strings if needed
+                const providerLabel = fullToolInfo?.provider_label
+                const toolLabel = fullToolInfo?.tool_label
+
+                return {
+                  provider_id: tool.provider_id || '',
+                  provider_type: tool.provider_type || 'builtin',
+                  provider_name: (typeof providerLabel === 'string' ? providerLabel : tool.provider_name) || '',
+                  tool_name: tool.tool_name || '',
+                  tool_label: (typeof toolLabel === 'string' ? toolLabel : tool.tool_label) || tool.tool_name || '',
+                  tool_parameters: tool.tool_parameters || {},
+                  enabled: tool.enabled !== false,
+                } as SelectedTool
+              })
+            } catch (error) {
+              console.error('[AgentWizardContext] Failed to enrich tools with i18n:', error)
+              // Fallback to original tools if API fails
+              return tools
+            }
+          }
+
+          const enrichedTools = await enrichToolsWithI18n(modelConfig.agent_mode?.tools || [])
+
+          // Map Agent data to wizard state
+          setState(prev => ({
+            ...prev,
+            basicSettings: {
+              name: agentData.name,
+              description: agentData.description || '',
+              mode: (agentData.mode === 'completion' ? AgentType.COMPLETION : AgentType.CHAT),
+              role: prePrompt || 'No role defined',
+              tool_enabled: !!modelConfig.agent_mode?.enabled,
+              icon_type: agentData.icon_type || 'emoji',
+              icon: agentData.icon,
+              icon_background: agentData.icon_background,
+            },
+            promptSettings: {
+              pre_prompt: prePrompt || '',
+              prompt_type: 'simple',
+              user_input_form: agentData.user_input_form || [],
+              opening_statement: agentData.opening_statement,
+              suggested_questions: agentData.suggested_questions || [],
+            },
+            modelConfig: {
+              provider: modelInfo.provider || '',
+              original_provider: modelInfo.provider || '',
+              model: modelInfo.name || '',
+              mode: (agentData.mode === 'chat' || agentData.mode === 'agent-chat') ? 'chat' : 'completion',
+              completion_params: {
+                temperature: modelInfo.completion_params?.temperature ?? 1.0,
+                top_p: modelInfo.completion_params?.top_p ?? 1.0,
+                presence_penalty: modelInfo.completion_params?.presence_penalty ?? 0.0,
+                frequency_penalty: modelInfo.completion_params?.frequency_penalty ?? 0.0,
+                max_tokens: modelInfo.completion_params?.max_tokens ?? 4096,
+                stop: modelInfo.completion_params?.stop ?? [],
+              },
+            },
+            toolsConfig: {
+              tools: enrichedTools,
+            },
+            createdAppId: agentData.id,
+            isInitializing: false,
+          }))
+
+          hasLoadedRef.current = true
+        } catch (error) {
+          console.error('Failed to load agent for edit:', error)
+          setState(prev => ({
+            ...prev,
+            error: error instanceof Error ? error.message : 'Failed to load agent',
+            isInitializing: false,
+          }))
+          hasLoadedRef.current = true
+        }
+      }
+
+      loadAgentData()
+      return
+    }
+
+    // Create mode: Try to load draft from localStorage
     try {
       // Try to load from current key
       let saved = localStorage.getItem(localStorageKey)
@@ -190,20 +339,24 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
       setState(prev => ({ ...prev, isInitializing: false }))
       hasLoadedRef.current = true
     }
-     
-  }, [state.isInitializing, localStorageKey])
+
+  }, [state.isInitializing, localStorageKey, isEditMode, initialAgentId])
 
   /**
-   * Auto-save to localStorage when step data changes
+   * Auto-save to localStorage when step data changes (create mode only)
    * This triggers when user clicks "Next" button on each step
    */
   useEffect(() => {
+    if (isEditMode) {
+      return
+    }
+
     if (!state.basicSettings && !state.promptSettings && !state.modelConfig && !state.toolsConfig) {
       return
     }
 
     saveToLocalStorage()
-  }, [state.basicSettings, state.promptSettings, state.modelConfig, state.toolsConfig, state.currentStep, saveToLocalStorage])
+  }, [state.basicSettings, state.promptSettings, state.modelConfig, state.toolsConfig, state.currentStep, saveToLocalStorage, isEditMode])
 
   /**
    * Set basic settings (Step 1)
@@ -212,9 +365,9 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
     setState(prev => ({
       ...prev,
       basicSettings: settings,
-      isDraft: true,
+      isDraft: !isEditMode,
     }))
-  }, [])
+  }, [isEditMode])
 
   /**
    * Set prompt settings (Step 2)
@@ -223,9 +376,9 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
     setState(prev => ({
       ...prev,
       promptSettings: settings,
-      isDraft: true,
+      isDraft: !isEditMode,
     }))
-  }, [])
+  }, [isEditMode])
 
   /**
    * Set model config (Step 3)
@@ -234,9 +387,9 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
     setState(prev => ({
       ...prev,
       modelConfig: config,
-      isDraft: true,
+      isDraft: !isEditMode,
     }))
-  }, [])
+  }, [isEditMode])
 
   /**
    * Set tools config (Step 4)
@@ -245,9 +398,9 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
     setState(prev => ({
       ...prev,
       toolsConfig: config,
-      isDraft: true,
+      isDraft: !isEditMode,
     }))
-  }, [])
+  }, [isEditMode])
 
   /**
    * Navigate to next step
@@ -317,7 +470,8 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
   }, [saveToLocalStorage])
 
   /**
-   * Create agent by calling Dify API
+   * Create or update agent by calling Dify API
+   * In edit mode, updates existing agent; in create mode, creates new agent
    */
   const createAgent = useCallback(async (): Promise<string | null> => {
     try {
@@ -328,78 +482,133 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
         throw new Error(t('validation.allStepsRequired'))
       }
 
-      // 2. Validate current session
-      if (!currentSession) {
+      // 2. Validate current session (only for create mode)
+      if (!isEditMode && !currentSession) {
         throw new Error('No active session. Please select a session first.')
       }
 
-      // 3. Build create app payload (Dify App API format)
-      const createAppPayload: CreateAppRequest = {
-        name: state.basicSettings.name,
-        description: state.basicSettings.description || '',
-        mode: state.basicSettings.mode === AgentType.CHAT
-          ? (state.basicSettings.tool_enabled ? 'agent-chat' : 'chat')
-          : 'completion',
-        icon: state.basicSettings.icon || '🤖',
-        icon_background: state.basicSettings.icon_background || '#3B82F6',
-        session_id: currentSession.id,
-        model_config: {
-          provider: state.modelConfig.original_provider || state.modelConfig.provider,
-          name: state.modelConfig.model,
-          mode: state.modelConfig.mode,
-          completion_params: state.modelConfig.completion_params,
-          stop: state.modelConfig.completion_params.stop || [],
-        },
-        pre_prompt: state.promptSettings.pre_prompt,
-        opening_statement: state.promptSettings.opening_statement,
-        suggested_questions: state.promptSettings.suggested_questions || [],
-        user_input_form: state.promptSettings.user_input_form,
-      }
+      let agentId: string
 
-      // 4. Add agent_mode for agent-chat type (with tools)
-      if (state.basicSettings.tool_enabled && state.toolsConfig.tools.length > 0) {
-        createAppPayload.agent_mode = {
-          enabled: true,
-          strategy: 'function_call',
-          tools: state.toolsConfig.tools
-            .filter(tool => tool.enabled)
-            .map(tool => ({
+      // 3. Call API based on mode
+      if (isEditMode && initialAgentId) {
+        // Edit mode: Update existing agent
+
+        // Step 1: Update basic info (name, description, icon)
+        const basicInfoPayload = {
+          name: state.basicSettings.name,
+          description: state.basicSettings.description || '',
+          icon: state.basicSettings.icon || '🤖',
+          icon_type: state.basicSettings.icon_type || 'emoji',
+          icon_background: state.basicSettings.icon_background || '#3B82F6',
+          use_icon_as_answer_icon: false,
+        }
+
+        await agentAPI.updateAgent(initialAgentId, basicInfoPayload)
+
+        // Step 2: Update model config (LLM settings, prompts, tools)
+        const modelConfigPayload = {
+          pre_prompt: state.promptSettings.pre_prompt,
+          prompt_type: state.promptSettings.prompt_type || 'simple',
+          chat_prompt_config: {},
+          completion_prompt_config: {},
+          user_input_form: state.promptSettings.user_input_form || [],
+          opening_statement: state.promptSettings.opening_statement || '',
+          suggested_questions: state.promptSettings.suggested_questions || [],
+          model: {
+            provider: state.modelConfig.original_provider || state.modelConfig.provider,
+            name: state.modelConfig.model,
+            mode: state.modelConfig.mode,
+            completion_params: state.modelConfig.completion_params,
+          },
+        }
+
+        // Add agent_mode for tools
+        if (state.basicSettings.tool_enabled && state.toolsConfig.tools.length > 0) {
+          // Don't filter by enabled - send all tools in toolsConfig
+          // enabled property might be undefined for some tools
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (modelConfigPayload as any).agent_mode = {
+            enabled: true,
+            strategy: 'function_call',
+            tools: state.toolsConfig.tools.map(tool => ({
               provider_id: tool.provider_id,
               provider_type: tool.provider_type,
               tool_name: tool.tool_name,
               tool_parameters: tool.tool_parameters,
             })),
+          }
         }
+
+        await agentAPI.updateModelConfig(initialAgentId, modelConfigPayload)
+
+        agentId = initialAgentId
+        showToast(t('toasts.agentUpdated'), 'success')
+      } else {
+        // Create mode: Create new agent
+        const createAppPayload: CreateAppRequest = {
+          name: state.basicSettings.name,
+          description: state.basicSettings.description || '',
+          mode: state.basicSettings.mode === AgentType.CHAT
+            ? (state.basicSettings.tool_enabled ? 'agent-chat' : 'chat')
+            : 'completion',
+          icon: state.basicSettings.icon || '🤖',
+          icon_background: state.basicSettings.icon_background || '#3B82F6',
+          session_id: currentSession!.id,
+          model_config: {
+            provider: state.modelConfig.original_provider || state.modelConfig.provider,
+            name: state.modelConfig.model,
+            mode: state.modelConfig.mode,
+            completion_params: state.modelConfig.completion_params as Record<string, unknown>,
+            stop: state.modelConfig.completion_params.stop || [],
+          },
+          pre_prompt: state.promptSettings.pre_prompt,
+          opening_statement: state.promptSettings.opening_statement,
+          suggested_questions: state.promptSettings.suggested_questions || [],
+          user_input_form: state.promptSettings.user_input_form,
+        }
+
+        // Add agent_mode for agent-chat type (with tools)
+        if (state.basicSettings.tool_enabled && state.toolsConfig.tools.length > 0) {
+          createAppPayload.agent_mode = {
+            enabled: true,
+            strategy: 'function_call',
+            tools: state.toolsConfig.tools
+              .filter(tool => tool.enabled)
+              .map(tool => ({
+                provider_id: tool.provider_id,
+                provider_type: tool.provider_type,
+                tool_name: tool.tool_name,
+                tool_parameters: tool.tool_parameters,
+              })),
+          }
+        }
+
+        const response = await difyAPI.createAppWithConfig(createAppPayload)
+
+        if (response.result !== 'success' || !response.data) {
+          throw new Error(response.message || t('toasts.agentCreationFailed'))
+        }
+
+        agentId = response.data.id
+        showToast(t('toasts.agentCreated'), 'success')
       }
 
-      // 5. Call Dify Backend API (POST /console/apps)
-      const response = await difyAPI.createAppWithConfig(createAppPayload)
-
-      if (response.result !== 'success' || !response.data) {
-        throw new Error(response.message || t('toasts.agentCreationFailed'))
-      }
-
-      const createdApp = response.data
-
-      // 5. Success handling
+      // 6. Success handling
       setState(prev => ({
         ...prev,
         isLoading: false,
-        createdAppId: createdApp.id,
+        createdAppId: agentId,
       }))
 
-      // 6. Clear draft from localStorage
-      if (typeof window !== 'undefined') {
+      // 7. Clear draft from localStorage (create mode only)
+      if (!isEditMode && typeof window !== 'undefined') {
         localStorage.removeItem(localStorageKey)
       }
 
-      // 7. Show success toast
-      showToast(t('toasts.agentCreated'), 'success')
-
-      return createdApp.id
+      return agentId
     } catch (error) {
       // 8. Error handling
-      console.error('Failed to create agent:', error)
+      console.error('Failed to create/update agent:', error)
       const errorMessage = handleAPIError(error)
       setState(prev => ({
         ...prev,
@@ -409,7 +618,7 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
       showToast(errorMessage, 'error')
       return null
     }
-  }, [state, t, localStorageKey, showToast, currentSession])
+  }, [state, t, localStorageKey, showToast, currentSession, isEditMode, initialAgentId])
 
   /**
    * Reset wizard to initial state
@@ -479,7 +688,8 @@ export function AgentWizardProvider({ children }: { children: React.ReactNode })
     resetWizard,
     restoreDraft,
     discardDraft,
-  }), [state, setBasicSettings, setPromptSettings, setModelConfig, setToolsConfig, nextStep, previousStep, goToStep, saveAsDraft, createAgent, resetWizard, restoreDraft, discardDraft])
+    isEditMode,
+  }), [state, setBasicSettings, setPromptSettings, setModelConfig, setToolsConfig, nextStep, previousStep, goToStep, saveAsDraft, createAgent, resetWizard, restoreDraft, discardDraft, isEditMode])
 
   return (
     <AgentWizardContext.Provider value={contextValue}>

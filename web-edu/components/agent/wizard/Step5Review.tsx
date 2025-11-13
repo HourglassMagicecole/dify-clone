@@ -17,7 +17,7 @@ import type { AgentTestMessage } from '@/types/agent'
  * - Create Agent button (with loading state)
  */
 export default function Step5Review() {
-  const { t } = useTranslation('agent')
+  const { t, i18n } = useTranslation('agent')
   const router = useRouter()
   const {
     basicSettings,
@@ -28,11 +28,26 @@ export default function Step5Review() {
     createAgent,
     isLoading,
     previousStep,
+    isEditMode,
   } = useAgentWizard()
 
   const [testMessages, setTestMessages] = useState<AgentTestMessage[]>([])
   const [testMessage, setTestMessage] = useState('')
   const [isTestLoading, setIsTestLoading] = useState(false)
+
+  // 현재 언어 설정 ('ko-KR' → 'ko_KR' 변환)
+  const currentLang = (i18n.language || 'en-US').replace('-', '_')
+
+  // Helper: i18n 객체에서 현재 언어에 맞는 텍스트 가져오기
+  const getLocalizedText = (i18nObj: string | Record<string, string> | undefined, fallback = ''): string => {
+    if (typeof i18nObj === 'string')
+      return i18nObj
+    if (!i18nObj)
+      return fallback
+
+    // 현재 언어 우선 → 영어 → 첫 번째 값 순서
+    return i18nObj[currentLang] || i18nObj.en_US || Object.values(i18nObj)[0] || fallback
+  }
 
   const handleCreateAgent = async () => {
     const appId = await createAgent()
@@ -232,7 +247,7 @@ export default function Step5Review() {
                     key={tool.tool_name}
                     className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-md dark:bg-gray-700 dark:text-gray-200"
                   >
-                    {tool.tool_label}
+                    {getLocalizedText(tool.tool_label, tool.tool_name)}
                   </span>
                 ))}
               </div>
@@ -327,16 +342,7 @@ export default function Step5Review() {
         >
           {t('buttons.previous')}
         </button>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => router.push('/agents')}
-            disabled={isLoading}
-            className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
-          >
-            {t('buttons.cancel')}
-          </button>
-          <button
+        <button
             type="button"
             onClick={handleCreateAgent}
             disabled={isLoading}
@@ -345,13 +351,12 @@ export default function Step5Review() {
             {isLoading ? (
               <span className="flex items-center gap-2">
                 <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                {t('reviewSettings.creatingAgent')}
+                {isEditMode ? '업데이트 중...' : t('reviewSettings.creatingAgent')}
               </span>
             ) : (
-              t('reviewSettings.createAgentButton')
+              isEditMode ? 'Agent 업데이트' : t('reviewSettings.createAgentButton')
             )}
           </button>
-        </div>
       </div>
     </div>
   )
