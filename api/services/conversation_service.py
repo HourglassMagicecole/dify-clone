@@ -159,6 +159,21 @@ class ConversationService:
 
     @classmethod
     def get_conversation(cls, app_model: App, conversation_id: str, user: Union[Account, EndUser] | None):
+        # First check if conversation exists at all
+        conversation_exists = (
+            db.session.query(Conversation)
+            .where(
+                Conversation.id == conversation_id,
+                Conversation.app_id == app_model.id,
+                Conversation.is_deleted == False,
+            )
+            .first()
+        )
+
+        if not conversation_exists:
+            raise ConversationNotExistsError()
+
+        # Then check if user has permission to access it
         conversation = (
             db.session.query(Conversation)
             .where(
@@ -173,7 +188,9 @@ class ConversationService:
         )
 
         if not conversation:
-            raise ConversationNotExistsError()
+            # Conversation exists but user doesn't have permission
+            from werkzeug.exceptions import Forbidden
+            raise Forbidden("You don't have permission to access this conversation")
 
         return conversation
 

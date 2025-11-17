@@ -27,6 +27,7 @@ agent_thought_fields = {
     "created_at": TimestampField,
     "observation": fields.String,
     "files": fields.List(fields.String),
+    "message_files": fields.List(fields.Nested(message_file_fields), attribute="message_files_list"),
 }
 
 

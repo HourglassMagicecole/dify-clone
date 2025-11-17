@@ -97,6 +97,9 @@ class TTSTool(BuiltinTool):
                 )
             )
 
+        # Set default model if available
+        default_model = options[0].value if options else None
+
         parameters.insert(
             0,
             ToolParameter(
@@ -104,11 +107,12 @@ class TTSTool(BuiltinTool):
                 label=I18nObject(en_US="Model", zh_Hans="Model"),
                 human_description=I18nObject(
                     en_US="All available TTS models. You can config model in the Model Provider of Settings.",
-                    zh_Hans="所有可用的 TTS 模型。你可以在设置中的模型供应商里配置。",
+                    zh_Hans="所有可用的 TTS 模型。你可以在设置中的모델供应商里配置。",
                 ),
                 type=ToolParameter.ToolParameterType.SELECT,
                 form=ToolParameter.ToolParameterForm.FORM,
-                required=True,
+                required=False,
+                default=default_model,
                 placeholder=I18nObject(en_US="Select a model", zh_Hans="选择模型"),
                 options=options,
             ),

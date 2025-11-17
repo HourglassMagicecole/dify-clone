@@ -28,7 +28,7 @@ export default function AgentsPage() {
   const { t } = useTranslation('agent')
   const router = useRouter()
   const { user } = useAuth()
-  const { currentSession, selectedAdminId, isLoading: sessionLoading } = useSession()
+  const { currentSession, isLoading: sessionLoading } = useSession()
   const { showToast } = useToast()
   const [agents, setAgents] = useState<Agent[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -54,10 +54,8 @@ export default function AgentsPage() {
       setError(null)
       const params: Record<string, string> = { session_id: currentSession.id }
 
-      // Owner: admin_id 파라미터 추가 (특정 관리자의 리소스만 필터링)
-      if (user?.actualRole === 'owner' && selectedAdminId) {
-        params.admin_id = selectedAdminId
-      }
+      // Owner/Admin: session_id만으로 필터링 (세션 내 모든 Agent 표시)
+      // admin_id 파라미터는 사용하지 않음
 
       const response = await agentAPI.getAgents(params)
       setAgents(response.data)
@@ -69,7 +67,7 @@ export default function AgentsPage() {
     finally {
       setIsLoading(false)
     }
-  }, [currentSession, user?.actualRole, selectedAdminId])
+  }, [currentSession])
 
   useEffect(() => {
     if (!sessionLoading && currentSession && user) {
@@ -79,6 +77,10 @@ export default function AgentsPage() {
 
   const handleCreateAgent = () => {
     router.push('/agents/create')
+  }
+
+  const handleChat = (agentId: string) => {
+    router.push(`/agents/${agentId}/chat`)
   }
 
   const handleEdit = (agentId: string) => {
@@ -112,6 +114,10 @@ export default function AgentsPage() {
       return
     }
     await handleCopyAgentInternal(agentId, agent.name)
+  }
+
+  const handleChatAgent = (agent: Agent) => {
+    router.push(`/agents/${agent.id}/chat`)
   }
 
   const handleEditAgent = (agent: Agent) => {
@@ -355,6 +361,7 @@ export default function AgentsPage() {
               <AgentTable
                 agents={paginatedAgents}
                 isLoading={isLoading}
+                onChat={handleChatAgent}
                 onEdit={handleEditAgent}
                 onCopy={handleCopyAgent}
                 onDelete={handleDeleteAgent}
@@ -365,10 +372,7 @@ export default function AgentsPage() {
                   <AgentCard
                     key={agent.id}
                     agent={agent}
-                    onClick={() => {
-                      // TODO: Navigate to agent detail page (Story 2.3+)
-                      // router.push(`/agents/${agent.id}`)
-                    }}
+                    onChat={handleChat}
                     onEdit={handleEdit}
                     onDuplicate={handleDuplicate}
                     onDelete={handleDelete}

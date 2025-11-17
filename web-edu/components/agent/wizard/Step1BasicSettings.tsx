@@ -23,54 +23,19 @@ export function Step1BasicSettings(): React.ReactElement {
 
   /**
    * Configuration mode state (Auto or Manual)
-   * Initialize from localStorage if available
+   * Always starts with Manual mode
    */
-  const [configMode, setConfigMode] = useState<ConfigMode>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('agent-wizard-config-mode')
-      if (saved === 'auto' || saved === 'manual') {
-        return saved as ConfigMode
-      }
-    }
-    return ConfigMode.MANUAL
-  })
+  const [configMode, setConfigMode] = useState<ConfigMode>(ConfigMode.MANUAL)
 
   /**
    * Track selected sample ID in auto mode
    */
-  const [selectedSampleId, setSelectedSampleId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('agent-wizard-selected-sample')
-    }
-    return null
-  })
+  const [selectedSampleId, setSelectedSampleId] = useState<string | null>(null)
 
   /**
    * Track previous configMode to detect actual changes
    */
   const prevConfigModeRef = React.useRef<ConfigMode>(configMode)
-
-  /**
-   * Save configMode to localStorage when it changes
-   */
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('agent-wizard-config-mode', configMode)
-    }
-  }, [configMode])
-
-  /**
-   * Save selectedSampleId to localStorage when it changes
-   */
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (selectedSampleId) {
-        localStorage.setItem('agent-wizard-selected-sample', selectedSampleId)
-      } else {
-        localStorage.removeItem('agent-wizard-selected-sample')
-      }
-    }
-  }, [selectedSampleId])
 
   /**
    * Initialize React Hook Form with Zod validation

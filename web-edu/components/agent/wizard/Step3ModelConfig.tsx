@@ -619,7 +619,7 @@ export default function Step3ModelConfig() {
                 id="temperature"
                 type="range"
                 min="0"
-                max="2"
+                max="1"
                 step="0.1"
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-gray-700"
               />

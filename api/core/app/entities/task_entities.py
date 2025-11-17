@@ -175,7 +175,7 @@ class AgentThoughtStreamResponse(StreamResponse):
     tool: str | None = None
     tool_labels: Mapping[str, object] = Field(default_factory=dict)
     tool_input: str | None = None
-    message_files: list[str] | None = None
+    message_files: list[dict[str, object]] | None = None
 
 
 class AgentMessageStreamResponse(StreamResponse):

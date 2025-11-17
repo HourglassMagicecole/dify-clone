@@ -535,6 +535,7 @@ export function AgentWizardProvider({
               provider_type: tool.provider_type,
               tool_name: tool.tool_name,
               tool_parameters: tool.tool_parameters,
+              enabled: tool.enabled ?? true, // Include enabled field
             })),
           }
         }
@@ -579,6 +580,7 @@ export function AgentWizardProvider({
                 provider_type: tool.provider_type,
                 tool_name: tool.tool_name,
                 tool_parameters: tool.tool_parameters,
+                enabled: true, // Include enabled field (already filtered)
               })),
           }
         }

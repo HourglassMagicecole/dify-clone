@@ -82,7 +82,14 @@ def to_prompt_message_content(
         # For unsupported file types, return a text description
         return TextPromptMessageContent(data=f"[Unsupported file type: {f.filename} ({f.type.value})]")
 
-    # Process supported file types
+    # For AUDIO files, return text description instead of AudioPromptMessageContent
+    # LLM should use tools (like ASR) to process audio, not handle it directly
+    if f.type == FileType.AUDIO:
+        return TextPromptMessageContent(
+            data=f"[Audio file uploaded: {f.filename}. Use the 'asr' tool to transcribe this audio to text.]"
+        )
+
+    # Process other supported file types (IMAGE, VIDEO, DOCUMENT)
     params = {
         "base64_data": _get_encoded_string(f) if dify_config.MULTIMODAL_SEND_FORMAT == "base64" else "",
         "url": _to_url(f) if dify_config.MULTIMODAL_SEND_FORMAT == "url" else "",

@@ -29,6 +29,9 @@ jest.mock('react-i18next', () => ({
 // Setup global fetch mock
 global.fetch = jest.fn()
 
+// Mock scrollIntoView (not available in jsdom)
+Element.prototype.scrollIntoView = jest.fn()
+
 // Reset all mocks after each test
 afterEach(() => {
   jest.clearAllMocks()

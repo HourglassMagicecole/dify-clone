@@ -1779,6 +1779,107 @@ class MessageAgentThought(Base):
             return []
 
     @property
+    def message_files_list(self) -> list[dict[str, Any]]:
+        """Return message files with re-signed URLs for tool files."""
+        if not self.message_files:
+            return []
+
+        try:
+            from mimetypes import guess_extension
+
+            from models.tools import ToolFile
+
+            # Parse MessageFile IDs from JSON
+            message_file_ids = cast(list[str], json.loads(self.message_files))
+            if not message_file_ids:
+                return []
+
+            # Query MessageFile objects
+            message_files = db.session.query(MessageFile).filter(MessageFile.id.in_(message_file_ids)).all()
+
+            # Build file info dictionaries
+            result = []
+            for msg_file in message_files:
+                # Get ToolFile details if upload_file_id exists
+                tool_file = None
+                if msg_file.upload_file_id:
+                    tool_file = db.session.query(ToolFile).filter_by(id=msg_file.upload_file_id).first()
+
+                # Determine file metadata
+                if tool_file:
+                    # Use ToolFile metadata
+                    filename = tool_file.name
+                    mime_type = tool_file.mimetype
+                    size = tool_file.size if tool_file.size > 0 else None
+                    extension = guess_extension(mime_type) or ".bin"
+                    if len(extension) > 10:
+                        extension = ".bin"
+                    tool_file_id = str(tool_file.id)
+                else:
+                    # Fallback: extract from URL
+                    filename = "file"
+                    mime_type = None
+                    size = None
+                    extension = ".bin"
+                    tool_file_id = None
+
+                    if msg_file.url and "." in msg_file.url:
+                        url_parts = msg_file.url.split(".")
+                        if len(url_parts) > 1:
+                            ext_candidate = url_parts[-1].split("?")[0]
+                            if len(ext_candidate) <= 10:
+                                extension = f".{ext_candidate}"
+                                filename = f"file{extension}"
+
+                    # Extract tool file ID from URL for re-signing
+                    if msg_file.url and "/files/tools/" in msg_file.url:
+                        import re
+
+                        match = re.search(r"/files/tools/([\w-]+)", msg_file.url)
+                        if match:
+                            tool_file_id = match.group(1)
+
+                # Generate signed URL
+                if tool_file_id:
+                    signed_url = sign_tool_file(tool_file_id, extension)
+                else:
+                    signed_url = msg_file.url or ""
+
+                # Determine file type
+                file_type = msg_file.type
+                if not file_type and mime_type:
+                    if mime_type.startswith("image/"):
+                        file_type = "image"
+                    elif mime_type.startswith("audio/"):
+                        file_type = "audio"
+                    elif mime_type.startswith("video/"):
+                        file_type = "video"
+                    else:
+                        file_type = "file"
+                elif not file_type:
+                    file_type = "file"
+
+                file_dict = {
+                    "id": str(msg_file.id),
+                    "filename": filename,
+                    "type": file_type,
+                    "url": signed_url,
+                    "mime_type": mime_type,
+                    "size": size,
+                    "transfer_method": msg_file.transfer_method,
+                    "belongs_to": msg_file.belongs_to,
+                    "upload_file_id": msg_file.upload_file_id,
+                }
+                result.append(file_dict)
+
+            return result
+        except Exception as e:
+            import logging
+
+            logging.exception("Error building message_files_list")
+            return []
+
+    @property
     def tools(self) -> list[str]:
         return self.tool.split(";") if self.tool else []
 

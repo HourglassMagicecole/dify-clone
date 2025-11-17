@@ -206,7 +206,12 @@ def compact_generate_response(response: Union[Mapping, Generator, RateLimitGener
         def generate() -> Generator:
             yield from response
 
-        return Response(stream_with_context(generate()), status=200, mimetype="text/event-stream")
+        flask_response = Response(stream_with_context(generate()), status=200, mimetype="text/event-stream")
+        # Prevent buffering by nginx and other proxies
+        flask_response.headers["X-Accel-Buffering"] = "no"
+        flask_response.headers["Cache-Control"] = "no-cache"
+        flask_response.headers["Connection"] = "keep-alive"
+        return flask_response
 
 
 def length_prefixed_response(magic_number: int, response: Union[Mapping, Generator, RateLimitGenerator]) -> Response:

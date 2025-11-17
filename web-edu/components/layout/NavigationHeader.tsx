@@ -93,21 +93,21 @@ export function NavigationHeader() {
 
           {/* Right menu section */}
           <div className="flex items-center gap-4">
-            {/* Admin selector (owner only) - Story 2.2B */}
+            {/* 2-tier selector for Owner: AdminSelector → SessionSelector */}
             {user.actualRole === 'owner' && (
-              <AdminSelector
-                sessions={sessions}
-                selectedAdminId={selectedAdminId}
-                onAdminChange={selectAdmin}
-              />
+              <>
+                <AdminSelector
+                  sessions={sessions}
+                  selectedAdminId={selectedAdminId}
+                  onAdminChange={selectAdmin}
+                />
+                {selectedAdminId && (
+                  <SessionSelector userRole={user.actualRole} />
+                )}
+              </>
             )}
 
-            {/* Session selector (owner, admin, and student) - Story 2.2B */}
-            {/* Owner: selectedAdminId가 있을 때만 SessionSelector 표시 (특정 관리자 선택 시) */}
-            {user.actualRole === 'owner' && selectedAdminId && (
-              <SessionSelector userRole={user.actualRole} />
-            )}
-            {/* Admin and Student: 항상 SessionSelector 표시 */}
+            {/* Single SessionSelector for Admin and Student */}
             {(user.actualRole === 'admin' || user.actualRole === 'student') && (
               <SessionSelector userRole={user.actualRole} />
             )}

@@ -112,6 +112,7 @@ class FunctionCallAgentRunner(BaseAgentRunner):
 
             if isinstance(chunks, Generator):
                 is_first_chunk = True
+                tool_call_detected = False
                 for chunk in chunks:
                     if is_first_chunk:
                         self.queue_manager.publish(
@@ -130,6 +131,25 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                         except TypeError:
                             # fallback: force ASCII to handle non-serializable objects
                             tool_call_inputs = json.dumps({tool_call[1]: tool_call[2] for tool_call in tool_calls})
+
+                        # Publish agent thought event ONCE when tool call is first detected (real-time update)
+                        if not tool_call_detected:
+                            tool_call_detected = True
+                            self.save_agent_thought(
+                                agent_thought_id=agent_thought_id,
+                                tool_name=tool_call_names,
+                                tool_input=tool_call_inputs,
+                                thought="",
+                                tool_invoke_meta=None,
+                                observation=None,
+                                answer="",
+                                messages_ids=[],
+                                llm_usage=current_llm_usage,
+                            )
+                            self.queue_manager.publish(
+                                QueueAgentThoughtEvent(agent_thought_id=agent_thought_id),
+                                PublishFrom.APPLICATION_MANAGER,
+                            )
 
                     if chunk.delta.message and chunk.delta.message.content:
                         if isinstance(chunk.delta.message.content, list):
@@ -234,10 +254,13 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                         "meta": ToolInvokeMeta.error_instance(f"there is not a tool named {tool_call_name}").to_dict(),
                     }
                 else:
+                    # Inject system files into tool parameters
+                    tool_parameters_with_files = self._inject_system_files(tool_instance, tool_call_args)
+
                     # invoke tool
                     tool_invoke_response, message_files, tool_invoke_meta = ToolEngine.agent_invoke(
                         tool=tool_instance,
-                        tool_parameters=tool_call_args,
+                        tool_parameters=tool_parameters_with_files,
                         user_id=self.user_id,
                         tenant_id=self.tenant_id,
                         message=self.message,

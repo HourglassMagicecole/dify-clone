@@ -155,8 +155,8 @@ class ChatMessageApi(Resource):
         if not isinstance(current_user, Account):
             raise Forbidden()
 
-        if not current_user.has_edit_permission:
-            raise Forbidden()
+        # Note: Removed has_edit_permission check to allow Student role to use chat
+        # Students need to interact with Agents for educational purposes
 
         parser = reqparse.RequestParser()
         parser.add_argument("inputs", type=dict, required=True, location="json")
@@ -188,6 +188,9 @@ class ChatMessageApi(Resource):
             raise NotFound("Conversation Not Exists.")
         except services.errors.conversation.ConversationCompletedError:
             raise ConversationCompletedError()
+        except Forbidden:
+            # Re-raise Forbidden as-is (conversation permission check)
+            raise
         except services.errors.app_model_config.AppModelConfigBrokenError:
             logger.exception("App model config broken.")
             raise AppUnavailableError()

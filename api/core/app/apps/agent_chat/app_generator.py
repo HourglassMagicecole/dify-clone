@@ -131,12 +131,32 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
         # `DraftWorkflowNodeRunApi` class which handle this properly.
         files = args.get("files") or []
         file_extra_config = FileUploadConfigManager.convert(override_model_config_dict or app_model_config.to_dict())
-        if file_extra_config:
-            file_objs = file_factory.build_from_mappings(
-                mappings=files,
-                tenant_id=app_model.tenant_id,
-                config=file_extra_config,
-            )
+
+        # Agent mode: Always process files if they exist (for tools like ASR that need files)
+        # Even without file_extra_config, files should be passed to tools
+        if files:
+            if file_extra_config:
+                file_objs = file_factory.build_from_mappings(
+                    mappings=files,
+                    tenant_id=app_model.tenant_id,
+                    config=file_extra_config,
+                )
+            else:
+                # No file upload config, but files exist - create minimal config for Agent tools
+                from core.file import FileUploadConfig, ImageConfig
+                from core.file.enums import FileTransferMethod
+
+                minimal_config = FileUploadConfig(
+                    image_config=ImageConfig(
+                        number_limits=10,
+                        transfer_methods=[FileTransferMethod.LOCAL_FILE, FileTransferMethod.REMOTE_URL],
+                    )
+                )
+                file_objs = file_factory.build_from_mappings(
+                    mappings=files,
+                    tenant_id=app_model.tenant_id,
+                    config=minimal_config,
+                )
         else:
             file_objs = []
 

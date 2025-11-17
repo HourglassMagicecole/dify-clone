@@ -7,6 +7,7 @@ import type { Agent } from '@/types/agent'
 interface AgentTableProps {
   agents: Agent[]
   isLoading?: boolean
+  onChat?: (agent: Agent) => void
   onEdit?: (agent: Agent) => void
   onCopy?: (agent: Agent) => void
   onDelete?: (agent: Agent) => void
@@ -19,6 +20,7 @@ interface AgentTableProps {
 export const AgentTable: FC<AgentTableProps> = ({
   agents,
   isLoading = false,
+  onChat,
   onEdit,
   onCopy,
   onDelete
@@ -107,6 +109,14 @@ export const AgentTable: FC<AgentTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
+                    {onChat && (
+                      <button
+                        onClick={() => onChat(agent)}
+                        className="text-blue-600 hover:text-blue-900 font-semibold"
+                      >
+                        {t('actions.chat')}
+                      </button>
+                    )}
                     {onEdit && (
                       <button
                         onClick={() => onEdit(agent)}

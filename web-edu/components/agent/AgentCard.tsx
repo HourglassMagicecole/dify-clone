@@ -2,6 +2,7 @@
 
 import { useTranslation } from 'react-i18next'
 import {
+  ChatBubbleLeftRightIcon,
   PencilIcon,
   DocumentDuplicateIcon,
   TrashIcon,
@@ -11,6 +12,7 @@ import type { Agent } from '@/types/agent'
 interface AgentCardProps {
   agent: Agent
   onClick?: () => void
+  onChat?: (agentId: string) => void
   onEdit?: (agentId: string) => void
   onDuplicate?: (agentId: string) => void
   onDelete?: (agentId: string) => void
@@ -31,6 +33,7 @@ interface AgentCardProps {
 export function AgentCard({
   agent,
   onClick,
+  onChat,
   onEdit,
   onDuplicate,
   onDelete,
@@ -47,6 +50,13 @@ export function AgentCard({
     if ((e.key === 'Enter' || e.key === ' ') && onClick) {
       e.preventDefault()
       onClick()
+    }
+  }
+
+  const handleChat = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onChat) {
+      onChat(agent.id)
     }
   }
 
@@ -124,8 +134,19 @@ export function AgentCard({
       </div>
 
       {/* Action Buttons */}
-      {(onEdit || onDuplicate || onDelete) && (
+      {(onChat || onEdit || onDuplicate || onDelete) && (
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2">
+          {onChat && (
+            <button
+              type="button"
+              onClick={handleChat}
+              className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600"
+              aria-label={`${agent.name} Agent와 채팅`}
+            >
+              <ChatBubbleLeftRightIcon className="h-4 w-4" />
+              <span>{t('list.actions.chat')}</span>
+            </button>
+          )}
           {onEdit && (
             <button
               type="button"

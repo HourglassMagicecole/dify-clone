@@ -477,6 +477,73 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                 session.query(MessageAgentThought).where(MessageAgentThought.id == event.agent_thought_id).first()
             )
 
+            # Convert file IDs to full file objects with metadata
+            message_files_data: list[dict[str, object]] = []
+            if agent_thought and agent_thought.files:
+                import logging
+
+                from core.tools.tool_file_manager import ToolFileManager
+                from models.model import MessageFile, UploadFile
+
+                logger = logging.getLogger(__name__)
+                logger.info("[DEBUG] agent_thought.files: %s", agent_thought.files)
+
+                # Query MessageFile objects by IDs
+                message_files = session.query(MessageFile).where(MessageFile.id.in_(agent_thought.files)).all()
+                logger.info("[DEBUG] Found %d MessageFile objects", len(message_files))
+
+                for msg_file in message_files:
+                    # Get filename, mime_type, size, extension from UploadFile
+                    filename = None
+                    mime_type = None
+                    size = None
+                    extension = ""
+
+                    if msg_file.upload_file_id:
+                        upload_file = session.query(UploadFile).where(UploadFile.id == msg_file.upload_file_id).first()
+                        logger.info(
+                            "[DEBUG] UploadFile query for %s: %s",
+                            msg_file.upload_file_id, 'Found' if upload_file else 'NOT FOUND'
+                        )
+
+                        if upload_file:
+                            filename = upload_file.name
+                            mime_type = upload_file.mime_type
+                            size = upload_file.size
+                            extension = f".{upload_file.extension}" if upload_file.extension else ""
+                        else:
+                            # UploadFile not found, try to extract extension from URL
+                            import re
+
+                            url_match = re.search(r"\.([a-z0-9]+)(?:\?|$)", msg_file.url or "", re.IGNORECASE)
+                            if url_match:
+                                extension = f".{url_match.group(1)}"
+
+                        # Generate signed URL for tool files (works even without UploadFile)
+                        signed_url = ToolFileManager.sign_file(msg_file.upload_file_id, extension)
+                        logger.info("[DEBUG] Generated signed URL: %s", signed_url)
+                    else:
+                        # No upload_file_id, use original URL
+                        signed_url = msg_file.url
+                        logger.info("[DEBUG] No upload_file_id, using original URL: %s", signed_url)
+
+                    file_data: dict[str, object] = {
+                        "id": msg_file.id,
+                        "type": msg_file.type,
+                        "url": signed_url,
+                        "filename": filename,
+                        "mime_type": mime_type,
+                        "size": size,
+                        "transfer_method": msg_file.transfer_method,
+                        "belongs_to": msg_file.belongs_to,
+                        "upload_file_id": msg_file.upload_file_id,
+                    }
+
+                    logger.info("[DEBUG] MessageFile data: %s", file_data)
+                    message_files_data.append(file_data)
+
+                logger.info("[DEBUG] Total message_files_data: %d", len(message_files_data))
+
         if agent_thought:
             return AgentThoughtStreamResponse(
                 task_id=self._application_generate_entity.task_id,
@@ -487,7 +554,7 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                 tool=agent_thought.tool,
                 tool_labels=agent_thought.tool_labels,
                 tool_input=agent_thought.tool_input,
-                message_files=agent_thought.files,
+                message_files=message_files_data,
             )
 
         return None

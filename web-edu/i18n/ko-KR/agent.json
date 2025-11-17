@@ -331,6 +331,7 @@
     "sortName": "이름순",
     "sortOwner": "소유자순",
     "actions": {
+      "chat": "채팅",
       "edit": "편집",
       "duplicate": "복제",
       "delete": "삭제"
@@ -364,6 +365,7 @@
     "actions": "작업"
   },
   "actions": {
+    "chat": "채팅",
     "edit": "편집",
     "duplicate": "복제",
     "delete": "삭제"

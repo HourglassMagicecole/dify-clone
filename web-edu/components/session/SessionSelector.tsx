@@ -55,9 +55,12 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({ userRole = 'st
     <div className="flex items-center gap-2">
       <select
         value={currentSession?.id || ''}
-        onChange={(e) => selectSession(e.target.value)}
+        onChange={(e) => selectSession(e.target.value || null)}
         className="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
+        {!currentSession && displaySessions.length > 0 && (
+          <option value="">{t('selectSession')}</option>
+        )}
         {displaySessions.map((session) => (
           <option key={session.id} value={session.id}>
             {session.session_name}

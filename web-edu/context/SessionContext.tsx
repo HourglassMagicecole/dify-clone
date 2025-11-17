@@ -114,10 +114,11 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   useEffect(() => {
     if (!authLoading && user && sessions.length > 0 && !currentSession) {
       if (user.actualRole === 'owner') {
-        // Owner: selectedAdminId 설정 + 자신의 첫 번째 세션 선택
+        // Owner: 2-tier selection - 자신을 기본 Admin으로 선택
         if (!selectedAdminId) {
           setSelectedAdminId(user.id)
         }
+        // 자신의 첫 번째 세션 선택
         const ownerSessions = sessions.filter((s) => s.instructor_account_id === user.id)
         if (ownerSessions.length > 0) {
           setCurrentSession(ownerSessions[0]!)

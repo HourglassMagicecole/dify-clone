@@ -9,6 +9,24 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker builds
   output: 'standalone',
 
+  // Image configuration for external sources
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+      },
+      {
+        protocol: 'https',
+        hostname: '*',
+      },
+    ],
+  },
+
   // API rewrites to bypass CORS issues (TECH-002 risk mitigation)
   async rewrites() {
     return [

@@ -47,12 +47,25 @@ export function getRefreshToken(): string | undefined {
 }
 
 /**
- * 토큰 삭제
+ * 토큰 삭제 및 세션 데이터 정리
  */
 export function clearTokens(): void {
   // Cookie 삭제 시 저장 시 사용한 path 옵션을 명시해야 제대로 삭제됨
   Cookies.remove(ACCESS_TOKEN_KEY, { path: '/' })
   Cookies.remove(REFRESH_TOKEN_KEY, { path: '/' })
+
+  // localStorage 세션 데이터 정리
+  localStorage.removeItem('lastSessionId')
+
+  // Agent Wizard draft 정리 (모든 사용자의 draft)
+  const keysToRemove: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith('agent-wizard-draft-')) {
+      keysToRemove.push(key)
+    }
+  }
+  keysToRemove.forEach(key => localStorage.removeItem(key))
 }
 
 /**

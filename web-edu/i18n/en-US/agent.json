@@ -364,6 +364,7 @@
     "actions": "Actions"
   },
   "actions": {
+    "chat": "Chat",
     "edit": "Edit",
     "duplicate": "Duplicate",
     "delete": "Delete"

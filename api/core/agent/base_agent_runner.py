@@ -113,7 +113,11 @@ class BaseAgentRunner(AppRunner):
         model_schema = llm_model.get_model_schema(model_instance.model, model_instance.credentials)
         features = model_schema.features if model_schema and model_schema.features else []
         self.stream_tool_call = ModelFeature.STREAM_TOOL_CALL in features
-        self.files = application_generate_entity.files if ModelFeature.VISION in features else []
+        # Always include files if they exist, regardless of model features
+        # LLM doesn't need to process files directly - tools handle the actual processing
+        # LLM just needs to see files exist to decide which tools to call
+        self.files = application_generate_entity.files
+        logger.info("[DEBUG] Model features: %s, Files count: %d", features, len(self.files))
         self.query: str | None = ""
         self._current_thoughts: list[PromptMessage] = []
 
@@ -526,3 +530,57 @@ class BaseAgentRunner(AppRunner):
         prompt_message_contents.append(TextPromptMessageContent(data=message.query))
 
         return UserPromptMessage(content=prompt_message_contents)
+
+    def _inject_system_files(self, tool: Tool, tool_parameters: dict) -> dict:
+        """
+        Inject uploaded files into system-files type parameters
+
+        :param tool: Tool instance
+        :param tool_parameters: Parameters from LLM tool call
+        :return: Parameters with injected files
+        """
+        # Get tool's runtime parameters
+        runtime_parameters = tool.get_runtime_parameters()
+
+        logger.info("[DEBUG] Injecting files for tool %s, files count: %d", tool.entity.identity.name, len(self.files))
+        logger.info("[DEBUG] Tool parameters before injection: %s", tool_parameters)
+
+        # Find system-files type parameters
+        for param in runtime_parameters:
+            logger.info("[DEBUG] Checking parameter %s, type: %s", param.name, param.type)
+            if param.type == ToolParameter.ToolParameterType.SYSTEM_FILES:
+                # Inject uploaded files into this parameter
+                if self.files and param.name not in tool_parameters:
+                    # Filter files by type based on parameter name
+                    from core.file.enums import FileType
+
+                    param_name_lower = param.name.lower()
+                    filtered_files = []
+
+                    if "audio" in param_name_lower:
+                        # Audio parameter - only inject audio files
+                        filtered_files = [f for f in self.files if f.type == FileType.AUDIO]
+                    elif "image" in param_name_lower or "vision" in param_name_lower:
+                        # Image parameter - only inject image files
+                        filtered_files = [f for f in self.files if f.type == FileType.IMAGE]
+                    elif "video" in param_name_lower:
+                        # Video parameter - only inject video files
+                        filtered_files = [f for f in self.files if f.type == FileType.VIDEO]
+                    else:
+                        # Generic file parameter - inject all files
+                        filtered_files = self.files
+
+                    if filtered_files:
+                        logger.info(
+                            "[DEBUG] Injecting %d files into parameter %s (filtered from %d total files)",
+                            len(filtered_files), param.name, len(self.files)
+                        )
+                        tool_parameters[param.name] = filtered_files
+                    else:
+                        logger.info(
+                            "[DEBUG] No matching files for parameter %s (uploaded: %d files)",
+                            param.name, len(self.files)
+                        )
+
+        logger.info("[DEBUG] Tool parameters after injection: %s", tool_parameters)
+        return tool_parameters

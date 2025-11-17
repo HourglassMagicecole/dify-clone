@@ -12,8 +12,8 @@ description:
   llm: Convert audio file to text.
 parameters:
   - name: audio_file
-    type: file
-    required: true
+    type: system-files
+    required: false
     label:
       en_US: Audio File
       zh_Hans: 音频文件

@@ -140,9 +140,18 @@ class AppService:
                 "completion_params": wizard_config.get("completion_params", {}),
             }
             # Build AppModelConfig-compatible dict
+            configs = wizard_config.get("configs", {})
+            # Enable file upload by default for Agent mode to support tools like ASR
+            if "file_upload" not in configs:
+                configs["file_upload"] = {
+                    "enabled": True,
+                    "allowed_file_types": ["image", "audio", "video", "document"],
+                    "allowed_file_upload_methods": ["local_file", "remote_url"],
+                    "number_limits": 5,
+                }
             default_model_config = {
                 "model": json.dumps(model_dict),
-                "configs": wizard_config.get("configs", {}),
+                "configs": configs,
             }
         else:
             # Use template default
@@ -227,7 +236,7 @@ class AppService:
             if args.get("opening_statement"):
                 app_model_config.opening_statement = args["opening_statement"]
             if args.get("suggested_questions"):
-                app_model_config.suggested_questions_list = args["suggested_questions"]
+                app_model_config.suggested_questions = json.dumps(args["suggested_questions"])
             if args.get("user_input_form"):
                 app_model_config.user_input_form = json.dumps(args["user_input_form"])
             if args.get("agent_mode"):
@@ -470,6 +479,12 @@ class AppService:
 
                             # Build parameter schema with empty values
                             parameters = {}
+                            logger.info(
+                                "[DEBUG] Tool %s has %d parameters: %s",
+                                tool.get("tool_name"),
+                                len(tool_runtime.entity.parameters),
+                                [p.name for p in tool_runtime.entity.parameters],
+                            )
                             for param in tool_runtime.entity.parameters:
                                 parameters[param.name] = ""
 
