@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { promptSettingsSchema, type PromptSettingsFormData } from '@/schemas/agent-schema'
 import { useAgentWizard } from '@/context/AgentWizardContext'
-import type { AgentPromptSettings } from '@/types/agent'
+import type { AgentPromptSettings, UserInputForm } from '@/types/agent'
+import { UserInputFormBuilder } from './UserInputFormBuilder'
+import { InputFieldPreview } from './InputFieldPreview'
 
 /**
  * Step 2: Prompt Configuration Component
@@ -40,6 +42,12 @@ export default function Step2PromptSettings() {
 
   // Check if current mode is chat (for conditional rendering)
   const isChatMode = basicSettings?.mode === 'chat'
+  const isCompletionMode = basicSettings?.mode === 'completion'
+
+  // User input form state (for completion mode)
+  const [userInputFormFields, setUserInputFormFields] = useState<UserInputForm[]>(
+    promptSettings?.user_input_form || []
+  )
 
   // Type assertion needed: TypeScript has trouble inferring array field types when multiple arrays exist in schema
   const {
@@ -54,6 +62,17 @@ export default function Step2PromptSettings() {
   const prePromptValue = watch('pre_prompt')
   const openingStatementValue = watch('opening_statement')
 
+  // Auto-save user_input_form to context
+  useEffect(() => {
+    if (isCompletionMode && isValid) {
+      setPromptSettings({
+        ...promptSettings,
+        user_input_form: userInputFormFields,
+      } as AgentPromptSettings)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userInputFormFields, isCompletionMode, isValid])
+
   // Auto-save to context when form changes
   useEffect(() => {
     const subscription = watch((value) => {
@@ -65,7 +84,16 @@ export default function Step2PromptSettings() {
   }, [watch, isValid, setPromptSettings])
 
   const onSubmit = (data: PromptSettingsFormData) => {
-    setPromptSettings(data)
+    // Include user_input_form in the data
+    const fullData = {
+      ...data,
+      user_input_form: isCompletionMode ? userInputFormFields : undefined,
+    } as AgentPromptSettings
+
+    // eslint-disable-next-line no-console
+    console.log('[Step2] Saving prompt settings with user_input_form:', fullData)
+
+    setPromptSettings(fullData)
     nextStep()
   }
 
@@ -170,6 +198,20 @@ export default function Step2PromptSettings() {
               {t('promptSettings.addQuestionButton')}
             </button>
           )}
+        </div>
+      )}
+
+      {/* User Input Form (Completion mode only) */}
+      {isCompletionMode && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Form Builder */}
+          <UserInputFormBuilder
+            fields={userInputFormFields}
+            onChange={setUserInputFormFields}
+          />
+
+          {/* Right: Preview */}
+          <InputFieldPreview fields={userInputFormFields} />
         </div>
       )}
 

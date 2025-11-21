@@ -5,7 +5,44 @@
     "step2": "프롬프트 구성",
     "step3": "LLM 설정",
     "step4": "도구 구성",
-    "step5": "확인 및 테스트"
+    "step5": "확인 및 테스트",
+    "step2UserInputForm": {
+      "title": "사용자 입력 폼 정의",
+      "addField": "필드 추가",
+      "noFields": "정의된 필드가 없습니다",
+      "noFieldsHint": "작업형 Agent의 입력 필드를 추가하세요",
+      "fieldNumber": "필드 {{number}}",
+      "variableName": "변수명",
+      "label": "라벨",
+      "labelPlaceholder": "필드 라벨을 입력하세요",
+      "inputType": "입력 타입",
+      "required": "필수",
+      "defaultValue": "기본값",
+      "defaultValuePlaceholder": "기본값을 입력하세요 (선택)",
+      "options": "옵션",
+      "optionsPlaceholder": "옵션1, 옵션2, 옵션3",
+      "optionsHelp": "쉼표로 구분하여 입력하세요",
+      "duplicateVariable": "중복된 변수명입니다",
+      "types": {
+        "textInput": "텍스트 입력",
+        "paragraph": "긴 텍스트",
+        "number": "숫자",
+        "select": "선택",
+        "checkbox": "체크박스",
+        "file": "파일 업로드"
+      }
+    },
+    "step2Preview": {
+      "title": "미리보기",
+      "badge": "미리보기",
+      "empty": "정의된 필드가 없으면 미리보기를 볼 수 없습니다",
+      "textPlaceholder": "텍스트를 입력하세요",
+      "paragraphPlaceholder": "내용을 입력하세요",
+      "selectPlaceholder": "옵션을 선택하세요",
+      "filePlaceholder": "파일을 드래그하거나 클릭하세요",
+      "requiredHelp": "필수 입력 항목입니다",
+      "infoMessage": "이 폼은 Agent 실행 시 사용자에게 표시됩니다"
+    }
   },
   "configMode": {
     "title": "설정 방식 선택",
@@ -154,6 +191,90 @@
     "providerRequired": "프로바이더를 선택하세요",
     "modelRequired": "모델을 선택하세요",
     "maxTokensTooLarge": "Max Tokens 값이 모델의 최대값을 초과합니다"
+  },
+  "execute": {
+    "inputForm": {
+      "title": "입력 정보",
+      "description": "Agent 실행에 필요한 정보를 입력하세요",
+      "submit": "실행",
+      "reset": "초기화",
+      "submitting": "실행 중...",
+      "selectPlaceholder": "선택하세요",
+      "validation": {
+        "required": "{{field}}은(는) 필수 입력입니다",
+        "invalidNumber": "{{field}}은(는) 숫자여야 합니다",
+        "maxLength": "{{field}}은(는) 최대 {{maxLength}}자까지 입력 가능합니다"
+      }
+    },
+    "fileUpload": {
+      "dragOrClick": "파일을 드래그하거나 클릭하세요",
+      "dropHere": "여기에 파일을 놓으세요",
+      "maxSize": "최대 15MB",
+      "uploading": "업로드 중...",
+      "success": "파일 업로드 완료",
+      "remove": "삭제",
+      "errors": {
+        "forbiddenType": "이 파일 형식은 보안상 업로드할 수 없습니다",
+        "unsupportedType": "지원하지 않는 파일 형식입니다",
+        "sizeTooLarge": "파일 크기가 너무 큽니다 (최대 {{maxSize}})",
+        "uploadFailed": "파일 업로드 실패: {{error}}"
+      }
+    },
+    "status": {
+      "idle": "대기 중",
+      "running": "실행 중",
+      "success": "성공",
+      "failed": "실패"
+    },
+    "timeline": {
+      "title": "처리 단계",
+      "empty": "Agent 실행 시 처리 단계가 여기에 표시됩니다",
+      "thought": "Agent 사고",
+      "toolCall": "Tool 호출",
+      "input": "입력",
+      "output": "출력",
+      "executionTime": "실행 시간",
+      "whyButton": "Why?"
+    },
+    "result": {
+      "title": "결과",
+      "empty": "Agent 실행 후 결과가 여기에 표시됩니다",
+      "copy": "복사",
+      "copied": "복사됨",
+      "copySuccess": "결과가 복사되었습니다",
+      "copyError": "복사 실패",
+      "retry": "다시 입력",
+      "retrying": "재시도 중...",
+      "metrics": {
+        "title": "메트릭",
+        "tokens": "토큰",
+        "cost": "비용",
+        "time": "시간",
+        "promptTokens": "P",
+        "completionTokens": "C",
+        "llmTime": "LLM",
+        "toolTime": "Tool",
+        "pricing": "기준"
+      }
+    },
+    "history": {
+      "title": "실행 내역",
+      "empty": "실행 내역이 없습니다",
+      "columns": {
+        "time": "실행 시간",
+        "inputs": "입력",
+        "status": "상태",
+        "tokens": "토큰",
+        "cost": "비용",
+        "executionTime": "시간",
+        "actions": "액션"
+      },
+      "rerun": "재실행",
+      "pagination": {
+        "previous": "이전",
+        "next": "다음"
+      }
+    }
   },
   "toasts": {
     "agentCreated": "Agent가 성공적으로 생성되었습니다",
@@ -332,6 +453,7 @@
     "sortOwner": "소유자순",
     "actions": {
       "chat": "채팅",
+      "execute": "실행",
       "edit": "편집",
       "duplicate": "복제",
       "delete": "삭제"
@@ -369,5 +491,16 @@
     "edit": "편집",
     "duplicate": "복제",
     "delete": "삭제"
+  },
+  "execute": {
+    "inputForm": {
+      "title": "입력 정보"
+    },
+    "status": {
+      "idle": "대기 중",
+      "running": "실행 중",
+      "success": "성공",
+      "failed": "실패"
+    }
   }
 }

@@ -114,7 +114,9 @@ export const AgentTable: FC<AgentTableProps> = ({
                         onClick={() => onChat(agent)}
                         className="text-blue-600 hover:text-blue-900 font-semibold"
                       >
-                        {t('actions.chat')}
+                        {agent.mode === 'completion' || (agent.user_input_form && agent.user_input_form.length > 0)
+                          ? t('list.actions.execute')
+                          : t('list.actions.chat')}
                       </button>
                     )}
                     {onEdit && (
@@ -122,7 +124,7 @@ export const AgentTable: FC<AgentTableProps> = ({
                         onClick={() => onEdit(agent)}
                         className="text-blue-600 hover:text-blue-900"
                       >
-                        {t('actions.edit')}
+                        {t('list.actions.edit')}
                       </button>
                     )}
                     {onCopy && (
@@ -130,7 +132,7 @@ export const AgentTable: FC<AgentTableProps> = ({
                         onClick={() => onCopy(agent)}
                         className="text-green-600 hover:text-green-900"
                       >
-                        {t('actions.duplicate')}
+                        {t('list.actions.duplicate')}
                       </button>
                     )}
                     {onDelete && (
@@ -138,7 +140,7 @@ export const AgentTable: FC<AgentTableProps> = ({
                         onClick={() => onDelete(agent)}
                         className="text-red-600 hover:text-red-900"
                       >
-                        {t('actions.delete')}
+                        {t('list.actions.delete')}
                       </button>
                     )}
                   </div>

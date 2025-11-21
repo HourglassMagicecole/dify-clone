@@ -5,7 +5,44 @@
     "step2": "Prompt Configuration",
     "step3": "LLM Settings",
     "step4": "Tools Configuration",
-    "step5": "Review & Test"
+    "step5": "Review & Test",
+    "step2UserInputForm": {
+      "title": "Define User Input Form",
+      "addField": "Add Field",
+      "noFields": "No fields defined",
+      "noFieldsHint": "Add input fields for your task-based Agent",
+      "fieldNumber": "Field {{number}}",
+      "variableName": "Variable Name",
+      "label": "Label",
+      "labelPlaceholder": "Enter field label",
+      "inputType": "Input Type",
+      "required": "Required",
+      "defaultValue": "Default Value",
+      "defaultValuePlaceholder": "Enter default value (optional)",
+      "options": "Options",
+      "optionsPlaceholder": "Option1, Option2, Option3",
+      "optionsHelp": "Separate with commas",
+      "duplicateVariable": "Duplicate variable name",
+      "types": {
+        "textInput": "Text Input",
+        "paragraph": "Paragraph",
+        "number": "Number",
+        "select": "Select",
+        "checkbox": "Checkbox",
+        "file": "File Upload"
+      }
+    },
+    "step2Preview": {
+      "title": "Preview",
+      "badge": "Preview",
+      "empty": "No preview available without defined fields",
+      "textPlaceholder": "Enter text",
+      "paragraphPlaceholder": "Enter content",
+      "selectPlaceholder": "Select an option",
+      "filePlaceholder": "Drag and drop or click to upload",
+      "requiredHelp": "This field is required",
+      "infoMessage": "This form will be shown to users when executing the Agent"
+    }
   },
   "configMode": {
     "title": "Choose Configuration Method",
@@ -154,6 +191,90 @@
     "providerRequired": "Please select a provider",
     "modelRequired": "Please select a model",
     "maxTokensTooLarge": "Max Tokens exceeds the model's maximum value"
+  },
+  "execute": {
+    "inputForm": {
+      "title": "Input Form",
+      "description": "Enter the information required to execute the Agent",
+      "submit": "Execute",
+      "reset": "Reset",
+      "submitting": "Executing...",
+      "selectPlaceholder": "Select an option",
+      "validation": {
+        "required": "{{field}} is required",
+        "invalidNumber": "{{field}} must be a number",
+        "maxLength": "{{field}} must not exceed {{maxLength}} characters"
+      }
+    },
+    "fileUpload": {
+      "dragOrClick": "Drag and drop or click to upload",
+      "dropHere": "Drop the file here",
+      "maxSize": "Max 15MB",
+      "uploading": "Uploading...",
+      "success": "File uploaded successfully",
+      "remove": "Remove",
+      "errors": {
+        "forbiddenType": "This file type is not allowed for security reasons",
+        "unsupportedType": "Unsupported file type",
+        "sizeTooLarge": "File size is too large (max {{maxSize}})",
+        "uploadFailed": "File upload failed: {{error}}"
+      }
+    },
+    "status": {
+      "idle": "Idle",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed"
+    },
+    "timeline": {
+      "title": "Processing Steps",
+      "empty": "Processing steps will appear here during agent execution",
+      "thought": "Agent Thought",
+      "toolCall": "Tool Call",
+      "input": "Input",
+      "output": "Output",
+      "executionTime": "Execution Time",
+      "whyButton": "Why?"
+    },
+    "result": {
+      "title": "Result",
+      "empty": "Results will appear here after agent execution",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copySuccess": "Result copied to clipboard",
+      "copyError": "Failed to copy",
+      "retry": "Edit Input",
+      "retrying": "Retrying...",
+      "metrics": {
+        "title": "Metrics",
+        "tokens": "Tokens",
+        "cost": "Cost",
+        "time": "Time",
+        "promptTokens": "P",
+        "completionTokens": "C",
+        "llmTime": "LLM",
+        "toolTime": "Tool",
+        "pricing": "Pricing"
+      }
+    },
+    "history": {
+      "title": "Execution History",
+      "empty": "No execution history",
+      "columns": {
+        "time": "Time",
+        "inputs": "Inputs",
+        "status": "Status",
+        "tokens": "Tokens",
+        "cost": "Cost",
+        "executionTime": "Time",
+        "actions": "Actions"
+      },
+      "rerun": "Rerun",
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next"
+      }
+    }
   },
   "toasts": {
     "agentCreated": "Agent created successfully",
@@ -331,6 +452,8 @@
     "sortName": "Name",
     "sortOwner": "Owner",
     "actions": {
+      "chat": "Chat",
+      "execute": "Execute",
       "edit": "Edit",
       "duplicate": "Duplicate",
       "delete": "Delete"
@@ -368,5 +491,16 @@
     "edit": "Edit",
     "duplicate": "Duplicate",
     "delete": "Delete"
+  },
+  "execute": {
+    "inputForm": {
+      "title": "Input Information"
+    },
+    "status": {
+      "idle": "Idle",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed"
+    }
   }
 }

@@ -75,6 +75,7 @@ export interface Agent {
   created_by?: string
   updated_by?: string
   author_name?: string         // Creator's name (for Administrator view)
+  user_input_form?: UserInputForm[]  // Task-based agent input form (from model_config)
 }
 
 /**
@@ -83,7 +84,7 @@ export interface Agent {
 export interface UserInputForm {
   variable: string                    // Variable name (e.g., "query")
   label: string                       // Display label
-  input_type: 'text-input' | 'paragraph' | 'select' | 'number'
+  input_type: 'text-input' | 'paragraph' | 'select' | 'number' | 'checkbox' | 'file'
   required: boolean
   max_length?: number
   options?: string[]                  // For select type only
@@ -350,4 +351,100 @@ export interface UpdateAgentRequest {
       tool_parameters: Record<string, unknown>
     }>
   }
+}
+
+/**
+ * Story 2.5: Task-based Agent Execution Interface Types
+ */
+
+/**
+ * Agent execution status
+ */
+export type ExecutionStatus = 'idle' | 'running' | 'success' | 'failed'
+
+/**
+ * Agent thought (tool execution step)
+ */
+export interface AgentThought {
+  id: string
+  thought: string                     // Agent's reasoning
+  tool: string | null                 // Tool name
+  tool_input: Record<string, unknown> // Tool input parameters
+  tool_output: string | null          // Tool output
+  observation: string                 // Observation from tool execution
+  created_at: number                  // Unix timestamp (milliseconds)
+}
+
+/**
+ * Token usage information
+ */
+export interface TokenUsage {
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  latency?: number                    // LLM execution time in seconds (from Backend)
+  cost?: number                       // USD (calculated on frontend)
+}
+
+/**
+ * Execution time breakdown
+ */
+export interface ExecutionTime {
+  total: number                       // Total execution time (ms)
+  tool: number                        // Tool execution time (ms)
+  llm: number                         // LLM execution time (ms)
+}
+
+/**
+ * Agent execution state
+ */
+export interface ExecutionState {
+  status: ExecutionStatus
+  currentInputs: Record<string, unknown> // Current form input values
+  result: string | null               // Execution result
+  error: string | null                // Error message
+  agentThoughts: AgentThought[]       // Agent reasoning steps
+  tokenUsage: TokenUsage | null       // Token usage
+  executionTime: ExecutionTime | null // Execution time
+}
+
+/**
+ * Agent execution request payload
+ */
+export interface AgentExecutionRequest {
+  inputs: Record<string, unknown>     // user_input_form values
+  response_mode: 'blocking' | 'streaming' // completion mode
+  files?: Array<{
+    type: string
+    transfer_method: string
+    url: string
+  }>
+}
+
+/**
+ * Streaming callbacks for agent execution
+ */
+export interface AgentExecutionCallbacks {
+  onThought?: (thought: AgentThought) => void
+  onMessage?: (message: string) => void
+  onComplete?: (result: AgentExecutionResponse) => void
+  onError?: (error: Error) => void
+}
+
+/**
+ * Agent execution response
+ */
+export interface AgentExecutionResponse {
+  task_id: string
+  workflow_run_id: string
+  data: {
+    id: string
+    answer: string                    // Final result
+    metadata: {
+      usage: TokenUsage
+      retriever_resources: unknown[]
+    }
+    created_at: number
+  }
+  agent_thoughts: AgentThought[]      // Tool execution history
 }

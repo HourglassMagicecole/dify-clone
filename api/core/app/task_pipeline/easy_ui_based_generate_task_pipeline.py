@@ -503,7 +503,8 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                         upload_file = session.query(UploadFile).where(UploadFile.id == msg_file.upload_file_id).first()
                         logger.info(
                             "[DEBUG] UploadFile query for %s: %s",
-                            msg_file.upload_file_id, 'Found' if upload_file else 'NOT FOUND'
+                            msg_file.upload_file_id,
+                            "Found" if upload_file else "NOT FOUND",
                         )
 
                         if upload_file:

@@ -3,6 +3,7 @@
 import { useTranslation } from 'react-i18next'
 import {
   ChatBubbleLeftRightIcon,
+  PlayIcon,
   PencilIcon,
   DocumentDuplicateIcon,
   TrashIcon,
@@ -39,6 +40,9 @@ export function AgentCard({
   onDelete,
 }: AgentCardProps) {
   const { t } = useTranslation('agent')
+
+  // Determine if this is a task-based agent (completion mode or has user_input_form)
+  const isTaskBasedAgent = agent.mode === 'completion' || (agent.user_input_form && agent.user_input_form.length > 0)
 
   const handleClick = () => {
     if (onClick) {
@@ -141,10 +145,19 @@ export function AgentCard({
               type="button"
               onClick={handleChat}
               className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600"
-              aria-label={`${agent.name} Agent와 채팅`}
+              aria-label={isTaskBasedAgent ? `${agent.name} Agent 실행` : `${agent.name} Agent와 채팅`}
             >
-              <ChatBubbleLeftRightIcon className="h-4 w-4" />
-              <span>{t('list.actions.chat')}</span>
+              {isTaskBasedAgent ? (
+                <>
+                  <PlayIcon className="h-4 w-4" />
+                  <span>{t('list.actions.execute')}</span>
+                </>
+              ) : (
+                <>
+                  <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                  <span>{t('list.actions.chat')}</span>
+                </>
+              )}
             </button>
           )}
           {onEdit && (

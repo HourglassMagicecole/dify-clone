@@ -18,6 +18,7 @@ import {
   CreateAppRequest,
   AgentType,
   SelectedTool,
+  UserInputForm,
 } from '@/types/agent'
 import { useAuth } from '@/hooks/useAuth'
 import { useSession } from '@/context/SessionContext'
@@ -244,6 +245,28 @@ export function AgentWizardProvider({
 
           const enrichedTools = await enrichToolsWithI18n(modelConfig.agent_mode?.tools || [])
 
+          // Extract user_input_form from model_config (Backend stores it there)
+          const backendUserInputForm = modelConfig.user_input_form
+            || agentData.user_input_form
+            || []
+
+          // Transform Backend format to Frontend format
+          // Backend: [{ "text-input": { label, variable, required } }]
+          // Frontend: [{ variable, label, input_type, required }]
+          const userInputForm = (backendUserInputForm as Array<Record<string, unknown>>).map((item) => {
+            const inputType = Object.keys(item)[0]
+            if (!inputType) return null
+            const fieldData = item[inputType] as Record<string, unknown>
+            return {
+              variable: (fieldData.variable as string) || '',
+              label: (fieldData.label as string) || '',
+              input_type: inputType,
+              required: (fieldData.required as boolean) || false,
+              default_value: (fieldData.default as string) || '',
+              ...(fieldData.options ? { options: fieldData.options as string[] } : {}),
+            }
+          }).filter(Boolean) as UserInputForm[]
+
           // Map Agent data to wizard state
           setState(prev => ({
             ...prev,
@@ -260,7 +283,7 @@ export function AgentWizardProvider({
             promptSettings: {
               pre_prompt: prePrompt || '',
               prompt_type: 'simple',
-              user_input_form: agentData.user_input_form || [],
+              user_input_form: userInputForm,
               opening_statement: agentData.opening_statement,
               suggested_questions: agentData.suggested_questions || [],
             },
@@ -506,12 +529,23 @@ export function AgentWizardProvider({
         await agentAPI.updateAgent(initialAgentId, basicInfoPayload)
 
         // Step 2: Update model config (LLM settings, prompts, tools)
+        // Transform user_input_form to Backend format
+        const transformedUserInputForm = (state.promptSettings.user_input_form || []).map(field => ({
+          [field.input_type]: {
+            label: field.label,
+            variable: field.variable,
+            required: field.required,
+            default: field.default_value || '',
+            ...(field.options && { options: field.options }),
+          },
+        }))
+
         const modelConfigPayload = {
           pre_prompt: state.promptSettings.pre_prompt,
           prompt_type: state.promptSettings.prompt_type || 'simple',
           chat_prompt_config: {},
           completion_prompt_config: {},
-          user_input_form: state.promptSettings.user_input_form || [],
+          user_input_form: transformedUserInputForm,
           opening_statement: state.promptSettings.opening_statement || '',
           suggested_questions: state.promptSettings.suggested_questions || [],
           model: {
@@ -522,8 +556,8 @@ export function AgentWizardProvider({
           },
         }
 
-        // Add agent_mode for tools
-        if (state.basicSettings.tool_enabled && state.toolsConfig.tools.length > 0) {
+        // Add agent_mode for tools (automatically enabled if tools exist)
+        if (state.toolsConfig.tools.length > 0) {
           // Don't filter by enabled - send all tools in toolsConfig
           // enabled property might be undefined for some tools
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -546,6 +580,17 @@ export function AgentWizardProvider({
         showToast(t('toasts.agentUpdated'), 'success')
       } else {
         // Create mode: Create new agent
+        // Transform user_input_form to Backend format
+        const transformedUserInputFormCreate = (state.promptSettings.user_input_form || []).map(field => ({
+          [field.input_type]: {
+            label: field.label,
+            variable: field.variable,
+            required: field.required,
+            default: field.default_value || '',
+            ...(field.options && { options: field.options }),
+          },
+        }))
+
         const createAppPayload: CreateAppRequest = {
           name: state.basicSettings.name,
           description: state.basicSettings.description || '',
@@ -565,11 +610,14 @@ export function AgentWizardProvider({
           pre_prompt: state.promptSettings.pre_prompt,
           opening_statement: state.promptSettings.opening_statement,
           suggested_questions: state.promptSettings.suggested_questions || [],
-          user_input_form: state.promptSettings.user_input_form,
+          user_input_form: transformedUserInputFormCreate as unknown as typeof state.promptSettings.user_input_form,
         }
 
-        // Add agent_mode for agent-chat type (with tools)
-        if (state.basicSettings.tool_enabled && state.toolsConfig.tools.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log('[AgentWizard] Creating agent with payload:', JSON.stringify(createAppPayload, null, 2))
+
+        // Add agent_mode for agent-chat type (automatically enabled if tools exist)
+        if (state.toolsConfig.tools.length > 0) {
           createAppPayload.agent_mode = {
             enabled: true,
             strategy: 'function_call',
@@ -593,6 +641,32 @@ export function AgentWizardProvider({
 
         agentId = response.data.id
         showToast(t('toasts.agentCreated'), 'success')
+
+        // Create API Token for new agent (required for execution)
+        try {
+          // eslint-disable-next-line no-console
+          console.log('[AgentWizard] Creating API Token for agent:', agentId)
+
+          const apiKeys = await agentAPI.getAppApiKeys(agentId)
+
+          // eslint-disable-next-line no-console
+          console.log('[AgentWizard] Current API keys:', apiKeys)
+
+          // Only create if no API keys exist
+          if (!apiKeys || apiKeys.length === 0) {
+            // Create API Token using agentAPI's new method
+            const createdKey = await agentAPI.createAppApiKey(agentId)
+
+            // eslint-disable-next-line no-console
+            console.log('[AgentWizard] API Token created successfully:', createdKey.id)
+          } else {
+            // eslint-disable-next-line no-console
+            console.log('[AgentWizard] API Token already exists')
+          }
+        } catch (apiKeyError) {
+          console.error('[AgentWizard] Failed to create API Token:', apiKeyError)
+          // Don't fail the whole operation, just log the error
+        }
       }
 
       // 6. Success handling

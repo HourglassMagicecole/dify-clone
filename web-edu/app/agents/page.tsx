@@ -80,7 +80,16 @@ export default function AgentsPage() {
   }
 
   const handleChat = (agentId: string) => {
-    router.push(`/agents/${agentId}/chat`)
+    // Check if agent is task-based (completion mode or has user_input_form)
+    const agent = agents.find(a => a.id === agentId)
+    if (agent?.mode === 'completion' || (agent?.user_input_form && agent.user_input_form.length > 0)) {
+      // Task-based agent → execute page
+      router.push(`/agents/${agentId}/execute`)
+    }
+    else {
+      // Conversational agent → chat page
+      router.push(`/agents/${agentId}/chat`)
+    }
   }
 
   const handleEdit = (agentId: string) => {
@@ -117,7 +126,15 @@ export default function AgentsPage() {
   }
 
   const handleChatAgent = (agent: Agent) => {
-    router.push(`/agents/${agent.id}/chat`)
+    // Check if agent is task-based (completion mode or has user_input_form)
+    if (agent.mode === 'completion' || (agent.user_input_form && agent.user_input_form.length > 0)) {
+      // Task-based agent → execute page
+      router.push(`/agents/${agent.id}/execute`)
+    }
+    else {
+      // Conversational agent → chat page
+      router.push(`/agents/${agent.id}/chat`)
+    }
   }
 
   const handleEditAgent = (agent: Agent) => {

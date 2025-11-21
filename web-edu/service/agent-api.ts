@@ -11,6 +11,12 @@ import {
   GetAgentsResponse,
   AgentBasicSettings,
   UpdateAgentRequest,
+  AgentExecutionRequest,
+  AgentExecutionResponse,
+  AgentExecutionCallbacks,
+  AgentThought,
+  TokenUsage,
+  UserInputForm,
 } from '@/types/agent'
 import type {
   CompletionChunk,
@@ -118,16 +124,32 @@ export class AgentAPIService {
       throw new Error(response.message || 'Failed to fetch agents')
     }
 
+    // Helper function to extract user_input_form from model_config
+    const extractUserInputForm = (agent: Agent): Agent => {
+      // Extract user_input_form from model_config if it exists
+      const modelConfig = agent.model_config as unknown as Record<string, unknown>
+      if (modelConfig?.user_input_form) {
+        return {
+          ...agent,
+          user_input_form: modelConfig.user_input_form as UserInputForm[],
+        }
+      }
+      return agent
+    }
+
     // getDifyNative wraps the response, so response.data is already GetAgentsResponse
     // Check if response.data has the pagination structure
     if ('data' in response.data && Array.isArray(response.data.data)) {
-      // Backend pagination response
-      return response.data as GetAgentsResponse
+      // Backend pagination response - map agents to extract user_input_form
+      return {
+        ...response.data,
+        data: response.data.data.map(extractUserInputForm),
+      } as GetAgentsResponse
     }
 
     // Fallback for old format (shouldn't happen)
     return {
-      data: Array.isArray(response.data) ? response.data : [],
+      data: Array.isArray(response.data) ? response.data.map(extractUserInputForm) : [],
       total: Array.isArray(response.data) ? response.data.length : 0,
       page: 1,
       limit: 20,
@@ -427,6 +449,7 @@ export class AgentAPIService {
 
       // If we reach here without message_end, consider it complete
       if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
         console.log('[STREAMING DEBUG] Stream ended without message_end event')
       }
       onComplete({ success: true, conversationId: receivedConversationId, messageId: receivedMessageId })
@@ -607,6 +630,516 @@ export class AgentAPIService {
 
     if (!response.ok) {
       throw new Error('Failed to delete conversation')
+    }
+  }
+
+  /**
+   * Get API Keys for an Agent
+   * Uses Console API to retrieve the agent's API tokens
+   */
+  async getAppApiKeys(appId: string): Promise<Array<{
+    id: string
+    type: string
+    token: string
+    last_used_at: string | null
+    created_at: string
+  }>> {
+    const response = await apiClient.getDifyNative<Array<{
+      id: string
+      type: string
+      token: string
+      last_used_at: string | null
+      created_at: string
+    }>>(`/console/api/apps/${appId}/api-keys`)
+
+    if (response.result !== 'success' || !response.data) {
+      throw new Error(response.message || 'Failed to fetch API keys')
+    }
+
+    // response.data is already the array (getDifyNative extracts json.data)
+    return response.data
+  }
+
+  /**
+   * Create API Key for an Agent
+   * Uses Console API to create a new API token
+   */
+  async createAppApiKey(appId: string): Promise<{
+    id: string
+    type: string
+    token: string
+    last_used_at: string | null
+    created_at: string
+  }> {
+    const response = await apiClient.postDifyNative<{
+      id: string
+      type: string
+      token: string
+      last_used_at: string | null
+      created_at: string
+    }>(`/console/api/apps/${appId}/api-keys`, {})
+
+    if (response.result !== 'success' || !response.data) {
+      throw new Error(response.message || 'Failed to create API key')
+    }
+
+    return response.data
+  }
+
+  /**
+   * Upload a single file for task-based agent execution (Task 8.2)
+   * Returns file information for use in AgentExecutionRequest
+   */
+  async uploadFile(file: File): Promise<{
+    id: string
+    name: string
+    type: string
+    size: number
+    url: string
+  }> {
+    // Sanitize filename
+    const sanitizedFilename = sanitizeFilename(file.name)
+    const sanitizedFile = new File([file], sanitizedFilename, { type: file.type })
+
+    const formData = new FormData()
+    formData.append('file', sanitizedFile)
+
+    // Prepare headers
+    const headers: HeadersInit = {}
+    const token = getAccessToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${this.apiBaseUrl}/v1/files/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`File upload failed: ${errorText}`)
+    }
+
+    const data = await response.json()
+
+    return {
+      id: data.id,
+      name: data.name || file.name,
+      type: data.mime_type || file.type,
+      size: data.size || file.size,
+      url: data.url || `/files/${data.id}`,
+    }
+  }
+
+  /**
+   * Execute task-based agent with blocking or streaming mode
+   * Supports both blocking and streaming response modes
+   *
+   * @param agentId - Agent ID
+   * @param request - Execution request with inputs and files
+   * @param callbacks - Optional callbacks for streaming mode
+   * @returns Agent execution response with result and agent_thoughts (blocking mode only)
+   */
+  async executeAgent(
+    agentId: string,
+    request: AgentExecutionRequest,
+    callbacks?: AgentExecutionCallbacks
+  ): Promise<AgentExecutionResponse | void> {
+    try {
+      // Get agent info and API keys
+      const agent = await this.getAgent(agentId)
+      const apiKeys = await this.getAppApiKeys(agentId)
+
+      // eslint-disable-next-line no-console
+      console.log('[executeAgent] Agent data:', {
+        id: agent.id,
+        mode: agent.mode,
+        enable_api: (agent as unknown as { enable_api?: boolean }).enable_api,
+      })
+
+      // eslint-disable-next-line no-console
+      console.log('[executeAgent] API keys:', apiKeys.length > 0 ? `Found ${apiKeys.length} key(s)` : 'No keys found')
+
+      // Use the first (or most recently used) API token
+      if (apiKeys.length === 0 || !apiKeys[0]) {
+        throw new Error('Agent API token not found. Make sure the agent has API access enabled.')
+      }
+
+      const apiToken = apiKeys[0].token
+
+      // eslint-disable-next-line no-console
+      console.log('[executeAgent] Using API token:', `${apiToken.substring(0, 10)}...`)
+
+      // Determine endpoint based on agent mode
+      const agentMode = agent.mode
+      const endpoint = agentMode === 'completion'
+        ? `${this.apiBaseUrl}/v1/completion-messages`
+        : `${this.apiBaseUrl}/v1/chat-messages`
+
+      // Prepare request body based on mode
+      const requestBody: Record<string, unknown> = {
+        response_mode: request.response_mode, // Support both blocking and streaming
+        files: request.files || [],
+        user: 'web-edu-user', // Required by Dify API
+      }
+
+      // Chat API requires 'query' field, Completion API uses 'inputs'
+      if (agentMode === 'completion') {
+        requestBody.inputs = request.inputs
+      } else {
+        // agent-chat or chat mode: need both query and inputs
+        // Combine all input values as query message
+        const inputValues = Object.values(request.inputs).filter(v => v !== null && v !== undefined)
+        requestBody.query = inputValues.length > 0 ? String(inputValues[0]) : ''
+        requestBody.inputs = request.inputs
+      }
+
+      // Prepare headers
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiToken}`,
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('[executeAgent] Request body:', requestBody)
+      // eslint-disable-next-line no-console
+      console.log('[executeAgent] Request headers:', { ...headers, Authorization: `Bearer ${apiToken.substring(0, 10)}...` })
+
+      // Log request for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        // Development logging for debugging
+        // eslint-disable-next-line no-console
+        console.log('[executeAgent] Request:', {
+          agentId,
+          mode: agentMode,
+          endpoint,
+          inputs: request.inputs,
+          filesCount: request.files?.length || 0,
+        })
+      }
+
+      // Call Dify Agent API
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      })
+
+      // Enhanced error handling (Task 8.3)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+
+        // User-friendly error messages
+        let userMessage = ''
+        switch (response.status) {
+          case 400:
+            userMessage = `입력 오류: ${errorData.message || '잘못된 요청입니다'}`
+            break
+          case 401:
+            userMessage = '인증 오류: 로그인이 필요합니다'
+            break
+          case 403:
+            userMessage = '권한 오류: 이 Agent를 실행할 권한이 없습니다'
+            break
+          case 404:
+            userMessage = 'Agent를 찾을 수 없습니다'
+            break
+          case 429:
+            userMessage = '요청 한도 초과: 잠시 후 다시 시도해주세요'
+            break
+          case 500:
+            userMessage = '서버 오류: Agent 실행 중 오류가 발생했습니다'
+            break
+          case 504:
+            userMessage = 'Agent 응답 시간 초과 (60초)'
+            break
+          default:
+            userMessage = `알 수 없는 오류 (${response.status}): ${errorData.message || response.statusText}`
+        }
+
+        // Log error for monitoring (Task 8.3)
+        if (process.env.NODE_ENV === 'production') {
+          // Production error logging for monitoring
+          console.error('[executeAgent] Error:', {
+            agentId,
+            userId: apiToken ? 'authenticated' : 'anonymous',
+            inputs: request.inputs,
+            status: response.status,
+            error: errorData,
+            timestamp: new Date().toISOString(),
+          })
+        }
+
+        throw new Error(userMessage)
+      }
+
+      // Handle streaming mode
+      if (request.response_mode === 'streaming') {
+        return this.handleStreamingResponse(response, callbacks)
+      }
+
+      // Handle blocking mode
+      const data = await response.json()
+
+      // Validate agent_thoughts (Task 8.4)
+      if (data.agent_thoughts) {
+        data.agent_thoughts.forEach((thought: unknown, index: number) => {
+          const t = thought as Record<string, unknown>
+          if (!t.id) {
+            console.warn(`[executeAgent] Thought ${index} missing ID`)
+          }
+          if (t.tool && !t.tool_input) {
+            console.warn(`[executeAgent] Tool ${t.tool} missing input`)
+          }
+        })
+      }
+
+      // Map response to AgentExecutionResponse
+      return {
+        task_id: data.task_id || '',
+        workflow_run_id: data.workflow_run_id || '',
+        data: {
+          id: data.id || data.message_id || '',
+          answer: data.answer || '',
+          metadata: {
+            usage: {
+              prompt_tokens: data.metadata?.usage?.prompt_tokens || 0,
+              completion_tokens: data.metadata?.usage?.completion_tokens || 0,
+              total_tokens: data.metadata?.usage?.total_tokens || 0,
+              latency: data.metadata?.usage?.latency, // Include latency from Backend
+            },
+            retriever_resources: data.metadata?.retriever_resources || [],
+          },
+          created_at: data.created_at || Date.now(),
+        },
+        agent_thoughts: data.agent_thoughts || [],
+      }
+    }
+    catch (error) {
+      // Re-throw with context
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error(`Agent 실행 실패: ${String(error)}`)
+    }
+  }
+
+  /**
+   * Handle streaming response from agent execution
+   * Processes SSE events and invokes callbacks
+   */
+  private async handleStreamingResponse(
+    response: Response,
+    callbacks?: AgentExecutionCallbacks
+  ): Promise<void> {
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+
+    if (!reader) {
+      throw new Error('No response body')
+    }
+
+    let buffer = ''
+    let finalAnswer = ''
+    const agentThoughts: AgentThought[] = []
+    let tokenUsage: TokenUsage | null = null
+    let messageId = ''
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith('data: ')) continue
+
+          try {
+            const data = JSON.parse(line.slice(6)) as Record<string, unknown>
+
+            // Handle different event types
+            switch (data.event) {
+              case 'agent_thought':
+                // Agent thought event
+                {
+                  const thought: AgentThought = {
+                    id: String(data.id || Date.now()),
+                    thought: String(data.thought || ''),
+                    tool: data.tool ? String(data.tool) : null,
+                    tool_input: (data.tool_input as Record<string, unknown>) || {},
+                    tool_output: data.observation ? String(data.observation) : null,
+                    observation: String(data.observation || ''),
+                    created_at: Number(data.created_at || Date.now()),
+                  }
+                  agentThoughts.push(thought)
+                  callbacks?.onThought?.(thought)
+                }
+                break
+
+              case 'agent_message':
+              case 'message':
+                // Message chunk
+                if (data.answer) {
+                  const chunk = String(data.answer)
+                  finalAnswer += chunk
+                  callbacks?.onMessage?.(chunk)
+                }
+                if (data.id) {
+                  messageId = String(data.id)
+                }
+                break
+
+              case 'message_end':
+                // Final event with metadata
+                if (data.metadata) {
+                  const metadata = data.metadata as Record<string, unknown>
+                  const usage = metadata.usage as Record<string, unknown> | undefined
+                  if (usage) {
+                    tokenUsage = {
+                      prompt_tokens: Number(usage.prompt_tokens || 0),
+                      completion_tokens: Number(usage.completion_tokens || 0),
+                      total_tokens: Number(usage.total_tokens || 0),
+                      latency: usage.latency ? Number(usage.latency) : undefined,
+                    }
+                  }
+                }
+
+                // Call onComplete callback
+                if (callbacks?.onComplete) {
+                  callbacks.onComplete({
+                    task_id: String(data.task_id || ''),
+                    workflow_run_id: String(data.workflow_run_id || ''),
+                    data: {
+                      id: messageId,
+                      answer: finalAnswer,
+                      metadata: {
+                        usage: tokenUsage || {
+                          prompt_tokens: 0,
+                          completion_tokens: 0,
+                          total_tokens: 0,
+                        },
+                        retriever_resources: [],
+                      },
+                      created_at: Date.now(),
+                    },
+                    agent_thoughts: agentThoughts,
+                  })
+                }
+                return
+
+              case 'error':
+                throw new Error(String(data.message || 'Unknown error'))
+            }
+          }
+          catch (parseError) {
+            console.warn('[handleStreamingResponse] Failed to parse SSE line:', line, parseError)
+          }
+        }
+      }
+
+      // If we reach here without message_end, still call onComplete
+      if (callbacks?.onComplete) {
+        callbacks.onComplete({
+          task_id: '',
+          workflow_run_id: '',
+          data: {
+            id: messageId,
+            answer: finalAnswer,
+            metadata: {
+              usage: tokenUsage || {
+                prompt_tokens: 0,
+                completion_tokens: 0,
+                total_tokens: 0,
+              },
+              retriever_resources: [],
+            },
+            created_at: Date.now(),
+          },
+          agent_thoughts: agentThoughts,
+        })
+      }
+    }
+    catch (error) {
+      if (callbacks?.onError) {
+        callbacks.onError(error instanceof Error ? error : new Error(String(error)))
+      }
+      else {
+        throw error
+      }
+    }
+  }
+
+  /**
+   * Get execution history (completion-messages logs)
+   * Uses Next.js API Route to proxy Backend API (avoids CORS issues)
+   */
+  async getExecutionHistory(agentId: string, params?: {
+    limit?: number
+    first_id?: string
+  }): Promise<{
+    limit: number
+    has_more: boolean
+    data: Array<{
+      id: string
+      inputs: Record<string, unknown>
+      answer: string
+      status: string
+      created_at: number
+      message_tokens: number
+      answer_tokens: number
+      total_tokens: number
+      provider_response_latency: number
+      total_price?: number
+      currency?: string
+    }>
+  }> {
+    try {
+      const queryParams = new URLSearchParams()
+      if (params?.limit) queryParams.append('limit', String(params.limit))
+      if (params?.first_id) queryParams.append('first_id', params.first_id)
+
+      // Use Next.js API Route instead of direct Backend call
+      const url = `/api/agents/${agentId}/history${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+
+      // Send request with credentials to include cookies (edu_access_token)
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important: Send cookies with request
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+      }
+
+      const data = await response.json()
+
+      return data.data || data || {
+        limit: 20,
+        has_more: false,
+        data: [],
+      }
+    }
+    catch (error) {
+      console.error('[getExecutionHistory] Error:', error)
+      console.error('[getExecutionHistory] Error details:', {
+        agentId,
+        params,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      // Return empty result on error
+      return {
+        limit: 20,
+        has_more: false,
+        data: [],
+      }
     }
   }
 }

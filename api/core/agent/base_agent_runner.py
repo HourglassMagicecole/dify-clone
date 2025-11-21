@@ -573,13 +573,16 @@ class BaseAgentRunner(AppRunner):
                     if filtered_files:
                         logger.info(
                             "[DEBUG] Injecting %d files into parameter %s (filtered from %d total files)",
-                            len(filtered_files), param.name, len(self.files)
+                            len(filtered_files),
+                            param.name,
+                            len(self.files),
                         )
                         tool_parameters[param.name] = filtered_files
                     else:
                         logger.info(
                             "[DEBUG] No matching files for parameter %s (uploaded: %d files)",
-                            param.name, len(self.files)
+                            param.name,
+                            len(self.files),
                         )
 
         logger.info("[DEBUG] Tool parameters after injection: %s", tool_parameters)

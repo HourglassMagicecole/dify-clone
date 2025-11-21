@@ -190,6 +190,7 @@ class ConversationService:
         if not conversation:
             # Conversation exists but user doesn't have permission
             from werkzeug.exceptions import Forbidden
+
             raise Forbidden("You don't have permission to access this conversation")
 
         return conversation

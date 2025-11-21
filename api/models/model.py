@@ -149,8 +149,10 @@ class App(Base):
         if app_model_config.agent_mode_dict.get("enabled", False) and app_model_config.agent_mode_dict.get(
             "strategy", ""
         ) in {"function_call", "react"}:
-            self.mode = AppMode.AGENT_CHAT
-            db.session.commit()
+            # Don't automatically change mode to AGENT_CHAT
+            # Allow agent_mode in completion mode
+            # self.mode = AppMode.AGENT_CHAT
+            # db.session.commit()
             return True
         return False
 
@@ -1873,7 +1875,7 @@ class MessageAgentThought(Base):
                 result.append(file_dict)
 
             return result
-        except Exception as e:
+        except Exception:
             import logging
 
             logging.exception("Error building message_files_list")

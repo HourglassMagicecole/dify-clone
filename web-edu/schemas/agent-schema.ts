@@ -46,7 +46,7 @@ export const promptSettingsSchema = z.object({
   user_input_form: z.array(z.object({
     variable: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'agent.validation.invalidVariableName'),
     label: z.string().min(1, 'agent.validation.labelRequired'),
-    input_type: z.enum(['text-input', 'paragraph', 'select', 'number']),
+    input_type: z.enum(['text-input', 'paragraph', 'select', 'number', 'checkbox', 'file']),
     required: z.boolean(),
     max_length: z.number().positive().optional(),
     options: z.array(z.string()).optional(),
