@@ -88,6 +88,23 @@ class FunctionCallAgentRunner(BaseAgentRunner):
             # recalc llm max tokens
             prompt_messages = self._organize_prompt_messages()
             self.recalc_llm_max_tokens(self.model_config, prompt_messages)
+
+            # Log prompt messages summary
+            logger.info("[LLM Invocation] Prompt messages count: %s", len(prompt_messages))
+            for i, msg in enumerate(prompt_messages):
+                if hasattr(msg, "content"):
+                    content_preview = str(msg.content)[:200] if msg.content else "(empty)"
+                    logger.info("[LLM Invocation] Message %s [%s]: %s...", i, msg.__class__.__name__, content_preview)
+
+            # Log tool information before invoking LLM
+            logger.info("[LLM Invocation] Invoking LLM with %s tools", len(prompt_messages_tools))
+            if prompt_messages_tools:
+                logger.info(
+                    "[LLM Invocation] Tool names being passed to LLM: %s", [t.name for t in prompt_messages_tools]
+                )
+            else:
+                logger.warning("[LLM Invocation] WARNING: No tools being passed to LLM!")
+
             # invoke model
             chunks: Union[Generator[LLMResultChunk, None, None], LLMResult] = model_instance.invoke_llm(
                 prompt_messages=prompt_messages,
@@ -111,18 +128,20 @@ class FunctionCallAgentRunner(BaseAgentRunner):
             current_llm_usage = None
 
             if isinstance(chunks, Generator):
-                is_first_chunk = True
                 tool_call_detected = False
+                first_content_chunk = True  # Track first content chunk for final answer case
                 for chunk in chunks:
-                    if is_first_chunk:
-                        self.queue_manager.publish(
-                            QueueAgentThoughtEvent(agent_thought_id=agent_thought_id), PublishFrom.APPLICATION_MANAGER
-                        )
-                        is_first_chunk = False
                     # check if there is any tool call
                     if self.check_tool_calls(chunk):
                         function_call_state = True
-                        tool_calls.extend(self.extract_tool_calls(chunk) or [])
+                        extracted_tool_calls = self.extract_tool_calls(chunk) or []
+                        if extracted_tool_calls and not tool_call_detected:
+                            logger.info(
+                                "[LLM Response] Tool calls detected in LLM response: %s calls",
+                                len(extracted_tool_calls),
+                            )
+                            logger.info("[LLM Response] Tool call details: %s", extracted_tool_calls)
+                        tool_calls.extend(extracted_tool_calls)
                         tool_call_names = ";".join([tool_call[1] for tool_call in tool_calls])
                         try:
                             tool_call_inputs = json.dumps(
@@ -152,6 +171,25 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                             )
 
                     if chunk.delta.message and chunk.delta.message.content:
+                        # For final answer (no tool call), publish agent thought BEFORE first content chunk
+                        if first_content_chunk and not tool_call_detected:
+                            first_content_chunk = False
+                            self.save_agent_thought(
+                                agent_thought_id=agent_thought_id,
+                                tool_name="",
+                                tool_input="",
+                                thought="",
+                                tool_invoke_meta=None,
+                                observation=None,
+                                answer="",
+                                messages_ids=[],
+                                llm_usage=current_llm_usage,
+                            )
+                            self.queue_manager.publish(
+                                QueueAgentThoughtEvent(agent_thought_id=agent_thought_id),
+                                PublishFrom.APPLICATION_MANAGER,
+                            )
+
                         if isinstance(chunk.delta.message.content, list):
                             for content in chunk.delta.message.content:
                                 response += content.data
@@ -209,6 +247,7 @@ class FunctionCallAgentRunner(BaseAgentRunner):
 
             assistant_message = AssistantPromptMessage(content="", tool_calls=[])
             if tool_calls:
+                logger.info("[LLM Response] Processing %s tool calls", len(tool_calls))
                 assistant_message.tool_calls = [
                     AssistantPromptMessage.ToolCall(
                         id=tool_call[0],
@@ -220,6 +259,7 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                     for tool_call in tool_calls
                 ]
             else:
+                logger.warning("[LLM Response] No tool calls in LLM response. Response text: %s...", response[:200])
                 assistant_message.content = response
 
             self._current_thoughts.append(assistant_message)
@@ -229,7 +269,7 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                 agent_thought_id=agent_thought_id,
                 tool_name=tool_call_names,
                 tool_input=tool_call_inputs,
-                thought=response,
+                thought=response if tool_call_names else "",  # Only save thought for tool calls, not final answer
                 tool_invoke_meta=None,
                 observation=None,
                 answer=response,
@@ -269,7 +309,7 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                         trace_manager=trace_manager,
                         app_id=self.application_generate_entity.app_config.app_id,
                         message_id=self.message.id,
-                        conversation_id=self.conversation.id,
+                        conversation_id=self.conversation.id if self.conversation else self.message.conversation_id,
                     )
                     # publish files
                     for message_file_id in message_files:
@@ -298,6 +338,16 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                     )
 
             if len(tool_responses) > 0:
+                # Prepare observation dict
+                observation_dict = {
+                    tool_response["tool_call_name"]: tool_response["tool_response"] for tool_response in tool_responses
+                }
+
+                logger.info("[Tool Execution] Saving agent thought after tool execution")
+                logger.info("[Tool Execution] Agent thought ID: %s", agent_thought_id)
+                logger.info("[Tool Execution] Tool responses count: %s", len(tool_responses))
+                logger.info("[Tool Execution] Observation preview: %s", str(observation_dict)[:500])
+
                 # save agent thought
                 self.save_agent_thought(
                     agent_thought_id=agent_thought_id,
@@ -307,16 +357,16 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                     tool_invoke_meta={
                         tool_response["tool_call_name"]: tool_response["meta"] for tool_response in tool_responses
                     },
-                    observation={
-                        tool_response["tool_call_name"]: tool_response["tool_response"]
-                        for tool_response in tool_responses
-                    },
+                    observation=observation_dict,
                     answer="",
                     messages_ids=message_file_ids,
                 )
+
+                logger.info("[Tool Execution] Publishing QueueAgentThoughtEvent with observation")
                 self.queue_manager.publish(
                     QueueAgentThoughtEvent(agent_thought_id=agent_thought_id), PublishFrom.APPLICATION_MANAGER
                 )
+                logger.info("[Tool Execution] QueueAgentThoughtEvent published successfully")
 
             # update prompt tool
             for prompt_tool in prompt_messages_tools:
@@ -404,6 +454,10 @@ class FunctionCallAgentRunner(BaseAgentRunner):
         """
         Initialize system message
         """
+        # If prompt_messages already has a SystemPromptMessage, use it (for completion mode with variable substitution)
+        if prompt_messages and isinstance(prompt_messages[0], SystemPromptMessage):
+            return prompt_messages
+
         if not prompt_messages and prompt_template:
             return [
                 SystemPromptMessage(content=prompt_template),
@@ -470,6 +524,19 @@ class FunctionCallAgentRunner(BaseAgentRunner):
         return prompt_messages
 
     def _organize_prompt_messages(self):
+        # For completion mode with variable substitution, use history_prompt_messages directly
+        # Completion mode passes UserPromptMessage with variable-substituted content
+        if self.history_prompt_messages and any(
+            isinstance(msg, UserPromptMessage) for msg in self.history_prompt_messages
+        ):
+            # Completion mode: history_prompt_messages already contains variable-substituted content
+            # Just add current thoughts for iterations
+            prompt_messages = [*self.history_prompt_messages, *self._current_thoughts]
+            if len(self._current_thoughts) != 0:
+                prompt_messages = self._clear_user_prompt_image_messages(prompt_messages)
+            return prompt_messages
+
+        # Chat mode: normal flow
         prompt_template = self.app_config.prompt_template.simple_prompt_template or ""
         self.history_prompt_messages = self._init_system_message(prompt_template, self.history_prompt_messages)
         query_prompt_messages = self._organize_user_query(self.query or "", [])

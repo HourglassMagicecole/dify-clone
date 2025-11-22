@@ -82,14 +82,14 @@ export function AgentThoughtTimeline({ thoughts, onWhyClick }: AgentThoughtTimel
   }
 
   /**
-   * Calculate execution time between thoughts
+   * Calculate tool execution time for a thought
    */
-  const getExecutionTime = (index: number): number | null => {
-    if (index === thoughts.length - 1)
-      return null
-    const current = thoughts[index]
-    const next = thoughts[index + 1]
-    return next.created_at - current.created_at
+  const getToolExecutionTime = (thought: AgentThought): number | null => {
+    // If tool has output and updated_at, calculate tool execution time
+    if (thought.tool && thought.tool_output && thought.updated_at) {
+      return thought.updated_at - thought.created_at
+    }
+    return null
   }
 
   if (thoughts.length === 0) {
@@ -107,10 +107,10 @@ export function AgentThoughtTimeline({ thoughts, onWhyClick }: AgentThoughtTimel
   return (
     <div className="space-y-4">
       {thoughts.map((thought, index) => {
-        const executionTime = getExecutionTime(index)
+        const toolExecutionTime = getToolExecutionTime(thought)
 
         return (
-          <div key={thought.id} className="relative">
+          <div key={`${thought.id}-${index}`} className="relative">
             {/* Vertical connecting line */}
             {index < thoughts.length - 1 && (
               <div className="absolute left-5 top-12 bottom-0 w-0.5 bg-gray-300 dark:bg-gray-600" />
@@ -188,9 +188,9 @@ export function AgentThoughtTimeline({ thoughts, onWhyClick }: AgentThoughtTimel
                       {' '}
                       {thought.tool}
                     </p>
-                    {executionTime !== null && (
+                    {toolExecutionTime !== null && (
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatExecutionTime(executionTime)}
+                        {formatExecutionTime(toolExecutionTime)}
                       </span>
                     )}
                   </div>
@@ -251,15 +251,6 @@ export function AgentThoughtTimeline({ thoughts, onWhyClick }: AgentThoughtTimel
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {/* Observation */}
-                  {thought.observation && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                      💡
-                      {' '}
-                      {thought.observation}
-                    </p>
                   )}
 
                   {/* Why button */}

@@ -1,19 +1,22 @@
 'use client'
 
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Agent } from '@/types/agent'
 
 interface AgentInfoProps {
   agent: Agent
   showHeader?: boolean
+  showPrompt?: boolean // For completion mode: show system prompt
 }
 
 /**
  * AgentInfo Component
- * Displays Agent model and tools configuration
+ * Displays Agent model, tools, and optionally prompt configuration
  */
-export function AgentInfo({ agent, showHeader = true }: AgentInfoProps) {
+export function AgentInfo({ agent, showHeader = true, showPrompt = false }: AgentInfoProps) {
   const { t } = useTranslation('chat')
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false)
 
   const { model_config } = agent
 
@@ -34,6 +37,9 @@ export function AgentInfo({ agent, showHeader = true }: AgentInfoProps) {
   const tools = agentModeData?.enabled && agentModeData?.tools
     ? agentModeData.tools.filter(tool => tool.enabled !== false)
     : []
+
+  // Extract system prompt for completion mode
+  const prePrompt = modelConfigData?.pre_prompt as string | undefined
 
   return (
     <div
@@ -92,6 +98,32 @@ export function AgentInfo({ agent, showHeader = true }: AgentInfoProps) {
           <div className="bg-white rounded-lg p-3 shadow-sm border">
             <h4 className="font-semibold text-sm text-gray-700 mb-2">{t('enabledTools')}</h4>
             <p className="text-sm text-gray-500">{t('noToolsEnabled')}</p>
+          </div>
+        )}
+
+        {/* Prompt Section (Completion mode only) */}
+        {showPrompt && prePrompt && (
+          <div className="bg-white rounded-lg p-3 shadow-sm border">
+            <button
+              type="button"
+              onClick={() => setIsPromptExpanded(!isPromptExpanded)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <h4 className="font-semibold text-sm text-gray-700">{t('systemPrompt')}</h4>
+              <svg
+                className={`w-4 h-4 text-gray-500 transition-transform ${isPromptExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isPromptExpanded && (
+              <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-2 rounded border border-gray-200 max-h-64 overflow-y-auto">
+                {prePrompt}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -372,7 +372,8 @@ export interface AgentThought {
   tool_input: Record<string, unknown> // Tool input parameters
   tool_output: string | null          // Tool output
   observation: string                 // Observation from tool execution
-  created_at: number                  // Unix timestamp (milliseconds)
+  created_at: number                  // Unix timestamp (milliseconds) - when thought was created
+  updated_at?: number                 // Unix timestamp (milliseconds) - when observation was filled
 }
 
 /**

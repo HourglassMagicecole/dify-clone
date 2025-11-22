@@ -55,6 +55,7 @@
   "topP": "Top P",
   "enabledTools": "Enabled Tools",
   "noToolsEnabled": "No tools enabled",
+  "systemPrompt": "System Prompt",
   "toolUsageHistory": "Tool Usage History",
   "thinking": "Thinking",
   "thought": "Thought",

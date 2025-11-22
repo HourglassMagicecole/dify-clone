@@ -480,12 +480,9 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
             # Convert file IDs to full file objects with metadata
             message_files_data: list[dict[str, object]] = []
             if agent_thought and agent_thought.files:
-                import logging
-
                 from core.tools.tool_file_manager import ToolFileManager
                 from models.model import MessageFile, UploadFile
 
-                logger = logging.getLogger(__name__)
                 logger.info("[DEBUG] agent_thought.files: %s", agent_thought.files)
 
                 # Query MessageFile objects by IDs
@@ -546,6 +543,18 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                 logger.info("[DEBUG] Total message_files_data: %d", len(message_files_data))
 
         if agent_thought:
+            logger.info("[AgentThoughtStream] Creating AgentThoughtStreamResponse")
+            logger.info("[AgentThoughtStream] Agent thought ID: %s", agent_thought.id)
+            logger.info(
+                "[AgentThoughtStream] Thought: %s", agent_thought.thought[:100] if agent_thought.thought else None
+            )
+            logger.info("[AgentThoughtStream] Tool: %s", agent_thought.tool)
+            logger.info("[AgentThoughtStream] Observation type: %s", type(agent_thought.observation))
+            logger.info(
+                "[AgentThoughtStream] Observation value: %s",
+                str(agent_thought.observation)[:500] if agent_thought.observation else None,
+            )
+
             return AgentThoughtStreamResponse(
                 task_id=self._application_generate_entity.task_id,
                 id=agent_thought.id,

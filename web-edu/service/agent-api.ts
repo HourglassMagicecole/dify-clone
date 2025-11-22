@@ -962,6 +962,15 @@ export class AgentAPIService {
           try {
             const data = JSON.parse(line.slice(6)) as Record<string, unknown>
 
+            // Log SSE event
+            // eslint-disable-next-line no-console
+            console.log('[SSE Event]', new Date().toISOString(), data.event, {
+              id: data.id,
+              thought: data.thought ? String(data.thought).substring(0, 50) + '...' : undefined,
+              tool: data.tool,
+              answer: data.answer ? String(data.answer).substring(0, 50) + '...' : undefined,
+            })
+
             // Handle different event types
             switch (data.event) {
               case 'agent_thought':
@@ -974,9 +983,29 @@ export class AgentAPIService {
                     tool_input: (data.tool_input as Record<string, unknown>) || {},
                     tool_output: data.observation ? String(data.observation) : null,
                     observation: String(data.observation || ''),
-                    created_at: Number(data.created_at || Date.now()),
+                    // Backend may send created_at in seconds, normalize to milliseconds
+                    created_at: data.created_at
+                      ? (Number(data.created_at) < 10000000000
+                          ? Number(data.created_at) * 1000 // Convert seconds to milliseconds
+                          : Number(data.created_at)) // Already in milliseconds
+                      : Date.now(),
                   }
-                  agentThoughts.push(thought)
+
+                  // Prevent duplicates: update existing thought or add new one
+                  const existingIndex = agentThoughts.findIndex(t => t.id === thought.id)
+                  if (existingIndex >= 0) {
+                    // Update existing thought
+                    agentThoughts[existingIndex] = thought
+                    // eslint-disable-next-line no-console
+                    console.log('[SSE Callback] onThought (update)', thought.id, 'total thoughts:', agentThoughts.length)
+                  }
+                  else {
+                    // Add new thought
+                    agentThoughts.push(thought)
+                    // eslint-disable-next-line no-console
+                    console.log('[SSE Callback] onThought (new)', thought.id, 'total thoughts:', agentThoughts.length)
+                  }
+
                   callbacks?.onThought?.(thought)
                 }
                 break
@@ -987,6 +1016,8 @@ export class AgentAPIService {
                 if (data.answer) {
                   const chunk = String(data.answer)
                   finalAnswer += chunk
+                  // eslint-disable-next-line no-console
+                  console.log('[SSE Callback] onMessage', 'chunk length:', chunk.length, 'total answer length:', finalAnswer.length)
                   callbacks?.onMessage?.(chunk)
                 }
                 if (data.id) {
@@ -1010,6 +1041,8 @@ export class AgentAPIService {
                 }
 
                 // Call onComplete callback
+                // eslint-disable-next-line no-console
+                console.log('[SSE Callback] onComplete', 'final answer length:', finalAnswer.length, 'total thoughts:', agentThoughts.length)
                 if (callbacks?.onComplete) {
                   callbacks.onComplete({
                     task_id: String(data.task_id || ''),

@@ -501,6 +501,10 @@
       "running": "Running",
       "success": "Success",
       "failed": "Failed"
-    }
+    },
+    "backToList": "Back to List",
+    "agentInfoButton": "Agent Info",
+    "agentInfo": "Agent Information",
+    "close": "Close"
   }
 }

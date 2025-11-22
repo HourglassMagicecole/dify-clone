@@ -223,11 +223,18 @@ class BaseAgentRunner(AppRunner):
         tool_instances = {}
         prompt_messages_tools = []
 
-        for tool in self.app_config.agent.tools or [] if self.app_config.agent else []:
+        agent_tools = self.app_config.agent.tools or [] if self.app_config.agent else []
+        logger.info("[Agent Tools] Initializing tools from app_config.agent.tools: %s tools", len(agent_tools))
+        if agent_tools:
+            logger.info("[Agent Tools] Agent tool names: %s", [t.tool_name for t in agent_tools])
+
+        for tool in agent_tools:
             try:
                 prompt_tool, tool_entity = self._convert_tool_to_prompt_message_tool(tool)
+                logger.info("[Agent Tools] Converted tool: %s", tool.tool_name)
             except Exception:
                 # api tool may be deleted
+                logger.warning("[Agent Tools] Failed to convert tool: %s", tool.tool_name)
                 continue
             # save tool entity
             tool_instances[tool.tool_name] = tool_entity
@@ -235,12 +242,17 @@ class BaseAgentRunner(AppRunner):
             prompt_messages_tools.append(prompt_tool)
 
         # convert dataset tools into ModelRuntime Tool format
+        logger.info("[Agent Tools] Dataset tools count: %s", len(self.dataset_tools))
         for dataset_tool in self.dataset_tools:
             prompt_tool = self._convert_dataset_retriever_tool_to_prompt_message_tool(dataset_tool)
             # save prompt tool
             prompt_messages_tools.append(prompt_tool)
             # save tool entity
             tool_instances[dataset_tool.entity.identity.name] = dataset_tool
+
+        logger.info("[Agent Tools] Total prompt_messages_tools initialized: %s", len(prompt_messages_tools))
+        if prompt_messages_tools:
+            logger.info("[Agent Tools] Prompt tool names: %s", [t.name for t in prompt_messages_tools])
 
         return tool_instances, prompt_messages_tools
 
@@ -416,11 +428,22 @@ class BaseAgentRunner(AppRunner):
         """
         Organize agent history
         """
+        logger.info("[Agent History] Received %s prompt_messages", len(prompt_messages))
+        for i, msg in enumerate(prompt_messages):
+            if hasattr(msg, "content"):
+                content_preview = str(msg.content)[:200] if msg.content else "(empty)"
+                logger.info("[Agent History] Input message %s [%s]: %s...", i, msg.__class__.__name__, content_preview)
+
         result: list[PromptMessage] = []
         # check if there is a system message in the beginning of the conversation
+        # For completion mode, prompt_messages may contain UserPromptMessage with variable substitution
         for prompt_message in prompt_messages:
-            if isinstance(prompt_message, SystemPromptMessage):
+            if isinstance(prompt_message, (SystemPromptMessage, UserPromptMessage)):
                 result.append(prompt_message)
+                msg_type = (
+                    "SystemPromptMessage" if isinstance(prompt_message, SystemPromptMessage) else "UserPromptMessage"
+                )
+                logger.info("[Agent History] Kept %s: %s...", msg_type, str(prompt_message.content)[:200])
 
         messages = (
             (

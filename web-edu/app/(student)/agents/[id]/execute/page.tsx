@@ -8,6 +8,7 @@
 'use client'
 
 import { useState, useEffect, use, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/context/ToastContext'
 import type { ExecutionState, UserInputForm, Agent } from '@/types/agent'
@@ -15,6 +16,7 @@ import { DynamicFormRenderer } from '@/components/agent/DynamicFormRenderer'
 import { AgentThoughtTimeline } from '@/components/agent/AgentThoughtTimeline'
 import { ExecutionResultPanel } from '@/components/agent/ExecutionResultPanel'
 import { ExecutionHistoryTable, type ExecutionRecord, type ExecutionHistoryTableRef } from '@/components/agent/ExecutionHistoryTable'
+import { AgentInfo } from '@/components/chat/AgentInfo'
 import { agentAPI } from '@/service/agent-api'
 
 interface TaskExecutionPageProps {
@@ -25,6 +27,7 @@ interface TaskExecutionPageProps {
 
 export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
   const { id: _agentId } = use(params)
+  const router = useRouter()
   const { t } = useTranslation('agent')
   const { showToast } = useToast()
   const historyTableRef = useRef<ExecutionHistoryTableRef>(null)
@@ -32,6 +35,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
   // Agent data state
   const [agent, setAgent] = useState<Agent | null>(null)
   const [isLoadingAgent, setIsLoadingAgent] = useState(true)
+  const [showAgentInfo, setShowAgentInfo] = useState(false)
 
   // Execution state
   const [executionState, _setExecutionState] = useState<ExecutionState>({
@@ -43,6 +47,20 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
     tokenUsage: null,
     executionTime: null,
   })
+
+  // Debug: Track agentThoughts changes
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[Execute Page RENDER] agentThoughts updated', executionState.agentThoughts.length, 'thoughts')
+  }, [executionState.agentThoughts])
+
+  // Debug: Track result changes
+  useEffect(() => {
+    if (executionState.result) {
+      // eslint-disable-next-line no-console
+      console.log('[Execute Page RENDER] result updated', executionState.result.length, 'chars')
+    }
+  }, [executionState.result])
 
   // Load agent data on mount
   useEffect(() => {
@@ -156,12 +174,30 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
         },
         {
           onThought: (thought) => {
-            // Update agent thoughts in real-time (with duplicate check)
+            // eslint-disable-next-line no-console
+            console.log('[Execute Page] onThought callback', thought.id, 'tool:', thought.tool)
+            // Update agent thoughts in real-time (update existing or add new)
             _setExecutionState((prev) => {
-              // Skip if thought with same id already exists
-              if (prev.agentThoughts.some(t => t.id === thought.id)) {
-                return prev
+              // Check if thought with same id already exists
+              const existingIndex = prev.agentThoughts.findIndex(t => t.id === thought.id)
+              if (existingIndex >= 0) {
+                // Update existing thought (e.g., when observation is filled)
+                const updated = [...prev.agentThoughts]
+                updated[existingIndex] = {
+                  ...thought,
+                  created_at: updated[existingIndex]?.created_at ?? thought.created_at, // Preserve start time
+                  updated_at: Date.now(), // Record completion time
+                }
+                // eslint-disable-next-line no-console
+                console.log('[Execute Page] Updating existing thought', thought.id, 'total:', prev.agentThoughts.length)
+                return {
+                  ...prev,
+                  agentThoughts: updated,
+                }
               }
+              // Add new thought
+              // eslint-disable-next-line no-console
+              console.log('[Execute Page] Adding new thought', thought.id, 'total will be:', prev.agentThoughts.length + 1)
               return {
                 ...prev,
                 agentThoughts: [...prev.agentThoughts, thought],
@@ -169,6 +205,8 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             })
           },
           onMessage: (message) => {
+            // eslint-disable-next-line no-console
+            console.log('[Execute Page] onMessage callback', 'chunk length:', message.length, 'total result length:', fullResult.length + message.length)
             // Accumulate message chunks
             fullResult += message
             _setExecutionState((prev) => ({
@@ -177,24 +215,37 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             }))
           },
           onComplete: (response) => {
+            // eslint-disable-next-line no-console
+            console.log('[Execute Page] onComplete callback', 'answer length:', response.data.answer.length, 'thoughts count:', response.agent_thoughts.length)
             // Calculate execution time
             const totalTime = Date.now() - startTime
 
             // Update state with final results
-            _setExecutionState({
-              status: 'success',
-              currentInputs: values,
-              result: response.data.answer || fullResult,
-              error: null,
-              agentThoughts: response.agent_thoughts,
-              tokenUsage: response.data.metadata.usage,
-              executionTime: {
-                total: totalTime,
-                llm: response.data.metadata.usage.latency
-                  ? response.data.metadata.usage.latency * 1000
-                  : 0,
-                tool: 0, // TODO: Calculate from agent_thoughts
-              },
+            // Use prev to preserve real-time agentThoughts instead of overwriting
+            _setExecutionState((prev) => {
+              // Calculate total tool execution time from agent thoughts
+              const toolTime = prev.agentThoughts.reduce((sum, t) => {
+                if (t.updated_at && t.created_at) {
+                  return sum + (t.updated_at - t.created_at)
+                }
+                return sum
+              }, 0)
+
+              return {
+                status: 'success',
+                currentInputs: values,
+                result: response.data.answer || fullResult,
+                error: null,
+                agentThoughts: prev.agentThoughts, // Keep real-time accumulated thoughts
+                tokenUsage: response.data.metadata.usage,
+                executionTime: {
+                  total: totalTime,
+                  llm: response.data.metadata.usage.latency
+                    ? response.data.metadata.usage.latency * 1000
+                    : 0,
+                  tool: toolTime, // Calculated from agent_thoughts
+                },
+              }
             })
 
             showToast(t('execute.result.success', { defaultValue: 'Agent 실행 성공' }), 'success')
@@ -275,46 +326,65 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
       {!isLoadingAgent && agent && (
         <>
           {/* Agent Information Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              {agent.name}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              {agent.description}
-            </p>
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                {agent.name}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                {agent.description}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => router.push('/agents')}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300 transition-colors"
+                aria-label={t('execute.backToList', { defaultValue: '목록으로' })}
+              >
+                <span>←</span>
+                <span className="text-sm font-medium">{t('execute.backToList', { defaultValue: '목록으로' })}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAgentInfo(true)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300 transition-colors"
+                aria-label={t('execute.agentInfoButton', { defaultValue: 'Agent 정보' })}
+              >
+                <span>ⓘ</span>
+                <span className="text-sm font-medium">{t('execute.agentInfoButton', { defaultValue: 'Agent 정보' })}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Section 1: Input Form + Processing Steps (2-column) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Left: Input Form */}
-            <div>
-              <div className="h-full border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-white dark:bg-gray-800">
-                <DynamicFormRenderer
-                  formSchema={agent.user_input_form || []}
-                  onSubmit={handleExecute}
-                  isSubmitting={executionState.status === 'running'}
-                  executionStatus={executionState.status}
-                  defaultValues={executionState.currentInputs}
+          {/* Section 1: Input Form */}
+          <div className="mb-6">
+            <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-white dark:bg-gray-800">
+              <DynamicFormRenderer
+                formSchema={agent.user_input_form || []}
+                onSubmit={handleExecute}
+                isSubmitting={executionState.status === 'running'}
+                executionStatus={executionState.status}
+                defaultValues={executionState.currentInputs}
+              />
+            </div>
+          </div>
+
+          {/* Section 2: Processing Steps */}
+          <div className="mb-6">
+            <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-white dark:bg-gray-800 flex flex-col min-h-[300px] max-h-[600px]">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Processing Steps
+              </h2>
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <AgentThoughtTimeline
+                  thoughts={executionState.agentThoughts}
                 />
               </div>
             </div>
-
-            {/* Right: Processing Steps */}
-            <div>
-              <div className="h-full border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-white dark:bg-gray-800 flex flex-col">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Processing Steps
-                </h2>
-                <div className="flex-1 overflow-y-auto">
-                  <AgentThoughtTimeline
-                    thoughts={executionState.agentThoughts}
-                  />
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Section 2: Execution Result (Full-width, shown only when result exists) */}
+          {/* Section 3: Execution Result (Full-width, shown only when result exists) */}
           {executionState.result && (
             <div className="mb-6">
               <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-white dark:bg-gray-800">
@@ -342,6 +412,36 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             </div>
           </div>
         </>
+      )}
+
+      {/* Agent Info Modal */}
+      {showAgentInfo && agent && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowAgentInfo(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                {t('execute.agentInfo', { defaultValue: 'Agent 정보' })}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAgentInfo(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                aria-label={t('execute.close', { defaultValue: '닫기' })}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4">
+              <AgentInfo agent={agent} showHeader={false} showPrompt={true} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -3,6 +3,9 @@ from typing import cast
 
 from sqlalchemy import select
 
+from core.agent.cot_completion_agent_runner import CotCompletionAgentRunner
+from core.agent.entities import AgentEntity
+from core.agent.fc_agent_runner import FunctionCallAgentRunner
 from core.app.apps.base_app_queue_manager import AppQueueManager
 from core.app.apps.base_app_runner import AppRunner
 from core.app.apps.completion.app_config_manager import CompletionAppConfig
@@ -12,6 +15,8 @@ from core.app.entities.app_invoke_entities import (
 from core.callback_handler.index_tool_callback_handler import DatasetIndexToolCallbackHandler
 from core.model_manager import ModelInstance
 from core.model_runtime.entities.message_entities import ImagePromptMessageContent
+from core.model_runtime.entities.model_entities import ModelFeature
+from core.model_runtime.model_providers.__base.large_language_model import LargeLanguageModel
 from core.moderation.base import ModerationError
 from core.rag.retrieval.dataset_retrieval import DatasetRetrieval
 from extensions.ext_database import db
@@ -156,26 +161,128 @@ class CompletionAppRunner(AppRunner):
         if hosting_moderation_result:
             return
 
-        # Re-calculate the max tokens if sum(prompt_token +  max_tokens) over model token limit
-        self.recalc_llm_max_tokens(model_config=application_generate_entity.model_conf, prompt_messages=prompt_messages)
+        # Check if agent mode is enabled
+        if app_record.is_agent and app_config.agent:
+            # Agent mode: use agent runner
+            agent_entity = app_config.agent
 
-        # Invoke model
-        model_instance = ModelInstance(
-            provider_model_bundle=application_generate_entity.model_conf.provider_model_bundle,
-            model=application_generate_entity.model_conf.model,
-        )
+            logger.info("[Agent Execution] Agent mode enabled for app %s", app_config.app_id)
+            logger.info("[Agent Execution] Agent entity: %s", agent_entity)
+            logger.info("[Agent Execution] Agent tools count: %s", len(agent_entity.tools) if agent_entity.tools else 0)
+            if agent_entity.tools:
+                logger.info("[Agent Execution] Agent tools: %s", [t.tool_name for t in agent_entity.tools])
 
-        db.session.close()
+            # Init model instance
+            model_instance = ModelInstance(
+                provider_model_bundle=application_generate_entity.model_conf.provider_model_bundle,
+                model=application_generate_entity.model_conf.model,
+            )
 
-        invoke_result = model_instance.invoke_llm(
-            prompt_messages=prompt_messages,
-            model_parameters=application_generate_entity.model_conf.parameters,
-            stop=stop,
-            stream=application_generate_entity.stream,
-            user=application_generate_entity.user_id,
-        )
+            # Determine agent strategy based on model features
+            llm_model = cast(LargeLanguageModel, model_instance.model_type_instance)
+            model_schema = llm_model.get_model_schema(model_instance.model, model_instance.credentials)
+            if not model_schema:
+                raise ValueError("Model schema not found")
 
-        # handle invoke result
-        self._handle_invoke_result(
-            invoke_result=invoke_result, queue_manager=queue_manager, stream=application_generate_entity.stream
-        )
+            logger.info("[Agent Execution] Model: %s", model_instance.model)
+            logger.info("[Agent Execution] Model features: %s", model_schema.features)
+
+            if {ModelFeature.MULTI_TOOL_CALL, ModelFeature.TOOL_CALL}.intersection(model_schema.features or []):
+                agent_entity.strategy = AgentEntity.Strategy.FUNCTION_CALLING
+                logger.info("[Agent Execution] Strategy set to FUNCTION_CALLING based on model features")
+            else:
+                logger.info("[Agent Execution] Strategy remains: %s", agent_entity.strategy)
+
+            # Select appropriate agent runner based on LLM mode
+            if agent_entity.strategy == AgentEntity.Strategy.CHAIN_OF_THOUGHT:
+                # For CoT, always use CotCompletionAgentRunner in completion mode
+                runner_cls = CotCompletionAgentRunner
+            elif agent_entity.strategy == AgentEntity.Strategy.FUNCTION_CALLING:
+                runner_cls = FunctionCallAgentRunner
+            else:
+                raise ValueError(f"Invalid agent strategy: {agent_entity.strategy}")
+
+            logger.info("[Agent Execution] Selected runner: %s", runner_cls.__name__)
+
+            # Re-query message to get fresh instance (required by agent runner)
+            msg_stmt = select(Message).where(Message.id == message.id)
+            message_result = db.session.scalar(msg_stmt)
+            if message_result is None:
+                raise ValueError("Message not found")
+            db.session.close()
+
+            # Log prompt_messages before passing to agent runner
+            logger.info("[Agent Execution] Prompt messages being passed to agent runner: %s", len(prompt_messages))
+            for i, msg in enumerate(prompt_messages):
+                if hasattr(msg, "content"):
+                    content_preview = str(msg.content)[:200] if msg.content else "(empty)"
+                    logger.info(
+                        "[Agent Execution] Prompt message %s [%s]: %s...", i, msg.__class__.__name__, content_preview
+                    )
+
+            # Initialize agent runner
+            # Note: Completion mode doesn't have conversation or memory
+            # Type casting is needed because BaseAgentRunner expects AgentChatAppGenerateEntity,
+            # but completion mode uses CompletionAppGenerateEntity. The agent runner works with both.
+            runner = runner_cls(
+                tenant_id=app_config.tenant_id,
+                application_generate_entity=application_generate_entity,  # type: ignore[arg-type]
+                conversation=None,  # type: ignore[arg-type] # Completion mode is stateless
+                app_config=app_config,  # type: ignore[arg-type]
+                model_config=application_generate_entity.model_conf,
+                config=agent_entity,
+                queue_manager=queue_manager,
+                message=message_result,
+                user_id=application_generate_entity.user_id,
+                memory=None,  # Completion mode doesn't use memory
+                prompt_messages=prompt_messages,
+                model_instance=model_instance,
+            )
+
+            logger.info("[Agent Execution] Runner initialized successfully")
+            logger.info("[Agent Execution] Starting agent run with query: %s", query)
+            logger.info("[Agent Execution] Inputs: %s", inputs)
+
+            # Run agent
+            invoke_result = runner.run(
+                message=message,
+                query=query or "",
+                inputs=inputs,
+            )
+
+            logger.info("[Agent Execution] Agent run completed")
+
+            # Handle invoke result (with agent=True flag)
+            self._handle_invoke_result(
+                invoke_result=invoke_result,
+                queue_manager=queue_manager,
+                stream=application_generate_entity.stream,
+                agent=True,
+            )
+        else:
+            # Normal mode: direct LLM invocation
+            # Re-calculate the max tokens if sum(prompt_token +  max_tokens) over model token limit
+            self.recalc_llm_max_tokens(
+                model_config=application_generate_entity.model_conf, prompt_messages=prompt_messages
+            )
+
+            # Invoke model
+            model_instance = ModelInstance(
+                provider_model_bundle=application_generate_entity.model_conf.provider_model_bundle,
+                model=application_generate_entity.model_conf.model,
+            )
+
+            db.session.close()
+
+            invoke_result = model_instance.invoke_llm(
+                prompt_messages=prompt_messages,
+                model_parameters=application_generate_entity.model_conf.parameters,
+                stop=stop,
+                stream=application_generate_entity.stream,
+                user=application_generate_entity.user_id,
+            )
+
+            # handle invoke result
+            self._handle_invoke_result(
+                invoke_result=invoke_result, queue_manager=queue_manager, stream=application_generate_entity.stream
+            )

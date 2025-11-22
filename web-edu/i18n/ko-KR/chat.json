@@ -55,6 +55,7 @@
   "topP": "Top P",
   "enabledTools": "활성화된 도구",
   "noToolsEnabled": "활성화된 도구가 없습니다",
+  "systemPrompt": "시스템 프롬프트",
   "toolUsageHistory": "도구 사용 내역",
   "thinking": "생각하는 중",
   "thought": "생각",

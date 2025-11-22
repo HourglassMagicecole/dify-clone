@@ -501,6 +501,10 @@
       "running": "실행 중",
       "success": "성공",
       "failed": "실패"
-    }
+    },
+    "backToList": "목록으로",
+    "agentInfoButton": "Agent 정보",
+    "agentInfo": "Agent 정보",
+    "close": "닫기"
   }
 }
