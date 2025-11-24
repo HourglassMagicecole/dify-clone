@@ -7,6 +7,7 @@ import type { UserInputForm } from '@/types/agent'
 interface UserInputFormBuilderProps {
   fields: UserInputForm[]
   onChange: (fields: UserInputForm[]) => void
+  onPreview?: () => void
 }
 
 /**
@@ -20,7 +21,7 @@ interface UserInputFormBuilderProps {
  * - Variable name validation (snake_case)
  * - Options definition for select type
  */
-export function UserInputFormBuilder({ fields, onChange }: UserInputFormBuilderProps) {
+export function UserInputFormBuilder({ fields, onChange, onPreview }: UserInputFormBuilderProps) {
   const { t } = useTranslation('agent')
 
   /**
@@ -89,7 +90,9 @@ export function UserInputFormBuilder({ fields, onChange }: UserInputFormBuilderP
 
     const newFields = [...fields]
     const targetIndex = direction === 'up' ? index - 1 : index + 1
-    ;[newFields[index], newFields[targetIndex]] = [newFields[targetIndex], newFields[index]]
+    const temp = newFields[index]
+    newFields[index] = newFields[targetIndex]!
+    newFields[targetIndex] = temp!
 
     onChange(newFields)
   }
@@ -101,14 +104,25 @@ export function UserInputFormBuilder({ fields, onChange }: UserInputFormBuilderP
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           {t('wizard.step2UserInputForm.title')}
         </h3>
-        <button
-          type="button"
-          onClick={handleAddField}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          <PlusIcon className="h-4 w-4 mr-2" />
-          {t('wizard.step2UserInputForm.addField')}
-        </button>
+        <div className="flex gap-2">
+          {fields.length > 0 && onPreview && (
+            <button
+              type="button"
+              onClick={onPreview}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+            >
+              👁️ {t('wizard.step2Preview.title')}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleAddField}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            {t('wizard.step2UserInputForm.addField')}
+          </button>
+        </div>
       </div>
 
       {/* Field List */}

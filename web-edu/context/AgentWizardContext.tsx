@@ -284,6 +284,7 @@ export function AgentWizardProvider({
               pre_prompt: prePrompt || '',
               prompt_type: 'simple',
               user_input_form: userInputForm,
+              output_format: undefined, // Output format not stored in backend, will be redefined in edit mode
               opening_statement: agentData.opening_statement,
               suggested_questions: agentData.suggested_questions || [],
             },

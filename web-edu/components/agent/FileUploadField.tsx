@@ -153,7 +153,9 @@ export function FileUploadField({ name, label, required, onChange, value }: File
       formData.append('file', file)
 
       // Get API base URL
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001'
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL !== undefined
+        ? process.env.NEXT_PUBLIC_API_BASE_URL
+        : 'http://localhost:5001'
 
       // Start upload
       xhr.open('POST', `${apiBaseUrl}/v1/files/upload`)
@@ -176,6 +178,8 @@ export function FileUploadField({ name, label, required, onChange, value }: File
       return
 
     const file = acceptedFiles[0]
+    if (!file)
+      return
 
     // Validate file
     const validation = validateFile(file)

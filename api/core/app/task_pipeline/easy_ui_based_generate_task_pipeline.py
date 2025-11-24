@@ -521,9 +521,32 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                         signed_url = ToolFileManager.sign_file(msg_file.upload_file_id, extension)
                         logger.info("[DEBUG] Generated signed URL: %s", signed_url)
                     else:
-                        # No upload_file_id, use original URL
+                        # No upload_file_id, try to extract tool_file_id from URL and sign it
+                        import re
+
+                        from core.tools.signature import sign_tool_file
+
                         signed_url = msg_file.url
-                        logger.info("[DEBUG] No upload_file_id, using original URL: %s", signed_url)
+                        if msg_file.url and "/files/tools/" in msg_file.url:
+                            # Extract tool_file_id from URL pattern: /files/tools/{id}.{ext}
+                            match = re.search(r"/files/tools/([\w-]+)", msg_file.url)
+                            if match:
+                                tool_file_id = match.group(1)
+                                # Extract extension from URL
+                                url_match = re.search(r"\.([a-z0-9]+)$", msg_file.url, re.IGNORECASE)
+                                if url_match:
+                                    extension = f".{url_match.group(1)}"
+                                else:
+                                    extension = ".bin"
+                                # Sign the file URL
+                                signed_url = sign_tool_file(tool_file_id, extension)
+                                logger.info("[DEBUG] Signed URL from path: %s", signed_url)
+                            else:
+                                logger.warning("[DEBUG] Could not extract tool_file_id from URL: %s", msg_file.url)
+                        else:
+                            logger.info(
+                                "[DEBUG] No upload_file_id and not a tool file, using original URL: %s", signed_url
+                            )
 
                     file_data: dict[str, object] = {
                         "id": msg_file.id,

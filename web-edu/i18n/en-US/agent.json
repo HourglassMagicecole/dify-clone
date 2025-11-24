@@ -5,7 +5,7 @@
     "step2": "Prompt Configuration",
     "step3": "LLM Settings",
     "step4": "Tools Configuration",
-    "step5": "Review & Test",
+    "step5": "Final Review & Save",
     "step2UserInputForm": {
       "title": "Define User Input Form",
       "addField": "Add Field",
@@ -95,7 +95,83 @@
     "speechToTextLabel": "Voice Input (STT)",
     "textToSpeechLabel": "Voice Output (TTS)",
     "voiceLabel": "Voice Selection",
-    "languageLabel": "Language"
+    "languageLabel": "Language",
+    "outputFormatTitle": "Output Format Definition",
+    "outputFormatDescription": "Define the format of the results the Agent will generate",
+    "generateTemplateButton": "Apply Input & Output Format",
+    "regenerateTemplateButton": "Update Input & Output Format",
+    "templateGeneratedNotice": "Input form or output format has changed",
+    "formatTypeLabel": "Output Format",
+    "formatTypes": {
+      "text": "Text",
+      "image": "Image",
+      "audio": "Audio",
+      "file": "File",
+      "mixed": "Mixed (Multiple Formats)"
+    },
+    "textFormatLabel": "Text Format",
+    "textFormats": {
+      "markdown": "Markdown",
+      "json": "JSON",
+      "plain_text": "Plain Text",
+      "html": "HTML"
+    },
+    "structureLabel": "Structure Description",
+    "structurePlaceholder": "e.g., Table format, List, JSON schema",
+    "exampleLabel": "Output Example",
+    "examplePlaceholder": "Write an example of the expected output format",
+    "imageFormatLabel": "Image Format",
+    "imageFormats": {
+      "png": "PNG",
+      "jpg": "JPG",
+      "svg": "SVG",
+      "webp": "WebP"
+    },
+    "imageSizeLabel": "Image Size",
+    "imageWidthPlaceholder": "Width (px)",
+    "imageHeightPlaceholder": "Height (px)",
+    "imageAspectRatioLabel": "Aspect Ratio",
+    "imageStyleLabel": "Style",
+    "imageStylePlaceholder": "e.g., Realistic, Illustration, 3D",
+    "audioFormatLabel": "Audio Format",
+    "audioFormats": {
+      "mp3": "MP3",
+      "wav": "WAV",
+      "ogg": "OGG"
+    },
+    "audioVoiceLabel": "Voice",
+    "audioVoices": {
+      "female": "Female",
+      "male": "Male",
+      "neutral": "Neutral"
+    },
+    "audioSpeedLabel": "Speed",
+    "audioLanguageLabel": "Language",
+    "audioToneLabel": "Tone",
+    "audioTones": {
+      "professional": "Professional",
+      "friendly": "Friendly",
+      "calm": "Calm"
+    },
+    "fileFormatLabel": "File Format",
+    "fileFormats": {
+      "csv": "CSV",
+      "pdf": "PDF",
+      "docx": "DOCX",
+      "xlsx": "XLSX",
+      "pptx": "PPTX"
+    },
+    "fileTemplateLabel": "Template Description",
+    "fileTemplatePlaceholder": "Description of the file template",
+    "fileFormatRulesLabel": "Format Rules",
+    "fileFormatRulesPlaceholder": "Rules to apply when generating the file",
+    "fileIncludeHeaderLabel": "Include Header",
+    "mixedOutputsLabel": "Mixed Output Configuration",
+    "addMixedOutput": "Add Output",
+    "mixedOutputTypeLabel": "Type",
+    "mixedOutputDescriptionLabel": "Description",
+    "mixedOutputDescriptionPlaceholder": "Describe the purpose of this output",
+    "mixedOutputRequiredLabel": "Required"
   },
   "modelSettings": {
     "title": "LLM Model Settings",
@@ -152,11 +228,13 @@
     "noToolsAvailable": "No tools available",
     "adminSetupRequired": "Admin Setup Required",
     "apiKeyRequired": "API Key Required",
-    "apiKeyConfigured": "Configured"
+    "apiKeyConfigured": "Configured",
+    "promptPreviewTitle": "Prompt Preview",
+    "promptPreviewDescription": "Selected tools will be added to the system prompt as shown below in the next step"
   },
   "reviewSettings": {
-    "title": "Review & Test",
-    "description": "Review settings and test your Agent",
+    "title": "Final Review & Save",
+    "description": "Review your settings and create the Agent",
     "summaryTitle": "Agent Summary",
     "basicInfoTitle": "Basic Information",
     "promptTitle": "Prompt",
@@ -397,47 +475,101 @@
       "description": "Warm and empathetic conversation partner",
       "content": "You are a warm and empathetic conversational partner. You can comfortably discuss everything from casual daily topics to serious concerns, understanding others' emotions and providing appropriate responses. You converse with a positive and encouraging attitude, offering advice when needed and sometimes just listening."
     },
-    "translator": {
-      "icon": "🌐",
-      "title": "Professional Translator",
-      "suggestedName": "Professional Translator",
-      "description": "Accurate and natural translation service",
-      "content": "You are a professional translator fluent in multiple languages. You accurately convey the meaning and nuances of the source text while using natural expressions in the target language. You consider cultural context and idiomatic expressions, follow standard terminology translations for technical terms, and provide explanations for translation choices when necessary."
+    "marketResearcher": {
+      "icon": "🔍",
+      "title": "Market Research Analyst",
+      "suggestedName": "Market Research Analyst",
+      "description": "Analyze market trends and competitors via web search",
+      "content": "You are a professional market research analyst. Using the provided tools, you analyze product market trends, competitor status, and estimated market size. You structure collected information into reports and provide insights based on objective data.",
+      "suggested_tools": ["google", "wikipedia"]
     },
-    "summarizer": {
-      "icon": "📄",
-      "title": "Document Summarizer",
-      "suggestedName": "Document Summarizer",
-      "description": "Concise summarization of long texts",
-      "content": "You are an expert at concisely summarizing long texts. You accurately identify key content and main points to deliver them concisely, structuring information by importance. Your summaries are clear and easy to understand, conveying the core message of the original text without distortion."
+    "tripPlanner": {
+      "icon": "✈️",
+      "title": "Trip Planner",
+      "suggestedName": "Trip Planner",
+      "description": "Generate customized travel itineraries in structured format",
+      "content": "You are a professional trip planning specialist. Using the provided tools, you research destination attractions, restaurants, and transportation. You structure day-by-day itineraries considering travel duration, budget, and interests, along with practical travel tips.",
+      "suggested_tools": ["google", "wikipedia"]
     },
-    "emailWriter": {
-      "icon": "✉️",
-      "title": "Email Writing Assistant",
-      "suggestedName": "Email Writing Assistant",
-      "description": "Context-appropriate email composition",
-      "content": "You are a business communication specialist. You write emails with appropriate tone and format matching the purpose and recipient. You use clear and concise sentences, delivering messages courteously yet effectively. You compose emails for various situations from formal business correspondence to collaboration requests and thank-you notes."
+    "researchSummarizer": {
+      "icon": "📚",
+      "title": "Research Summarizer",
+      "suggestedName": "Research Summarizer",
+      "description": "Structure and summarize research results by topic",
+      "content": "You are a research specialist. Using the provided tools, you collect reliable information on topics. You systematically organize key content and provide structured summaries with clear source citations.",
+      "suggested_tools": ["wikipedia", "arxiv"]
     },
-    "copywriter": {
-      "icon": "✨",
-      "title": "Marketing Copywriter",
-      "suggestedName": "Marketing Copywriter",
-      "description": "Compelling marketing copy creation",
-      "content": "You are an expert at creating creative and persuasive marketing copy. You identify the core value of products or services and express them as attractive messages, creating copy that touches target customers' emotions. You write various marketing materials including advertising copy, SNS content, and brand messages."
+    "contentCurator": {
+      "icon": "📰",
+      "title": "Content Curator",
+      "suggestedName": "Content Curator",
+      "description": "Search and organize quality content by topic",
+      "content": "You are a content curation specialist. Using the provided tools, you find latest content related to topics and create curation lists including title, summary, URL, and quality assessment for each content.",
+      "suggested_tools": ["google", "wikipedia"]
     },
-    "technicalWriter": {
-      "icon": "⚙️",
-      "title": "Technical Writer",
-      "suggestedName": "Technical Writer",
-      "description": "Clear technical documentation support",
-      "content": "You are a technical documentation expert who clearly conveys complex technical information. You write API documentation, user manuals, and developer guides accurately and systematically. You use technical terminology appropriately while making explanations accessible to readers, using example code and diagrams to enhance understanding."
-    },
-    "reportWriter": {
+    "dataAnalyst": {
       "icon": "📊",
-      "title": "Report Writing Assistant",
-      "suggestedName": "Report Writing Assistant",
-      "description": "Logical business report composition",
-      "content": "You are a business report writing specialist. You structure data and information logically to create clear reports. You write various document formats including work reports, analytical reports, and proposals, presenting actionable recommendations based on objective facts and analysis. You use a professional yet accessible writing style."
+      "title": "Data Analysis Assistant",
+      "suggestedName": "Data Analysis Assistant",
+      "description": "Analyze data and provide statistical results",
+      "content": "You are a data analysis specialist. Using the provided tools, you compute statistics such as mean, median, and standard deviation for data. You present analysis results as reports with clear tables and chart descriptions.",
+      "suggested_tools": ["maths"]
+    },
+    "competitorMonitor": {
+      "icon": "🏢",
+      "title": "Competitor Monitoring Bot",
+      "suggestedName": "Competitor Monitoring Bot",
+      "description": "Track competitor trends and generate reports",
+      "content": "You are a competitor monitoring specialist. Using the provided tools, you track competitor's latest news, product updates, and SNS activities. You organize monitoring results by date into reports.",
+      "suggested_tools": ["google"]
+    },
+    "infographicCreator": {
+      "icon": "🎨",
+      "title": "Infographic Creator",
+      "suggestedName": "Infographic Creator",
+      "description": "Transform data into visual infographics",
+      "content": "You are an infographic design specialist. Using the provided tools, you generate visually appealing infographic images from data. You create designs that effectively communicate the core message of the data.",
+      "suggested_tools": []
+    },
+    "socialThumbnailCreator": {
+      "icon": "📱",
+      "title": "Social Media Thumbnail Creator",
+      "suggestedName": "Social Media Thumbnail Creator",
+      "description": "Generate platform-optimized thumbnail images",
+      "content": "You are a social media design specialist. Using the provided tools, you generate thumbnail images optimized for each platform based on titles and keywords. You focus on eye-catching visuals and clear message delivery.",
+      "suggested_tools": []
+    },
+    "podcastCreator": {
+      "icon": "🎙️",
+      "title": "Podcast Script & Voice Generator",
+      "suggestedName": "Podcast Creator",
+      "description": "Write podcast scripts and generate audio files",
+      "content": "You are a podcast production specialist. Based on topics, you write natural conversational scripts and generate audio files using the provided tools. You use composition and tone that maintains listener engagement.",
+      "suggested_tools": []
+    },
+    "audioBookNarrator": {
+      "icon": "📖",
+      "title": "Audiobook Narrator",
+      "suggestedName": "Audiobook Narrator",
+      "description": "Convert text into natural audiobook narration",
+      "content": "You are an audiobook narration specialist. Using the provided tools, you convert text into audio files with selected voice style (professional/friendly/calm) and speed. You implement natural pronunciation and appropriate emotional expression for comfortable listening.",
+      "suggested_tools": []
+    },
+    "dataReportGenerator": {
+      "icon": "📄",
+      "title": "Data Analysis Report Generator",
+      "suggestedName": "Data Report Generator",
+      "description": "Analyze CSV data and generate PDF reports",
+      "content": "You are a data analysis report specialist. Using the provided tools, you analyze CSV data and generate professional reports including charts, statistics, and insights. You provide visualizations and summaries accessible to executives.",
+      "suggested_tools": ["maths"]
+    },
+    "travelGuideBookCreator": {
+      "icon": "🗺️",
+      "title": "Travel Guidebook Creator",
+      "suggestedName": "Travel Guidebook Creator",
+      "description": "Generate customized travel guidebook packages",
+      "content": "You are a travel guidebook creation specialist. Using the provided tools, you collect destination attractions, restaurants, and cultural information, generating complete travel packages including guidebooks, map images, and structured itineraries.",
+      "suggested_tools": ["google", "wikipedia"]
     }
   },
   "list": {

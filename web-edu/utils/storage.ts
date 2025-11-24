@@ -17,8 +17,8 @@ export function setTokens(accessToken: string, refreshToken: string): void {
   const cookieOptions: Cookies.CookieAttributes = {
     path: '/', // 명시적으로 path 지정
     expires: 7, // 7일
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: false, // HTTP 환경에서도 작동하도록 설정
+    sameSite: 'lax', // strict에서 lax로 변경 (cross-origin 허용)
   }
 
   Cookies.set(ACCESS_TOKEN_KEY, accessToken, cookieOptions)

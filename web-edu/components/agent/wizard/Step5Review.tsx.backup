@@ -1,16 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useAgentWizard } from '@/context/AgentWizardContext'
 import { AgentWizardStep } from '@/types/agent'
+import type { AgentTestMessage } from '@/types/agent'
 
 /**
- * Step 5: Final Review & Save Component
+ * Step 5: Review & Test Component
  *
  * Features:
  * - Agent summary (all steps data with edit buttons)
+ * - Agent test interface (mock chat - full implementation in Story 2.4)
  * - Create Agent button (with loading state)
  */
 export default function Step5Review() {
@@ -27,6 +30,10 @@ export default function Step5Review() {
     previousStep,
     isEditMode,
   } = useAgentWizard()
+
+  const [testMessages, setTestMessages] = useState<AgentTestMessage[]>([])
+  const [testMessage, setTestMessage] = useState('')
+  const [isTestLoading, setIsTestLoading] = useState(false)
 
   // 현재 언어 설정 ('ko-KR' → 'ko_KR' 변환)
   const currentLang = (i18n.language || 'en-US').replace('-', '_')
@@ -48,6 +55,42 @@ export default function Step5Review() {
       // Redirect to Agent list page on success
       router.push('/agents')
     }
+  }
+
+  const handleSendTestMessage = async () => {
+    if (!testMessage.trim()) return
+
+    try {
+      setIsTestLoading(true)
+      const userMessage: AgentTestMessage = {
+        role: 'user',
+        content: testMessage.trim(),
+        created_at: new Date(),
+      }
+      setTestMessages(prev => [...prev, userMessage])
+      setTestMessage('')
+
+      // TODO: Call actual Dify API (POST /v1/chat-messages) - Story 2.4
+      // Mock response for now
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      const assistantMessage: AgentTestMessage = {
+        role: 'assistant',
+        content: 'This is a test response. Full chat functionality will be implemented in Story 2.4.',
+        created_at: new Date(),
+      }
+      setTestMessages(prev => [...prev, assistantMessage])
+    }
+    catch (error) {
+      console.error('Failed to send test message:', error)
+    }
+    finally {
+      setIsTestLoading(false)
+    }
+  }
+
+  const clearTestSession = () => {
+    setTestMessages([])
   }
 
   return (
@@ -124,9 +167,9 @@ export default function Step5Review() {
             </div>
           </div>
           <div className="px-4 py-4 space-y-2 text-sm">
-            <pre className="bg-gray-50 p-3 rounded-md font-mono text-xs max-h-64 overflow-y-auto dark:bg-gray-900 whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200">
-{promptSettings?.pre_prompt || 'No system prompt configured'}
-            </pre>
+            <div className="bg-gray-50 p-3 rounded-md font-mono text-xs max-h-32 overflow-y-auto dark:bg-gray-900">
+              {promptSettings?.pre_prompt || 'No system prompt configured'}
+            </div>
             {promptSettings?.opening_statement && (
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Opening: </span>
@@ -211,6 +254,82 @@ export default function Step5Review() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Test Agent Interface */}
+      <div className="space-y-4 border-t pt-6 dark:border-gray-700">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            {t('reviewSettings.testAgentTitle')}
+          </h3>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            {t('reviewSettings.testAgentDescription')}
+          </p>
+        </div>
+
+        {/* Test Messages */}
+        <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 min-h-64 max-h-96 overflow-y-auto space-y-3 dark:bg-gray-900 dark:border-gray-600">
+          {testMessages.length === 0 ? (
+            <div className="text-sm text-gray-400 text-center py-8 dark:text-gray-500">
+              {promptSettings?.opening_statement || t('reviewSettings.startTestSession')}
+            </div>
+          ) : (
+            testMessages.map((msg, index) => (
+              <div
+                key={index}
+                className={`p-3 rounded-md ${
+                  msg.role === 'user'
+                    ? 'bg-blue-100 ml-auto max-w-[80%] dark:bg-blue-900/30'
+                    : 'bg-white max-w-[80%] dark:bg-gray-800'
+                }`}
+              >
+                <div className="text-sm text-gray-900 dark:text-white">{msg.content}</div>
+              </div>
+            ))
+          )}
+          {isTestLoading && (
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <ArrowPathIcon className="h-4 w-4 animate-spin" />
+              <span>{t('reviewSettings.agentIsTyping')}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Test Input */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={testMessage}
+            onChange={(e) => setTestMessage(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSendTestMessage()
+              }
+            }}
+            placeholder={t('reviewSettings.testMessagePlaceholder')}
+            disabled={isTestLoading}
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:disabled:bg-gray-700"
+          />
+          <button
+            type="button"
+            onClick={handleSendTestMessage}
+            disabled={!testMessage.trim() || isTestLoading}
+            className="px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            {t('reviewSettings.sendTestMessage')}
+          </button>
+        </div>
+
+        {testMessages.length > 0 && (
+          <button
+            type="button"
+            onClick={clearTestSession}
+            className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            {t('reviewSettings.clearTestSession')}
+          </button>
+        )}
       </div>
 
       {/* Navigation Buttons */}

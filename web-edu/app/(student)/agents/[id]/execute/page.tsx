@@ -15,7 +15,7 @@ import type { ExecutionState, UserInputForm, Agent } from '@/types/agent'
 import { DynamicFormRenderer } from '@/components/agent/DynamicFormRenderer'
 import { AgentThoughtTimeline } from '@/components/agent/AgentThoughtTimeline'
 import { ExecutionResultPanel } from '@/components/agent/ExecutionResultPanel'
-import { ExecutionHistoryTable, type ExecutionRecord, type ExecutionHistoryTableRef } from '@/components/agent/ExecutionHistoryTable'
+import { ExecutionHistoryTable, type ExecutionHistoryTableRef } from '@/components/agent/ExecutionHistoryTable'
 import { AgentInfo } from '@/components/chat/AgentInfo'
 import { agentAPI } from '@/service/agent-api'
 
@@ -295,7 +295,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
    * Handle rerun from history
    * TODO: Task 8 - Connect this to ExecutionHistoryTable when onRerun prop is added
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /*
   const handleRerun = (execution: ExecutionRecord) => {
     // TODO: Populate form with execution.inputs and scroll to top
     // eslint-disable-next-line no-console
@@ -303,6 +303,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
     alert(`Rerunning execution with inputs: ${JSON.stringify(execution.inputs, null, 2)}`)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  */
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -392,6 +393,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
                   result={executionState.result}
                   tokenUsage={executionState.tokenUsage}
                   executionTime={executionState.executionTime}
+                  agentThoughts={executionState.agentThoughts}
                   onRetry={handleRetry}
                   isRetrying={executionState.status === 'running'}
                 />

@@ -7,9 +7,11 @@ import { useTranslation } from 'react-i18next'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { promptSettingsSchema, type PromptSettingsFormData } from '@/schemas/agent-schema'
 import { useAgentWizard } from '@/context/AgentWizardContext'
-import type { AgentPromptSettings, UserInputForm } from '@/types/agent'
+import type { AgentPromptSettings, UserInputForm, OutputFormat } from '@/types/agent'
 import { UserInputFormBuilder } from './UserInputFormBuilder'
 import { InputFieldPreview } from './InputFieldPreview'
+import { OutputFormatBuilder } from './OutputFormatBuilder'
+import { Modal } from '@/components/common/Modal'
 
 /**
  * Step 2: Prompt Configuration Component
@@ -28,6 +30,7 @@ export default function Step2PromptSettings() {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors, isValid },
   } = useForm<PromptSettingsFormData>({
     resolver: zodResolver(promptSettingsSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -49,6 +52,17 @@ export default function Step2PromptSettings() {
     promptSettings?.user_input_form || []
   )
 
+  // Output format state (for completion mode)
+  const [outputFormat, setOutputFormat] = useState<OutputFormat | undefined>(
+    promptSettings?.output_format
+  )
+
+  // Track if template has been generated
+  const [hasGeneratedTemplate, setHasGeneratedTemplate] = useState(false)
+
+  // Preview modal state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+
   // Type assertion needed: TypeScript has trouble inferring array field types when multiple arrays exist in schema
   const {
     fields: questionFields,
@@ -62,16 +76,83 @@ export default function Step2PromptSettings() {
   const prePromptValue = watch('pre_prompt')
   const openingStatementValue = watch('opening_statement')
 
-  // Auto-save user_input_form to context
+  /**
+   * Generate prompt template from user input form and output format
+   */
+  const generatePromptTemplate = () => {
+    if (!isCompletionMode) return
+
+    const currentValues = watch()
+
+    // Extract base role by removing auto-generated sections
+    let baseRole = currentValues.pre_prompt || basicSettings?.role || ''
+
+    // Remove "## 입력 정보" section and everything after it
+    const inputInfoIndex = baseRole.indexOf('## 입력 정보')
+    if (inputInfoIndex !== -1) {
+      baseRole = baseRole.substring(0, inputInfoIndex).trim()
+    }
+
+    // Remove "## 출력 형식" section and everything after it
+    const outputFormatIndex = baseRole.indexOf('## 출력 형식')
+    if (outputFormatIndex !== -1) {
+      baseRole = baseRole.substring(0, outputFormatIndex).trim()
+    }
+
+    // Start with clean base role
+    let template = baseRole
+
+    // Add input information section
+    if (userInputFormFields.length > 0) {
+      template += '\n\n## 입력 정보\n'
+      userInputFormFields.forEach(field => {
+        template += `- **${field.label}** ({{${field.variable}}}): `
+        if (field.required) {
+          template += '필수 입력'
+        } else {
+          template += '선택 입력'
+        }
+        if (field.input_type === 'select' && field.options) {
+          template += ` (옵션: ${field.options.join(', ')})`
+        }
+        template += '\n'
+      })
+    }
+
+    // Add output format section
+    if (outputFormat) {
+      template += '\n## 출력 형식\n'
+
+      if (outputFormat.format_type === 'text') {
+        template += `**형식**: ${outputFormat.text_format || 'Markdown'}\n`
+      } else if (outputFormat.format_type === 'image') {
+        template += `**형식**: ${outputFormat.image_format || 'PNG'} 이미지\n`
+      } else if (outputFormat.format_type === 'audio') {
+        template += `**형식**: ${outputFormat.audio_format || 'MP3'} 오디오\n`
+      } else if (outputFormat.format_type === 'file') {
+        template += `**형식**: ${outputFormat.file_format || 'PDF'} 파일\n`
+      }
+    }
+
+    // Set the generated template to the form
+    reset({
+      ...currentValues,
+      pre_prompt: template,
+    })
+    setHasGeneratedTemplate(true)
+  }
+
+  // Auto-save user_input_form and output_format to context
   useEffect(() => {
     if (isCompletionMode && isValid) {
       setPromptSettings({
         ...promptSettings,
         user_input_form: userInputFormFields,
+        output_format: outputFormat,
       } as AgentPromptSettings)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userInputFormFields, isCompletionMode, isValid])
+  }, [userInputFormFields, outputFormat, isCompletionMode, isValid])
 
   // Auto-save to context when form changes
   useEffect(() => {
@@ -84,14 +165,15 @@ export default function Step2PromptSettings() {
   }, [watch, isValid, setPromptSettings])
 
   const onSubmit = (data: PromptSettingsFormData) => {
-    // Include user_input_form in the data
+    // Include user_input_form and output_format in the data
     const fullData = {
       ...data,
       user_input_form: isCompletionMode ? userInputFormFields : undefined,
+      output_format: isCompletionMode ? outputFormat : undefined,
     } as AgentPromptSettings
 
     // eslint-disable-next-line no-console
-    console.log('[Step2] Saving prompt settings with user_input_form:', fullData)
+    console.log('[Step2] Saving prompt settings:', fullData)
 
     setPromptSettings(fullData)
     nextStep()
@@ -203,15 +285,47 @@ export default function Step2PromptSettings() {
 
       {/* User Input Form (Completion mode only) */}
       {isCompletionMode && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left: Form Builder */}
-          <UserInputFormBuilder
-            fields={userInputFormFields}
-            onChange={setUserInputFormFields}
-          />
+        <UserInputFormBuilder
+          fields={userInputFormFields}
+          onChange={setUserInputFormFields}
+          onPreview={() => setIsPreviewOpen(true)}
+        />
+      )}
 
-          {/* Right: Preview */}
-          <InputFieldPreview fields={userInputFormFields} />
+      {/* Output Format Definition (Completion mode only) */}
+      {isCompletionMode && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {t('promptSettings.outputFormatTitle')}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {t('promptSettings.outputFormatDescription')}
+            </p>
+          </div>
+
+          <OutputFormatBuilder
+            outputFormat={outputFormat}
+            onChange={setOutputFormat}
+          />
+        </div>
+      )}
+
+      {/* Generate Template Button (Completion mode only) */}
+      {isCompletionMode && (
+        <div className="flex flex-col items-center space-y-2">
+          <button
+            type="button"
+            onClick={generatePromptTemplate}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg"
+          >
+            📝 {hasGeneratedTemplate ? t('promptSettings.regenerateTemplateButton') : t('promptSettings.generateTemplateButton')}
+          </button>
+          {(userInputFormFields.length > 0 || outputFormat) && !hasGeneratedTemplate && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              💡 {t('promptSettings.templateGeneratedNotice')}
+            </p>
+          )}
         </div>
       )}
 
@@ -232,6 +346,15 @@ export default function Step2PromptSettings() {
           {t('buttons.next')}
         </button>
       </div>
+
+      {/* Preview Modal */}
+      <Modal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        title={t('wizard.step2Preview.title')}
+      >
+        <InputFieldPreview fields={userInputFormFields} />
+      </Modal>
     </form>
   )
 }

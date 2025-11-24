@@ -51,16 +51,7 @@ export function DynamicFormRenderer({
       // Define base schema based on input type
       switch (field.input_type) {
         case 'number':
-          fieldSchema = z.number({
-            required_error: t('execute.inputForm.validation.required', {
-              field: field.label,
-              defaultValue: `${field.label}은(는) 필수 입력입니다`,
-            }),
-            invalid_type_error: t('execute.inputForm.validation.invalidNumber', {
-              field: field.label,
-              defaultValue: `${field.label}은(는) 숫자여야 합니다`,
-            }),
-          })
+          fieldSchema = z.coerce.number()
           break
 
         case 'checkbox':

@@ -120,16 +120,6 @@ export function InputFieldPreview({ fields }: InputFieldPreviewProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          {t('wizard.step2Preview.title')}
-        </h3>
-        <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded dark:bg-blue-900/20 dark:text-blue-400">
-          {t('wizard.step2Preview.badge')}
-        </span>
-      </div>
-
       {/* Preview Container */}
       <div className="border border-gray-300 rounded-lg p-6 bg-white dark:bg-gray-800 dark:border-gray-600 space-y-4">
         {fields.map((field, index) => (

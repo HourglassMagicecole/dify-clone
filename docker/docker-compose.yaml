@@ -724,7 +724,7 @@ services:
       dockerfile: Dockerfile
       args:
         API_HOST: api:5001
-        NEXT_PUBLIC_API_BASE_URL: http://localhost
+        NEXT_PUBLIC_API_BASE_URL: ''
     restart: always
     ports:
       - "3001:3001"
@@ -740,7 +740,7 @@ services:
       TEXT_GENERATION_TIMEOUT_MS: ${TEXT_GENERATION_TIMEOUT_MS:-60000}
       CSP_WHITELIST: ${CSP_WHITELIST:-}
       ALLOW_EMBED: ${ALLOW_EMBED:-false}
-      NEXT_PUBLIC_API_BASE_URL: http://localhost
+      NEXT_PUBLIC_API_BASE_URL: ''
       ALLOW_UNSAFE_DATA_SCHEME: ${ALLOW_UNSAFE_DATA_SCHEME:-false}
       MARKETPLACE_API_URL: ${MARKETPLACE_API_URL:-https://marketplace.dify.ai}
       MARKETPLACE_URL: ${MARKETPLACE_URL:-https://marketplace.dify.ai}

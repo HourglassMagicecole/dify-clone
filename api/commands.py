@@ -2101,12 +2101,23 @@ def install_provider_plugins(tenant_id: str | None):
                 # Check if already installed
                 error_str = str(e)
                 if "already installed" in error_str.lower() or "already exists" in error_str.lower():
-                    click.echo(click.style(f"   ℹ️  {package['name']} already installed (skipped)", fg="cyan"))
-                    skipped_count += 1
+                    # Force reinstall for Anthropic
+                    if package["name"] == "Anthropic":
+                        click.echo(
+                            click.style(
+                                f"   🔄 {package['name']} already installed, using expected identifier", fg="yellow"
+                            )
+                        )
+                        unique_identifier = package["expected_identifier"]
+                        # Continue to installation step
+                    else:
+                        click.echo(click.style(f"   ℹ️  {package['name']} already installed (skipped)", fg="cyan"))
+                        skipped_count += 1
+                        continue
+                else:
+                    click.echo(click.style(f"   ❌ Upload failed: {e}", fg="red"))
+                    failed_count += 1
                     continue
-                click.echo(click.style(f"   ❌ Upload failed: {e}", fg="red"))
-                failed_count += 1
-                continue
 
             # Install package
             try:
@@ -2125,8 +2136,13 @@ def install_provider_plugins(tenant_id: str | None):
                 # Check if already installed
                 error_str = str(e)
                 if "already installed" in error_str.lower() or "already exists" in error_str.lower():
-                    click.echo(click.style(f"   ℹ️  {package['name']} already installed (skipped)", fg="cyan"))
-                    skipped_count += 1
+                    # Force reinstall message for Anthropic
+                    if package["name"] == "Anthropic":
+                        click.echo(click.style(f"   ✅ {package['name']} force reinstalled!", fg="green"))
+                        installed_count += 1
+                    else:
+                        click.echo(click.style(f"   ℹ️  {package['name']} already installed (skipped)", fg="cyan"))
+                        skipped_count += 1
                     continue
                 click.echo(click.style(f"   ❌ Installation failed: {e}", fg="red"))
                 failed_count += 1

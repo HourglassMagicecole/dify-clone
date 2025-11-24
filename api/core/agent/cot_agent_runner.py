@@ -1,4 +1,5 @@
 import json
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Mapping, Sequence
 from typing import Any
@@ -22,6 +23,8 @@ from core.tools.__base.tool import Tool
 from core.tools.entities.tool_entities import ToolInvokeMeta
 from core.tools.tool_engine import ToolEngine
 from models.model import Message
+
+logger = logging.getLogger(__name__)
 
 
 class CotAgentRunner(BaseAgentRunner, ABC):
@@ -111,10 +114,24 @@ class CotAgentRunner(BaseAgentRunner, ABC):
             # recalc llm max tokens
             prompt_messages = self._organize_prompt_messages()
             self.recalc_llm_max_tokens(self.model_config, prompt_messages)
+
+            # Filter model parameters based on provider constraints
+            filtered_parameters = dict(app_generate_entity.model_conf.parameters)
+
+            # Anthropic Claude models: temperature and top_p cannot both be specified
+            if model_instance.provider == "anthropic":
+                if "temperature" in filtered_parameters and "top_p" in filtered_parameters:
+                    # Prefer temperature over top_p (remove top_p)
+                    logger.info(
+                        "[Parameter Filter] Anthropic model detected: "
+                        "removing 'top_p' to avoid conflict with 'temperature'"
+                    )
+                    del filtered_parameters["top_p"]
+
             # invoke model
             chunks = model_instance.invoke_llm(
                 prompt_messages=prompt_messages,
-                model_parameters=app_generate_entity.model_conf.parameters,
+                model_parameters=filtered_parameters,
                 tools=[],
                 stop=app_generate_entity.model_conf.stop,
                 stream=True,

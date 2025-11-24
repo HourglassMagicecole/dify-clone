@@ -80,9 +80,15 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
         if (response.result === 'success' && response.data && response.data.length > 0) {
           setUserConfig(response.data[0] || null)
         }
+        else {
+          // Reset userConfig when no config exists for this provider
+          setUserConfig(null)
+        }
       }
       catch (error) {
         console.error('Failed to load user config:', error)
+        // Also reset on error
+        setUserConfig(null)
       }
     }
 

@@ -2,6 +2,8 @@
  * Agent type definitions for EduAI Studio
  */
 
+import type { MessageFile } from './chat'
+
 /**
  * Agent type enum (maps to Dify's app mode)
  */
@@ -22,6 +24,7 @@ export interface AgentBasicSettings {
   icon_type?: 'emoji' | 'image'
   icon?: string
   icon_background?: string  // Hex color code
+  suggested_tools?: string[]  // Suggested tool provider names (frontend only, not sent to backend)
 }
 
 /**
@@ -47,13 +50,20 @@ export enum ConfigMode {
  * Role sample template for Auto mode
  */
 export interface RoleSample {
-  id: string                // Unique identifier
-  mode: AgentType          // Agent type this sample belongs to
-  title: string            // Sample title (for display)
-  content: string          // Role definition prompt
-  icon: string             // Emoji icon for the sample
-  suggestedName: string    // Suggested agent name
-  description: string      // Short description of the sample
+  id: string                           // Unique identifier
+  mode: AgentType                      // Agent type this sample belongs to
+  title: string                        // Sample title (for display)
+  content: string                      // Role definition prompt
+  icon: string                         // Emoji icon for the sample
+  suggestedName: string                // Suggested agent name
+  description: string                  // Short description of the sample
+  // Completion mode suggestions
+  suggested_user_input_form?: UserInputForm[]  // Suggested input form (completion mode only)
+  suggested_output_format?: OutputFormat       // Suggested output format (completion mode only)
+  suggested_tools?: string[]           // Suggested tool names (e.g., ["google_search", "wikipedia"])
+  // Chat mode suggestions
+  suggested_opening_statement?: string // Suggested opening message (chat mode only)
+  suggested_questions?: string[]       // Suggested questions (chat mode only, max 5)
 }
 
 /**
@@ -92,12 +102,58 @@ export interface UserInputForm {
 }
 
 /**
+ * Step 2: Output format definition for task-based agents
+ */
+export interface OutputFormat {
+  format_type: 'text' | 'image' | 'audio' | 'file' | 'mixed'
+
+  // Text output
+  text_format?: 'markdown' | 'json' | 'plain_text' | 'html'
+  structure?: string                  // Structure description (e.g., "Table format", "List", "JSON schema")
+  example?: string                    // Output example
+
+  // Image output
+  image_format?: 'png' | 'jpg' | 'svg' | 'webp'
+  image_specs?: {
+    width?: number
+    height?: number
+    aspect_ratio?: string             // "16:9", "1:1", "4:3"
+    style?: string                    // "realistic", "illustration", "3D"
+  }
+
+  // Audio output
+  audio_format?: 'mp3' | 'wav' | 'ogg'
+  audio_specs?: {
+    voice?: string                    // "female", "male", "neutral"
+    speed?: number                    // 1.0 = normal speed
+    language?: string                 // "ko-KR", "en-US"
+    tone?: string                     // "professional", "friendly", "calm"
+  }
+
+  // File output
+  file_format?: 'csv' | 'pdf' | 'docx' | 'xlsx' | 'pptx'
+  file_specs?: {
+    template?: string                 // Template description
+    format_rules?: string             // Format rules
+    include_header?: boolean
+  }
+
+  // Mixed output (multiple formats)
+  mixed_outputs?: Array<{
+    type: 'text' | 'image' | 'audio' | 'file'
+    description: string
+    required: boolean
+  }>
+}
+
+/**
  * Step 2: Prompt configuration settings
  */
 export interface AgentPromptSettings {
   pre_prompt: string                   // System prompt (role definition)
   prompt_type: 'simple' | 'advanced'  // Prompt mode
   user_input_form?: UserInputForm[]   // User input form (completion mode only)
+  output_format?: OutputFormat        // Output format definition (completion mode only)
   opening_statement?: string          // Conversation starter message (chat mode only)
   suggested_questions?: string[]      // Suggested questions (chat mode only, max 5)
 }
@@ -372,6 +428,7 @@ export interface AgentThought {
   tool_input: Record<string, unknown> // Tool input parameters
   tool_output: string | null          // Tool output
   observation: string                 // Observation from tool execution
+  message_files?: MessageFile[]       // Generated files (images, audio, documents)
   created_at: number                  // Unix timestamp (milliseconds) - when thought was created
   updated_at?: number                 // Unix timestamp (milliseconds) - when observation was filled
 }

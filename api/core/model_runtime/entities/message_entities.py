@@ -108,8 +108,8 @@ class ImagePromptMessageContent(MultiModalPromptMessageContent):
     """
 
     class DETAIL(StrEnum):
-        LOW = auto()
-        HIGH = auto()
+        LOW = "low"
+        HIGH = "high"
 
     type: Literal[PromptMessageContentType.IMAGE] = PromptMessageContentType.IMAGE
     detail: DETAIL = DETAIL.LOW

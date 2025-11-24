@@ -57,6 +57,11 @@ export class DifyAPI {
     return apiClient.getDifyNative(`/console/api/workspaces/current/model-providers/${provider}/models`)
   }
 
+  // Get parameter rules for a specific model
+  async getModelParameterRules(provider: string, model: string): Promise<ApiResponse<unknown>> {
+    return apiClient.getDifyNative(`/console/api/workspaces/current/model-providers/${provider}/models/parameter-rules?model=${encodeURIComponent(model)}`)
+  }
+
   // 추후 Dataset, Workflow API 추가 예정
 }
 

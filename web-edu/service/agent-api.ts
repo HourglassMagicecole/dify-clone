@@ -40,7 +40,9 @@ function sanitizeFilename(filename: string): string {
  * Agent API Service
  */
 export class AgentAPIService {
-  private readonly apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001'
+  private readonly apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL !== undefined
+    ? process.env.NEXT_PUBLIC_API_BASE_URL
+    : 'http://localhost:5001'
 
   /**
    * Get the appropriate conversation endpoint based on app mode
@@ -983,6 +985,17 @@ export class AgentAPIService {
                     tool_input: (data.tool_input as Record<string, unknown>) || {},
                     tool_output: data.observation ? String(data.observation) : null,
                     observation: String(data.observation || ''),
+                    message_files: (data.message_files as Array<Record<string, unknown>> | undefined)?.map((file) => ({
+                      id: String(file.id || ''),
+                      type: String(file.type || 'document'),
+                      url: String(file.url || ''),
+                      filename: String(file.filename || ''),
+                      mime_type: file.mime_type ? String(file.mime_type) : undefined,
+                      size: file.size ? Number(file.size) : undefined,
+                      transfer_method: file.transfer_method ? String(file.transfer_method) : undefined,
+                      belongs_to: file.belongs_to as 'user' | 'assistant' | undefined,
+                      upload_file_id: file.upload_file_id ? String(file.upload_file_id) : undefined,
+                    })),
                     // Backend may send created_at in seconds, normalize to milliseconds
                     created_at: data.created_at
                       ? (Number(data.created_at) < 10000000000

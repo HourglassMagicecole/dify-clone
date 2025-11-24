@@ -12,6 +12,23 @@ import type { ModelProvider, ModelInfo, AgentModelConfig } from '@/types/agent'
 import { Tooltip } from '@/components/common/Tooltip'
 
 /**
+ * Parameter Rule from Dify API
+ */
+interface ParameterRule {
+  name: string
+  use_template?: string | null
+  label: { en_US?: string; [key: string]: string | undefined }
+  type: string
+  help?: { en_US?: string; [key: string]: string | undefined } | null
+  required?: boolean
+  default?: unknown
+  min?: number | null
+  max?: number | null
+  precision?: number | null
+  options?: string[]
+}
+
+/**
  * Helper: Get default models for a provider
  * This is a workaround since Dify API doesn't return models in the provider list
  */
@@ -67,6 +84,22 @@ function getDefaultModelsForProvider(providerName: string): ModelInfo[] {
 }
 
 /**
+ * Get parameter support based on parameter_rules from API
+ * Returns which parameters are supported by the current model
+ */
+function getParameterSupport(parameterRules: ParameterRule[]) {
+  const hasParameter = (name: string) => parameterRules.some(rule => rule.name === name)
+
+  return {
+    temperature: hasParameter('temperature'),
+    top_p: hasParameter('top_p'),
+    presence_penalty: hasParameter('presence_penalty'),
+    frequency_penalty: hasParameter('frequency_penalty'),
+    max_tokens: hasParameter('max_tokens'),
+  }
+}
+
+/**
  * Step 3: LLM Model Configuration Component
  *
  * Features:
@@ -87,6 +120,8 @@ export default function Step3ModelConfig() {
   const [selectedModel, setSelectedModel] = useState<ModelInfo | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isLoadingModels, setIsLoadingModels] = useState(false)
+  const [parameterRules, setParameterRules] = useState<ParameterRule[]>([])
+  const [_isLoadingParameterRules, _setIsLoadingParameterRules] = useState(false)
 
   const {
     control,
@@ -119,6 +154,18 @@ export default function Step3ModelConfig() {
   const topPValue = watch('completion_params.top_p')
   const presencePenaltyValue = watch('completion_params.presence_penalty')
   const frequencyPenaltyValue = watch('completion_params.frequency_penalty')
+
+  // Get parameter support based on fetched parameter_rules
+  // Default to all parameters supported if rules not loaded yet
+  const parameterSupport = parameterRules.length > 0
+    ? getParameterSupport(parameterRules)
+    : {
+        temperature: true,
+        top_p: true,
+        presence_penalty: true,
+        frequency_penalty: true,
+        max_tokens: true,
+      }
 
   // Load providers on mount
   useEffect(() => {
@@ -190,6 +237,8 @@ export default function Step3ModelConfig() {
               setSelectedModel(model)
               // Update form value to ensure select shows the model
               setValue('model', model.model, { shouldValidate: true })
+              // Fetch parameter rules for this model
+              await fetchParameterRules(provider, model)
             } else {
               console.warn('[Step3] Model not found for:', modelConfig.model)
             }
@@ -204,6 +253,8 @@ export default function Step3ModelConfig() {
             if (model) {
               setSelectedModel(model)
               setValue('model', model.model, { shouldValidate: true })
+              // Fetch parameter rules for this model
+              await fetchParameterRules(provider, model)
             }
           }
           finally {
@@ -224,6 +275,36 @@ export default function Step3ModelConfig() {
     // Re-validate form when component mounts or modelConfig changes
     trigger()
   }, [trigger])
+
+  /**
+   * Fetch parameter rules for a specific model
+   * Reusable helper function
+   */
+  const fetchParameterRules = async (provider: ModelProvider, model: ModelInfo) => {
+    try {
+      _setIsLoadingParameterRules(true)
+      const originalProvider = provider.original_provider || provider.provider
+      const rulesResponse = await difyAPI.getModelParameterRules(originalProvider, model.model)
+
+      if (rulesResponse.result === 'success' && rulesResponse.data) {
+        const rules = Array.isArray(rulesResponse.data)
+          ? rulesResponse.data
+          : (rulesResponse.data as { data?: ParameterRule[] }).data || []
+
+        setParameterRules(rules as ParameterRule[])
+      } else {
+        console.warn('[Step3] Failed to load parameter rules:', rulesResponse.message)
+        setParameterRules([])
+      }
+    }
+    catch (error) {
+      console.error('[Step3] Error loading parameter rules:', error)
+      setParameterRules([])
+    }
+    finally {
+      _setIsLoadingParameterRules(false)
+    }
+  }
 
   const loadProviders = async () => {
     try {
@@ -307,6 +388,8 @@ export default function Step3ModelConfig() {
               const model = models.find((m: ModelInfo) => m.model === modelConfig.model)
               if (model) {
                 setSelectedModel(model)
+                // Fetch parameter rules for this model
+                await fetchParameterRules(provider, model)
               }
             }
             catch (error) {
@@ -318,6 +401,8 @@ export default function Step3ModelConfig() {
               const model = models.find((m: ModelInfo) => m.model === modelConfig.model)
               if (model) {
                 setSelectedModel(model)
+                // Fetch parameter rules for this model
+                await fetchParameterRules(provider, model)
               }
             }
           }
@@ -399,6 +484,9 @@ export default function Step3ModelConfig() {
             // Set default max_tokens based on model context size
             const contextSize = firstModel.model_properties?.context_size || 4096
             setValue('completion_params.max_tokens', Math.min(4096, contextSize), { shouldValidate: true })
+
+            // Fetch parameter rules for the auto-selected model
+            await fetchParameterRules(provider, firstModel)
           }
         }
       }
@@ -415,6 +503,9 @@ export default function Step3ModelConfig() {
             setSelectedModel(firstModel)
             const contextSize = firstModel.model_properties?.context_size || 4096
             setValue('completion_params.max_tokens', Math.min(4096, contextSize), { shouldValidate: true })
+
+            // Fetch parameter rules for the auto-selected model
+            await fetchParameterRules(provider, firstModel)
           }
         }
       }
@@ -429,7 +520,7 @@ export default function Step3ModelConfig() {
     }
   }
 
-  const handleModelChange = (newModel: string) => {
+  const handleModelChange = async (newModel: string) => {
     const model = availableModels.find(m => m.model === newModel)
     setSelectedModel(model || null)
 
@@ -437,6 +528,13 @@ export default function Step3ModelConfig() {
       // Update max_tokens based on model's context size
       const contextSize = model.model_properties?.context_size || 4096
       setValue('completion_params.max_tokens', Math.min(4096, contextSize))
+
+      // Fetch parameter_rules for this model
+      if (selectedProvider) {
+        await fetchParameterRules(selectedProvider, model)
+      }
+    } else {
+      setParameterRules([])
     }
   }
 
@@ -631,109 +729,115 @@ export default function Step3ModelConfig() {
         </div>
 
         {/* Top P */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="top_p" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('modelSettings.topPLabel')}
-              </label>
-              <Tooltip content={t('modelSettings.topPTooltip')} />
+        {parameterSupport.top_p && (
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="top_p" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('modelSettings.topPLabel')}
+                </label>
+                <Tooltip content={t('modelSettings.topPTooltip')} />
+              </div>
+              <span className="text-sm font-mono text-gray-900 dark:text-white">
+                {topPValue?.toFixed(1) || '1.0'}
+              </span>
             </div>
-            <span className="text-sm font-mono text-gray-900 dark:text-white">
-              {topPValue?.toFixed(1) || '1.0'}
-            </span>
+            <Controller
+              name="completion_params.top_p"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  value={field.value ?? 1.0}
+                  id="top_p"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-gray-700"
+                />
+              )}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t('modelSettings.topPHelp')}
+            </p>
           </div>
-          <Controller
-            name="completion_params.top_p"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                value={field.value ?? 1.0}
-                id="top_p"
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-gray-700"
-              />
-            )}
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t('modelSettings.topPHelp')}
-          </p>
-        </div>
+        )}
 
         {/* Presence Penalty */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="presence_penalty" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('modelSettings.presencePenaltyLabel')}
-              </label>
-              <Tooltip content={t('modelSettings.presencePenaltyTooltip')} />
+        {parameterSupport.presence_penalty && (
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="presence_penalty" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('modelSettings.presencePenaltyLabel')}
+                </label>
+                <Tooltip content={t('modelSettings.presencePenaltyTooltip')} />
+              </div>
+              <span className="text-sm font-mono text-gray-900 dark:text-white">
+                {presencePenaltyValue?.toFixed(1) || '0.0'}
+              </span>
             </div>
-            <span className="text-sm font-mono text-gray-900 dark:text-white">
-              {presencePenaltyValue?.toFixed(1) || '0.0'}
-            </span>
+            <Controller
+              name="completion_params.presence_penalty"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  value={field.value ?? 0.0}
+                  id="presence_penalty"
+                  type="range"
+                  min="-2"
+                  max="2"
+                  step="0.1"
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-gray-700"
+                />
+              )}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t('modelSettings.presencePenaltyHelp')}
+            </p>
           </div>
-          <Controller
-            name="completion_params.presence_penalty"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                value={field.value ?? 0.0}
-                id="presence_penalty"
-                type="range"
-                min="-2"
-                max="2"
-                step="0.1"
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-gray-700"
-              />
-            )}
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t('modelSettings.presencePenaltyHelp')}
-          </p>
-        </div>
+        )}
 
         {/* Frequency Penalty */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="frequency_penalty" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('modelSettings.frequencyPenaltyLabel')}
-              </label>
-              <Tooltip content={t('modelSettings.frequencyPenaltyTooltip')} />
+        {parameterSupport.frequency_penalty && (
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="frequency_penalty" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('modelSettings.frequencyPenaltyLabel')}
+                </label>
+                <Tooltip content={t('modelSettings.frequencyPenaltyTooltip')} />
+              </div>
+              <span className="text-sm font-mono text-gray-900 dark:text-white">
+                {frequencyPenaltyValue?.toFixed(1) || '0.0'}
+              </span>
             </div>
-            <span className="text-sm font-mono text-gray-900 dark:text-white">
-              {frequencyPenaltyValue?.toFixed(1) || '0.0'}
-            </span>
+            <Controller
+              name="completion_params.frequency_penalty"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  value={field.value ?? 0.0}
+                  id="frequency_penalty"
+                  type="range"
+                  min="-2"
+                  max="2"
+                  step="0.1"
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-gray-700"
+                />
+              )}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t('modelSettings.frequencyPenaltyHelp')}
+            </p>
           </div>
-          <Controller
-            name="completion_params.frequency_penalty"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                value={field.value ?? 0.0}
-                id="frequency_penalty"
-                type="range"
-                min="-2"
-                max="2"
-                step="0.1"
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-gray-700"
-              />
-            )}
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t('modelSettings.frequencyPenaltyHelp')}
-          </p>
-        </div>
+        )}
 
         {/* Max Tokens */}
         <div className="space-y-2">

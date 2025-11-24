@@ -89,7 +89,7 @@ const DEFAULT_TOOL_ICON = '🛠️'
 
 export default function Step4ToolsConfig() {
   const { t, i18n } = useTranslation('agent')
-  const { toolsConfig, setToolsConfig, nextStep, previousStep, isEditMode } = useAgentWizard()
+  const { basicSettings, toolsConfig, setToolsConfig, promptSettings, setPromptSettings, nextStep, previousStep, isEditMode } = useAgentWizard()
 
   // 현재 언어 설정 ('ko-KR' → 'ko_KR' 변환)
   const currentLang = (i18n.language || 'en-US').replace('-', '_')
@@ -142,6 +142,74 @@ export default function Step4ToolsConfig() {
       setToolsConfig({ tools: selectedTools })
     }
   }, [selectedTools, setValue, setToolsConfig, toolsConfig])
+
+  // Auto-select suggested tools from Step 1 sample (only once, when no tools configured yet)
+  useEffect(() => {
+    console.log('[Step4] Auto-select check:', {
+      hasRestored: hasRestoredRef.current,
+      toolProvidersCount: toolProviders.length,
+      suggestedTools: basicSettings?.suggested_tools,
+      existingToolsCount: toolsConfig?.tools?.length || 0,
+      selectedToolsCount: selectedTools.length,
+    })
+
+    // Only auto-select if:
+    // 1. Tools are loaded
+    // 2. Suggested tools exist
+    // 3. No tools currently selected (neither from toolsConfig nor selectedTools)
+    if (
+      toolProviders.length > 0
+      && basicSettings?.suggested_tools
+      && basicSettings.suggested_tools.length > 0
+      && (!toolsConfig || toolsConfig.tools.length === 0)
+      && selectedTools.length === 0
+    ) {
+      console.log('[Step4] Available provider names:', toolProviders.map(p => p.name))
+      console.log('[Step4] All providers and their tools:')
+      toolProviders.forEach(p => {
+        console.log(`  ${p.name}: ${p.tools.map(t => t.name).join(', ')}`)
+      })
+      const suggestedTools: SelectedTool[] = []
+
+      // Find tools matching suggested_tools
+      // Format: "provider.tool" (e.g., "google.google_search") or just "provider" (auto-select first available)
+      basicSettings.suggested_tools.forEach(toolSpec => {
+        const [providerName, toolName] = toolSpec.includes('.')
+          ? toolSpec.split('.', 2)
+          : [toolSpec, undefined]
+
+        const provider = toolProviders.find(p => p.name === providerName)
+        console.log(`[Step4] Looking for "${toolSpec}":`, provider ? `Provider found (${provider.tools.length} tools)` : 'Provider not found')
+
+        if (provider && provider.tools.length > 0) {
+          // If specific tool name provided, find that tool; otherwise find first available
+          const tool = toolName
+            ? provider.tools.find(t => t.name === toolName && t.available)
+            : provider.tools.find(t => t.available)
+
+          console.log(`[Step4] Found tool:`, tool ? `${tool.name} (${tool.available ? 'available' : 'unavailable'})` : 'None')
+
+          if (tool) {
+            suggestedTools.push({
+              provider_id: provider.name,
+              provider_type: 'builtin',
+              provider_name: getLocalizedText(provider.label),
+              tool_name: tool.name,
+              tool_label: getLocalizedText(tool.label),
+              tool_parameters: {},
+              enabled: true,
+            })
+          }
+        }
+      })
+
+      console.log('[Step4] Auto-selected tools:', suggestedTools)
+      if (suggestedTools.length > 0) {
+        setSelectedTools(suggestedTools)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toolProviders, basicSettings, toolsConfig, selectedTools])
 
   // Helper: i18n 객체에서 현재 언어에 맞는 텍스트 가져오기
   const getLocalizedText = (i18nObj: string | Record<string, string> | undefined, fallback = ''): string => {
@@ -334,8 +402,67 @@ export default function Step4ToolsConfig() {
     nextStep()
   }
 
+  /**
+   * Generate tools section preview for prompt
+   */
+  const generateToolsSectionPreview = (): string => {
+    if (selectedTools.length === 0) return ''
+
+    const enabledTools = selectedTools.filter(tool => tool.enabled !== false)
+    if (enabledTools.length === 0) return ''
+
+    let toolsSection = '## 사용 가능한 도구\n'
+    enabledTools.forEach(tool => {
+      const toolName = tool.tool_label || tool.tool_name
+      toolsSection += `- ${toolName}\n`
+    })
+
+    return toolsSection
+  }
+
   const handleNext = () => {
     setToolsConfig({ tools: selectedTools })
+
+    // Update pre_prompt with tools section
+    if (promptSettings && selectedTools.length > 0) {
+      const enabledTools = selectedTools.filter(tool => tool.enabled !== false)
+      if (enabledTools.length > 0) {
+        // Remove existing tools section (only the tools section, preserve other sections)
+        let basePrompt = promptSettings.pre_prompt || ''
+        const toolsSectionIndex = basePrompt.indexOf('## 사용 가능한 도구')
+
+        if (toolsSectionIndex !== -1) {
+          // Find the start of the next section after tools section
+          const afterToolsSection = basePrompt.substring(toolsSectionIndex + '## 사용 가능한 도구'.length)
+          const nextSectionMatch = afterToolsSection.match(/\n##\s/)
+
+          if (nextSectionMatch && nextSectionMatch.index !== undefined) {
+            // There's another section after tools section - preserve it
+            const nextSectionStart = toolsSectionIndex + '## 사용 가능한 도구'.length + nextSectionMatch.index
+            const beforeTools = basePrompt.substring(0, toolsSectionIndex).trim()
+            const afterTools = basePrompt.substring(nextSectionStart).trim()
+            basePrompt = beforeTools + (afterTools ? '\n\n' + afterTools : '')
+          }
+          else {
+            // No section after tools section - just remove it
+            basePrompt = basePrompt.substring(0, toolsSectionIndex).trim()
+          }
+        }
+
+        // Add new tools section
+        let updatedPrompt = basePrompt + '\n\n## 사용 가능한 도구\n'
+        enabledTools.forEach(tool => {
+          const toolName = tool.tool_label || tool.tool_name
+          updatedPrompt += `- ${toolName}\n`
+        })
+
+        setPromptSettings({
+          ...promptSettings,
+          pre_prompt: updatedPrompt,
+        })
+      }
+    }
+
     nextStep()
   }
 
@@ -402,6 +529,23 @@ export default function Step4ToolsConfig() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Prompt Preview Section */}
+      {selectedTools.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+            {t('toolsSettings.promptPreviewTitle')}
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            {t('toolsSettings.promptPreviewDescription')}
+          </p>
+          <div className="relative">
+            <pre className="p-4 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre-wrap font-mono">
+{generateToolsSectionPreview()}
+            </pre>
           </div>
         </div>
       )}

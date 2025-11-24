@@ -5,7 +5,7 @@
     "step2": "프롬프트 구성",
     "step3": "LLM 설정",
     "step4": "도구 구성",
-    "step5": "확인 및 테스트",
+    "step5": "최종 검토 및 저장",
     "step2UserInputForm": {
       "title": "사용자 입력 폼 정의",
       "addField": "필드 추가",
@@ -95,7 +95,83 @@
     "speechToTextLabel": "음성 입력 (STT)",
     "textToSpeechLabel": "음성 출력 (TTS)",
     "voiceLabel": "음성 선택",
-    "languageLabel": "언어"
+    "languageLabel": "언어",
+    "outputFormatTitle": "출력 형태 정의",
+    "outputFormatDescription": "Agent가 생성할 결과물의 형식을 정의하세요",
+    "generateTemplateButton": "입력·출력 형식 반영",
+    "regenerateTemplateButton": "입력·출력 형식 업데이트",
+    "templateGeneratedNotice": "입력 폼 또는 출력 형태가 변경되었습니다",
+    "formatTypeLabel": "출력 형식",
+    "formatTypes": {
+      "text": "텍스트",
+      "image": "이미지",
+      "audio": "오디오",
+      "file": "파일",
+      "mixed": "복합 (여러 형식)"
+    },
+    "textFormatLabel": "텍스트 형식",
+    "textFormats": {
+      "markdown": "Markdown",
+      "json": "JSON",
+      "plain_text": "일반 텍스트",
+      "html": "HTML"
+    },
+    "structureLabel": "구조 설명",
+    "structurePlaceholder": "예: 표 형식, 목록, JSON schema",
+    "exampleLabel": "출력 예시",
+    "examplePlaceholder": "예상되는 출력 형태의 예시를 작성하세요",
+    "imageFormatLabel": "이미지 형식",
+    "imageFormats": {
+      "png": "PNG",
+      "jpg": "JPG",
+      "svg": "SVG",
+      "webp": "WebP"
+    },
+    "imageSizeLabel": "이미지 크기",
+    "imageWidthPlaceholder": "너비 (px)",
+    "imageHeightPlaceholder": "높이 (px)",
+    "imageAspectRatioLabel": "비율",
+    "imageStyleLabel": "스타일",
+    "imageStylePlaceholder": "예: 사실적, 일러스트, 3D",
+    "audioFormatLabel": "오디오 형식",
+    "audioFormats": {
+      "mp3": "MP3",
+      "wav": "WAV",
+      "ogg": "OGG"
+    },
+    "audioVoiceLabel": "음성",
+    "audioVoices": {
+      "female": "여성",
+      "male": "남성",
+      "neutral": "중성"
+    },
+    "audioSpeedLabel": "속도",
+    "audioLanguageLabel": "언어",
+    "audioToneLabel": "톤",
+    "audioTones": {
+      "professional": "전문적",
+      "friendly": "친근한",
+      "calm": "차분한"
+    },
+    "fileFormatLabel": "파일 형식",
+    "fileFormats": {
+      "csv": "CSV",
+      "pdf": "PDF",
+      "docx": "DOCX",
+      "xlsx": "XLSX",
+      "pptx": "PPTX"
+    },
+    "fileTemplateLabel": "템플릿 설명",
+    "fileTemplatePlaceholder": "파일 템플릿에 대한 설명",
+    "fileFormatRulesLabel": "포맷 규칙",
+    "fileFormatRulesPlaceholder": "파일 생성 시 적용할 규칙",
+    "fileIncludeHeaderLabel": "헤더 포함",
+    "mixedOutputsLabel": "복합 출력 구성",
+    "addMixedOutput": "출력 추가",
+    "mixedOutputTypeLabel": "유형",
+    "mixedOutputDescriptionLabel": "설명",
+    "mixedOutputDescriptionPlaceholder": "이 출력의 용도를 설명하세요",
+    "mixedOutputRequiredLabel": "필수"
   },
   "modelSettings": {
     "title": "LLM 모델 설정",
@@ -152,11 +228,13 @@
     "noToolsAvailable": "사용 가능한 도구가 없습니다",
     "adminSetupRequired": "관리자 설정 필요",
     "apiKeyRequired": "API Key 필요",
-    "apiKeyConfigured": "API Key 등록됨"
+    "apiKeyConfigured": "API Key 등록됨",
+    "promptPreviewTitle": "프롬프트 미리보기",
+    "promptPreviewDescription": "다음 단계에서 선택된 도구들이 시스템 프롬프트에 아래와 같이 추가됩니다"
   },
   "reviewSettings": {
-    "title": "확인 및 테스트",
-    "description": "설정을 검토하고 Agent를 테스트하세요",
+    "title": "최종 검토 및 저장",
+    "description": "설정을 최종 검토하고 Agent를 생성하세요",
     "summaryTitle": "Agent 요약",
     "basicInfoTitle": "기본 정보",
     "promptTitle": "프롬프트",
@@ -397,47 +475,101 @@
       "description": "따뜻하고 공감하는 대화 파트너",
       "content": "당신은 따뜻하고 공감 능력이 뛰어난 대화 상대입니다. 일상적인 이야기부터 진지한 고민까지 편안하게 나눌 수 있으며, 상대방의 감정을 이해하고 적절한 반응을 보입니다. 긍정적이고 격려하는 태도로 대화하며, 필요할 때는 조언을 제공하고 때로는 그저 경청합니다."
     },
-    "translator": {
-      "icon": "🌐",
-      "title": "전문 번역가",
-      "suggestedName": "전문 번역가",
-      "description": "정확하고 자연스러운 번역 제공",
-      "content": "당신은 다국어에 능통한 전문 번역가입니다. 원문의 의미와 뉘앙스를 정확히 전달하면서도 목표 언어의 자연스러운 표현을 사용합니다. 문화적 맥락과 관용 표현을 고려하고, 전문 용어는 해당 분야의 표준 번역을 따릅니다. 필요시 번역 선택에 대한 설명을 제공합니다."
+    "marketResearcher": {
+      "icon": "🔍",
+      "title": "시장 조사 분석가",
+      "suggestedName": "시장 조사 분석가",
+      "description": "웹 검색으로 시장 동향과 경쟁사를 분석",
+      "content": "당신은 시장 조사 전문 분석가입니다. 제공된 도구를 활용하여 제품의 시장 동향, 경쟁사 현황, 예상 시장 규모를 분석합니다. 수집한 정보를 구조화하여 보고서로 작성하며, 객관적인 데이터를 기반으로 인사이트를 제공합니다.",
+      "suggested_tools": ["google", "wikipedia"]
     },
-    "summarizer": {
-      "icon": "📄",
-      "title": "문서 요약 전문가",
-      "suggestedName": "문서 요약 전문가",
-      "description": "긴 텍스트를 간결하게 요약",
-      "content": "당신은 긴 텍스트를 간결하게 요약하는 전문가입니다. 핵심 내용과 주요 논점을 정확히 파악하여 간명하게 전달하며, 중요도에 따라 정보를 구조화합니다. 요약문은 명확하고 이해하기 쉬우며, 원문의 핵심 메시지를 왜곡 없이 전달합니다."
+    "tripPlanner": {
+      "icon": "✈️",
+      "title": "여행 일정 기획자",
+      "suggestedName": "여행 일정 기획자",
+      "description": "맞춤형 여행 일정을 구조화된 형식으로 생성",
+      "content": "당신은 여행 일정 전문 기획자입니다. 제공된 도구를 활용하여 목적지의 명소, 맛집, 교통 정보를 조사합니다. 여행 기간, 예산, 관심사를 고려하여 일별 일정을 구조화하고, 실용적인 여행 팁을 함께 제공합니다.",
+      "suggested_tools": ["google", "wikipedia"]
     },
-    "emailWriter": {
-      "icon": "✉️",
-      "title": "이메일 작성 도우미",
-      "suggestedName": "이메일 작성 도우미",
-      "description": "상황에 맞는 이메일 작성 지원",
-      "content": "당신은 비즈니스 커뮤니케이션 전문가입니다. 목적과 수신자에 맞는 적절한 톤과 형식으로 이메일을 작성합니다. 명확하고 간결한 문장을 사용하며, 예의 바르면서도 효과적으로 메시지를 전달합니다. 공식 업무 메일부터 협업 요청, 감사 인사까지 다양한 상황의 이메일을 작성합니다."
+    "researchSummarizer": {
+      "icon": "📚",
+      "title": "리서치 요약가",
+      "suggestedName": "리서치 요약가",
+      "description": "주제별 리서치 결과를 구조화하여 요약",
+      "content": "당신은 리서치 전문가입니다. 제공된 도구를 활용하여 주제에 대한 신뢰할 수 있는 정보를 수집합니다. 핵심 내용을 체계적으로 정리하고, 각 정보의 출처를 명확히 표기하여 구조화된 요약을 제공합니다.",
+      "suggested_tools": ["wikipedia", "arxiv"]
     },
-    "copywriter": {
-      "icon": "✨",
-      "title": "마케팅 카피라이터",
-      "suggestedName": "마케팅 카피라이터",
-      "description": "매력적인 마케팅 문구 작성",
-      "content": "당신은 창의적이고 설득력 있는 마케팅 문구를 작성하는 전문가입니다. 제품이나 서비스의 핵심 가치를 파악하여 매력적인 메시지로 표현하며, 타겟 고객의 감성을 자극하는 카피를 만듭니다. 광고 문구, SNS 콘텐츠, 브랜드 메시지 등 다양한 마케팅 자료를 작성합니다."
+    "contentCurator": {
+      "icon": "📰",
+      "title": "콘텐츠 큐레이터",
+      "suggestedName": "콘텐츠 큐레이터",
+      "description": "주제별 양질의 콘텐츠를 검색하여 정리",
+      "content": "당신은 콘텐츠 큐레이션 전문가입니다. 제공된 도구를 활용하여 주제와 관련된 최신 콘텐츠를 검색하고, 각 콘텐츠의 제목, 요약, URL, 품질 평가를 포함한 큐레이션 목록을 작성합니다.",
+      "suggested_tools": ["google", "wikipedia"]
     },
-    "technicalWriter": {
-      "icon": "⚙️",
-      "title": "기술 문서 작성자",
-      "suggestedName": "기술 문서 작성자",
-      "description": "명확한 기술 문서 작성 지원",
-      "content": "당신은 복잡한 기술 정보를 명확하게 전달하는 기술 문서 전문가입니다. API 문서, 사용 설명서, 개발자 가이드 등을 정확하고 체계적으로 작성합니다. 전문 용어를 적절히 사용하면서도 독자가 이해하기 쉽게 설명하며, 예제 코드와 다이어그램을 활용하여 이해를 돕습니다."
-    },
-    "reportWriter": {
+    "dataAnalyst": {
       "icon": "📊",
-      "title": "보고서 작성 도우미",
-      "suggestedName": "보고서 작성 도우미",
-      "description": "논리적인 비즈니스 보고서 작성",
-      "content": "당신은 비즈니스 보고서 작성 전문가입니다. 데이터와 정보를 논리적으로 구조화하여 명확한 보고서를 작성합니다. 업무 보고서, 분석 리포트, 기획안 등 다양한 형식의 문서를 작성하며, 객관적인 사실과 분석을 바탕으로 실행 가능한 제안을 제시합니다. 전문적이면서도 이해하기 쉬운 문체를 사용합니다."
+      "title": "데이터 분석 도우미",
+      "suggestedName": "데이터 분석 도우미",
+      "description": "데이터를 분석하여 통계 결과 제공",
+      "content": "당신은 데이터 분석 전문가입니다. 제공된 도구를 활용하여 데이터의 평균, 중앙값, 표준편차 등 통계를 계산합니다. 분석 결과를 명확한 표와 그래프 설명이 포함된 리포트로 작성합니다.",
+      "suggested_tools": ["maths"]
+    },
+    "competitorMonitor": {
+      "icon": "🏢",
+      "title": "경쟁사 모니터링 봇",
+      "suggestedName": "경쟁사 모니터링 봇",
+      "description": "경쟁사의 최신 동향을 추적하여 리포트 생성",
+      "content": "당신은 경쟁사 모니터링 전문가입니다. 제공된 도구를 활용하여 경쟁사의 최신 뉴스, 제품 업데이트, SNS 활동을 추적합니다. 모니터링 결과를 날짜별로 정리하여 리포트로 작성합니다.",
+      "suggested_tools": ["google"]
+    },
+    "infographicCreator": {
+      "icon": "🎨",
+      "title": "인포그래픽 생성기",
+      "suggestedName": "인포그래픽 생성기",
+      "description": "데이터를 시각적 인포그래픽으로 변환",
+      "content": "당신은 인포그래픽 디자인 전문가입니다. 제공된 도구를 활용하여 데이터를 시각적으로 매력적인 인포그래픽 이미지로 생성합니다. 데이터의 핵심 메시지를 효과적으로 전달하는 디자인을 제작합니다.",
+      "suggested_tools": []
+    },
+    "socialThumbnailCreator": {
+      "icon": "📱",
+      "title": "소셜 미디어 썸네일 생성기",
+      "suggestedName": "소셜 미디어 썸네일 생성기",
+      "description": "플랫폼별 최적화된 썸네일 이미지 생성",
+      "content": "당신은 소셜 미디어 디자인 전문가입니다. 제공된 도구를 활용하여 제목과 키워드를 기반으로 플랫폼에 최적화된 썸네일 이미지를 생성합니다. 눈길을 끄는 비주얼과 명확한 메시지 전달에 중점을 둡니다.",
+      "suggested_tools": []
+    },
+    "podcastCreator": {
+      "icon": "🎙️",
+      "title": "팟캐스트 스크립트 & 음성 생성기",
+      "suggestedName": "팟캐스트 생성기",
+      "description": "팟캐스트 스크립트 작성 및 음성 파일 생성",
+      "content": "당신은 팟캐스트 제작 전문가입니다. 주제를 바탕으로 자연스러운 대화형 스크립트를 작성하고, 제공된 도구를 활용하여 음성 파일을 생성합니다. 청취자의 관심을 유지하는 구성과 톤을 사용합니다.",
+      "suggested_tools": []
+    },
+    "audioBookNarrator": {
+      "icon": "📖",
+      "title": "오디오북 내레이션 생성기",
+      "suggestedName": "오디오북 생성기",
+      "description": "텍스트를 자연스러운 오디오북으로 변환",
+      "content": "당신은 오디오북 내레이션 전문가입니다. 제공된 도구를 활용하여 텍스트를 선택된 음성 스타일(전문적/친근함/차분함)과 속도로 오디오 파일로 변환합니다. 듣기 편한 자연스러운 발음과 적절한 감정 표현을 구현합니다.",
+      "suggested_tools": []
+    },
+    "dataReportGenerator": {
+      "icon": "📄",
+      "title": "데이터 분석 리포트 생성기",
+      "suggestedName": "데이터 리포트 생성기",
+      "description": "CSV 데이터를 분석하여 PDF 리포트 생성",
+      "content": "당신은 데이터 분석 리포트 전문가입니다. 제공된 도구를 활용하여 CSV 데이터를 분석하고, 차트와 통계, 인사이트를 포함한 전문적인 리포트를 생성합니다. 경영진이 이해하기 쉬운 시각화와 요약을 제공합니다.",
+      "suggested_tools": ["maths"]
+    },
+    "travelGuideBookCreator": {
+      "icon": "🗺️",
+      "title": "여행 가이드북 생성기",
+      "suggestedName": "여행 가이드북 생성기",
+      "description": "목적지별 맞춤형 여행 가이드북 패키지 생성",
+      "content": "당신은 여행 가이드북 제작 전문가입니다. 제공된 도구를 활용하여 목적지의 명소, 맛집, 문화 정보를 수집하고, 가이드북, 지도 이미지, 구조화된 일정을 포함한 완전한 여행 패키지를 생성합니다.",
+      "suggested_tools": ["google", "wikipedia"]
     }
   },
   "list": {

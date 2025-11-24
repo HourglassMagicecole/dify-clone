@@ -2,12 +2,14 @@
 
 import type React from 'react'
 import { useState } from 'react'
+import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import type { TokenUsage, ExecutionTime } from '@/types/agent'
+import type { TokenUsage, ExecutionTime, AgentThought } from '@/types/agent'
+import type { MessageFile } from '@/types/chat'
 
 /**
  * Execution result panel props
@@ -16,6 +18,7 @@ export interface ExecutionResultPanelProps {
   result: string | null
   tokenUsage: TokenUsage | null
   executionTime: ExecutionTime | null
+  agentThoughts?: AgentThought[]
   onRetry: () => void
   isRetrying?: boolean
 }
@@ -69,11 +72,79 @@ export function ExecutionResultPanel({
   result,
   tokenUsage,
   executionTime,
+  agentThoughts = [],
   onRetry,
   isRetrying = false,
 }: ExecutionResultPanelProps) {
   const { t } = useTranslation('agent')
   const [isCopied, setIsCopied] = useState(false)
+
+  // Extract all message_files from agent_thoughts
+  // Method 1: Direct message_files field (standard way)
+  const filesFromMessageFiles = agentThoughts
+    .filter(thought => thought.message_files && thought.message_files.length > 0)
+    .flatMap(thought => thought.message_files || [])
+
+  // Method 2: Extract from tool_output (for tools that return file paths as strings)
+  // Only extract from tool_output if message_files is not available (to avoid duplicates)
+  const filesFromToolOutput = agentThoughts
+    .filter(thought => thought.tool_output && typeof thought.tool_output === 'string' && (!thought.message_files || thought.message_files.length === 0))
+    .flatMap((thought) => {
+      if (!thought.tool_output) return []
+
+      try {
+        // Look for file path patterns like: text='/files/tools/xxx.docx'
+        const filePathRegex = /(?:text=)?['"]?(\/files\/[^'"]+)['"]?/
+        const match = thought.tool_output.match(filePathRegex)
+
+        if (match && match[1]) {
+          const filePath = match[1]
+          const filename = filePath.split('/').pop() || 'download'
+
+          // Convert relative path to absolute URL (use API base URL, not frontend URL)
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL !== undefined
+            ? process.env.NEXT_PUBLIC_API_BASE_URL
+            : 'http://localhost:5001'
+          const fileUrl = `${apiBaseUrl}${filePath}`
+
+          // Determine file type from extension
+          const ext = filename.split('.').pop()?.toLowerCase() || ''
+          let fileType = 'document'
+          if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+            fileType = 'image'
+          }
+          else if (['mp3', 'wav', 'ogg', 'm4a', 'aac'].includes(ext)) {
+            fileType = 'audio'
+          }
+          else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+            fileType = 'video'
+          }
+
+          return [{
+            id: `extracted-${Date.now()}-${Math.random()}`,
+            type: fileType,
+            url: fileUrl,
+            filename,
+            mime_type: `application/${ext}`,
+          }]
+        }
+      }
+      catch {
+        // Not JSON or no match
+      }
+      return []
+    })
+
+  // Combine both methods
+  const allFiles = [...filesFromMessageFiles, ...filesFromToolOutput]
+
+  // Debug: Log extracted files
+  // eslint-disable-next-line no-console
+  console.log('[ExecutionResultPanel] Extracted files:', allFiles)
+  // eslint-disable-next-line no-console
+  console.log('[ExecutionResultPanel] From message_files:', filesFromMessageFiles.length)
+  // eslint-disable-next-line no-console
+  console.log('[ExecutionResultPanel] From tool_output:', filesFromToolOutput.length)
 
   /**
    * Copy result to clipboard
@@ -107,6 +178,31 @@ export function ExecutionResultPanel({
 
   return (
     <div className="space-y-6">
+      {/* DEBUG: Show agent thoughts structure */}
+      {agentThoughts.length > 0 && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 rounded-lg p-4">
+          <h3 className="text-sm font-bold text-yellow-900 dark:text-yellow-200 mb-2">
+            🔍 DEBUG: Agent Thoughts 구조
+          </h3>
+          <div className="text-xs space-y-2">
+            <p className="text-yellow-800 dark:text-yellow-300">
+              총 {agentThoughts.length}개의 thoughts
+            </p>
+            <pre className="bg-white dark:bg-gray-800 p-2 rounded max-h-64 overflow-auto text-yellow-900 dark:text-yellow-100">
+              {JSON.stringify(agentThoughts, null, 2)}
+            </pre>
+            <p className="text-yellow-800 dark:text-yellow-300 font-semibold">
+              추출된 파일: {allFiles.length}개
+            </p>
+            {allFiles.length > 0 && (
+              <pre className="bg-white dark:bg-gray-800 p-2 rounded max-h-32 overflow-auto text-yellow-900 dark:text-yellow-100">
+                {JSON.stringify(allFiles, null, 2)}
+              </pre>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Result Section */}
       {result && (
         <div>
@@ -154,6 +250,100 @@ export function ExecutionResultPanel({
             >
               {result}
             </ReactMarkdown>
+          </div>
+        </div>
+      )}
+
+      {/* Generated Files Section */}
+      {allFiles.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+            📎
+            {' '}
+            {t('execute.result.files', { defaultValue: '생성된 파일' })}
+            {' '}
+            ({allFiles.length})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {allFiles.map((file: MessageFile, idx: number) => {
+              const mimeType = file.mime_type || ''
+              const fileType = file.type || ''
+              const url = file.url || ''
+
+              const isImage = fileType === 'image'
+                || mimeType.startsWith('image/')
+                || /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(url)
+
+              const isAudio = fileType === 'audio'
+                || mimeType.startsWith('audio/')
+                || /\.(mp3|wav|ogg|m4a|aac)(\?|$)/i.test(url)
+
+              const isVideo = fileType === 'video'
+                || mimeType.startsWith('video/')
+                || /\.(mp4|webm|ogg)(\?|$)/i.test(url)
+
+              return (
+                <div key={file.id || idx} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  {isImage && (
+                    <a
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block group relative"
+                    >
+                      <Image
+                        src={file.url}
+                        alt={file.filename || `Generated image ${idx + 1}`}
+                        width={800}
+                        height={400}
+                        className="w-full rounded-lg shadow-md group-hover:shadow-xl transition-all cursor-pointer object-cover"
+                        loading="lazy"
+                        style={{ maxHeight: '400px' }}
+                      />
+                      {file.filename && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">{file.filename}</p>
+                      )}
+                    </a>
+                  )}
+                  {isAudio && (
+                    <div className="space-y-2">
+                      {file.filename && <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{file.filename}</p>}
+                      <audio src={file.url} controls className="w-full">
+                        <track kind="captions" />
+                      </audio>
+                    </div>
+                  )}
+                  {isVideo && (
+                    <div className="space-y-2">
+                      {file.filename && <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{file.filename}</p>}
+                      <video src={file.url} controls className="w-full rounded-lg" style={{ maxHeight: '400px' }}>
+                        <track kind="captions" />
+                      </video>
+                    </div>
+                  )}
+                  {!isImage && !isAudio && !isVideo && (
+                    <a
+                      href={file.url}
+                      download={file.filename || 'download'}
+                      className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors cursor-pointer"
+                    >
+                      <span className="text-3xl">📄</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {file.filename || t('execute.result.downloadFile', { defaultValue: '파일 다운로드' })}
+                        </p>
+                        {file.size && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {(file.size / 1024).toFixed(2)} KB
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-blue-500 text-sm">↓</span>
+                    </a>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

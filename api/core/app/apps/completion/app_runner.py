@@ -59,7 +59,8 @@ class CompletionAppRunner(AppRunner):
             )
             else None
         )
-        image_detail_config = image_detail_config or ImagePromptMessageContent.DETAIL.LOW
+        if image_detail_config is None:
+            image_detail_config = ImagePromptMessageContent.DETAIL.LOW
 
         # organize all inputs and template to prompt messages
         # Include: prompt template, inputs, query(optional), files(optional)
@@ -70,7 +71,7 @@ class CompletionAppRunner(AppRunner):
             inputs=inputs,
             files=files,
             query=query,
-            image_detail_config=image_detail_config,
+            image_detail_config=image_detail_config,  # type: ignore[arg-type]
         )
 
         # moderation
@@ -148,7 +149,7 @@ class CompletionAppRunner(AppRunner):
             files=files,
             query=query,
             context=context,
-            image_detail_config=image_detail_config,
+            image_detail_config=image_detail_config,  # type: ignore[arg-type]
         )
 
         # check hosting moderation

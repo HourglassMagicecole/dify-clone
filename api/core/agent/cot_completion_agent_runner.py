@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 from core.agent.cot_agent_runner import CotAgentRunner

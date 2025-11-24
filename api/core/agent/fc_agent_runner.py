@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 from collections.abc import Generator
@@ -105,10 +107,23 @@ class FunctionCallAgentRunner(BaseAgentRunner):
             else:
                 logger.warning("[LLM Invocation] WARNING: No tools being passed to LLM!")
 
+            # Filter model parameters based on provider constraints
+            filtered_parameters = dict(app_generate_entity.model_conf.parameters)
+
+            # Anthropic Claude models: temperature and top_p cannot both be specified
+            if model_instance.provider == "anthropic":
+                if "temperature" in filtered_parameters and "top_p" in filtered_parameters:
+                    # Prefer temperature over top_p (remove top_p)
+                    logger.info(
+                        "[Parameter Filter] Anthropic model detected: "
+                        "removing 'top_p' to avoid conflict with 'temperature'"
+                    )
+                    del filtered_parameters["top_p"]
+
             # invoke model
             chunks: Union[Generator[LLMResultChunk, None, None], LLMResult] = model_instance.invoke_llm(
                 prompt_messages=prompt_messages,
-                model_parameters=app_generate_entity.model_conf.parameters,
+                model_parameters=filtered_parameters,
                 tools=prompt_messages_tools,
                 stop=app_generate_entity.model_conf.stop,
                 stream=self.stream_tool_call,
@@ -142,7 +157,9 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                             )
                             logger.info("[LLM Response] Tool call details: %s", extracted_tool_calls)
                         tool_calls.extend(extracted_tool_calls)
-                        tool_call_names = ";".join([tool_call[1] for tool_call in tool_calls])
+                        # Remove duplicates while preserving order
+                        unique_tool_names = list(dict.fromkeys([tool_call[1] for tool_call in tool_calls]))
+                        tool_call_names = ";".join(unique_tool_names)
                         try:
                             tool_call_inputs = json.dumps(
                                 {tool_call[1]: tool_call[2] for tool_call in tool_calls}, ensure_ascii=False
@@ -482,14 +499,15 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                 )
                 else None
             )
-            image_detail_config = image_detail_config or ImagePromptMessageContent.DETAIL.LOW
+            if image_detail_config is None:
+                image_detail_config = ImagePromptMessageContent.DETAIL.LOW
 
             prompt_message_contents: list[PromptMessageContentUnionTypes] = []
             for file in self.files:
                 prompt_message_contents.append(
                     file_manager.to_prompt_message_content(
                         file,
-                        image_detail_config=image_detail_config,
+                        image_detail_config=image_detail_config,  # type: ignore[arg-type]
                     )
                 )
             prompt_message_contents.append(TextPromptMessageContent(data=query))
