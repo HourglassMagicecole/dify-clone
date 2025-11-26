@@ -86,10 +86,27 @@ def to_prompt_message_content(
     # LLM should use tools (like ASR) to process audio, not handle it directly
     if f.type == FileType.AUDIO:
         return TextPromptMessageContent(
-            data=f"[Audio file uploaded: {f.filename}. Use the 'asr' tool to transcribe this audio to text.]"
+            data=f"[Audio file uploaded: {f.filename}. This file cannot be processed directly. "
+            f"Check available tools to transcribe it.]"
         )
 
-    # Process other supported file types (IMAGE, VIDEO, DOCUMENT)
+    # For DOCUMENT files, return text description instead of DocumentPromptMessageContent
+    # LLM cannot read documents directly, should use tools (like markitdown) to process
+    if f.type == FileType.DOCUMENT:
+        return TextPromptMessageContent(
+            data=f"[Document file uploaded: {f.filename}. This file cannot be read directly. "
+            f"Check available tools to process it.]"
+        )
+
+    # For VIDEO files, return text description instead of VideoPromptMessageContent
+    # LLM cannot process videos directly
+    if f.type == FileType.VIDEO:
+        return TextPromptMessageContent(
+            data=f"[Video file uploaded: {f.filename}. This file cannot be processed directly. "
+            f"Check available tools to handle it.]"
+        )
+
+    # Process IMAGE files (LLM can handle images via vision)
     params = {
         "base64_data": _get_encoded_string(f) if dify_config.MULTIMODAL_SEND_FORMAT == "base64" else "",
         "url": _to_url(f) if dify_config.MULTIMODAL_SEND_FORMAT == "url" else "",

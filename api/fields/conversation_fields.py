@@ -113,6 +113,8 @@ simple_message_detail_fields = {
     "query": fields.String,
     "message": MessageTextField,
     "answer": fields.String,
+    "status": fields.String,
+    "error": fields.String,
 }
 
 conversation_fields = {

@@ -4,11 +4,13 @@ from typing import Any, cast
 from core.model_runtime.entities import (
     AssistantPromptMessage,
     AudioPromptMessageContent,
+    DocumentPromptMessageContent,
     ImagePromptMessageContent,
     PromptMessage,
     PromptMessageContentType,
     PromptMessageRole,
     TextPromptMessageContent,
+    VideoPromptMessageContent,
 )
 from core.prompt.simple_prompt_transform import ModelMode
 
@@ -71,6 +73,22 @@ class PromptMessageUtil:
                                     "format": content.format,
                                 }
                             )
+                        elif isinstance(content, VideoPromptMessageContent):
+                            files.append(
+                                {
+                                    "type": "video",
+                                    "data": content.data[:10] + "...[TRUNCATED]..." + content.data[-10:],
+                                    "format": content.format,
+                                }
+                            )
+                        elif isinstance(content, DocumentPromptMessageContent):
+                            files.append(
+                                {
+                                    "type": "document",
+                                    "data": content.data[:10] + "...[TRUNCATED]..." + content.data[-10:],
+                                    "format": content.format,
+                                }
+                            )
                 else:
                     text = cast(str, prompt_message.content)
 
@@ -88,13 +106,40 @@ class PromptMessageUtil:
                 for content in prompt_message.content:
                     if content.type == PromptMessageContentType.TEXT:
                         text += content.data
-                    else:
+                    elif content.type == PromptMessageContentType.IMAGE:
                         content = cast(ImagePromptMessageContent, content)
                         files.append(
                             {
                                 "type": "image",
                                 "data": content.data[:10] + "...[TRUNCATED]..." + content.data[-10:],
                                 "detail": content.detail.value,
+                            }
+                        )
+                    elif content.type == PromptMessageContentType.AUDIO:
+                        content = cast(AudioPromptMessageContent, content)
+                        files.append(
+                            {
+                                "type": "audio",
+                                "data": content.data[:10] + "...[TRUNCATED]..." + content.data[-10:],
+                                "format": content.format,
+                            }
+                        )
+                    elif content.type == PromptMessageContentType.VIDEO:
+                        content = cast(VideoPromptMessageContent, content)
+                        files.append(
+                            {
+                                "type": "video",
+                                "data": content.data[:10] + "...[TRUNCATED]..." + content.data[-10:],
+                                "format": content.format,
+                            }
+                        )
+                    elif content.type == PromptMessageContentType.DOCUMENT:
+                        content = cast(DocumentPromptMessageContent, content)
+                        files.append(
+                            {
+                                "type": "document",
+                                "data": content.data[:10] + "...[TRUNCATED]..." + content.data[-10:],
+                                "format": content.format,
                             }
                         )
             else:

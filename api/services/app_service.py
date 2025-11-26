@@ -141,17 +141,23 @@ class AppService:
             }
             # Build AppModelConfig-compatible dict
             configs = wizard_config.get("configs", {})
-            # Enable file upload by default for Agent mode to support tools like ASR
+            # Enable file upload: check root level first (from Frontend), then configs, then use default
             if "file_upload" not in configs:
-                configs["file_upload"] = {
-                    "enabled": True,
-                    "allowed_file_types": ["image", "audio", "video", "document"],
-                    "allowed_file_upload_methods": ["local_file", "remote_url"],
-                    "number_limits": 5,
-                }
+                if wizard_config.get("file_upload"):
+                    # Use file_upload from root level (sent by Frontend)
+                    configs["file_upload"] = wizard_config.get("file_upload")
+                else:
+                    # Default file upload config for Agent mode to support tools like ASR
+                    configs["file_upload"] = {
+                        "enabled": True,
+                        "allowed_file_types": ["image", "audio", "video", "document"],
+                        "allowed_file_upload_methods": ["local_file", "remote_url"],
+                        "number_limits": 5,
+                    }
             default_model_config = {
                 "model": json.dumps(model_dict),
                 "configs": configs,
+                "file_upload": json.dumps(configs.get("file_upload")) if configs.get("file_upload") else None,
             }
         else:
             # Use template default

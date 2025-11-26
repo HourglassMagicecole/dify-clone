@@ -9,6 +9,7 @@ from typing import Any
 
 from markitdown import MarkItDown
 
+from core.file.file_manager import download
 from core.tools.builtin_tool.tool import BuiltinTool
 from core.tools.entities.tool_entities import ToolInvokeMessage
 
@@ -55,10 +56,10 @@ class MarkitdownTool(BuiltinTool):
                 # Base64 string from frontend
                 file_blob, file_extension, filename = self._parse_base64_file(file, idx)
             else:
-                # File object
-                file_blob = file.blob
+                # File object - download the file content
+                file_blob = download(file)
                 file_extension = file.extension or ".tmp"
-                filename = file.filename
+                filename = file.filename or f"file_{idx}"
 
             try:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:

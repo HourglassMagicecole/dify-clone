@@ -145,14 +145,6 @@ export default function Step4ToolsConfig() {
 
   // Auto-select suggested tools from Step 1 sample (only once, when no tools configured yet)
   useEffect(() => {
-    console.log('[Step4] Auto-select check:', {
-      hasRestored: hasRestoredRef.current,
-      toolProvidersCount: toolProviders.length,
-      suggestedTools: basicSettings?.suggested_tools,
-      existingToolsCount: toolsConfig?.tools?.length || 0,
-      selectedToolsCount: selectedTools.length,
-    })
-
     // Only auto-select if:
     // 1. Tools are loaded
     // 2. Suggested tools exist
@@ -164,11 +156,6 @@ export default function Step4ToolsConfig() {
       && (!toolsConfig || toolsConfig.tools.length === 0)
       && selectedTools.length === 0
     ) {
-      console.log('[Step4] Available provider names:', toolProviders.map(p => p.name))
-      console.log('[Step4] All providers and their tools:')
-      toolProviders.forEach(p => {
-        console.log(`  ${p.name}: ${p.tools.map(t => t.name).join(', ')}`)
-      })
       const suggestedTools: SelectedTool[] = []
 
       // Find tools matching suggested_tools
@@ -179,15 +166,12 @@ export default function Step4ToolsConfig() {
           : [toolSpec, undefined]
 
         const provider = toolProviders.find(p => p.name === providerName)
-        console.log(`[Step4] Looking for "${toolSpec}":`, provider ? `Provider found (${provider.tools.length} tools)` : 'Provider not found')
 
         if (provider && provider.tools.length > 0) {
           // If specific tool name provided, find that tool; otherwise find first available
           const tool = toolName
             ? provider.tools.find(t => t.name === toolName && t.available)
             : provider.tools.find(t => t.available)
-
-          console.log(`[Step4] Found tool:`, tool ? `${tool.name} (${tool.available ? 'available' : 'unavailable'})` : 'None')
 
           if (tool) {
             suggestedTools.push({
@@ -203,7 +187,6 @@ export default function Step4ToolsConfig() {
         }
       })
 
-      console.log('[Step4] Auto-selected tools:', suggestedTools)
       if (suggestedTools.length > 0) {
         setSelectedTools(suggestedTools)
       }
@@ -292,7 +275,6 @@ export default function Step4ToolsConfig() {
       }
     }
     catch (error) {
-      console.error('Failed to load tools:', error)
       setLoadError(error instanceof Error ? error.message : 'Unknown error')
     }
     finally {
@@ -351,12 +333,10 @@ export default function Step4ToolsConfig() {
         })
       }
       else {
-        console.error('Failed to load tool detail:', response.message)
         setLoadError(response.message || 'Failed to load tool detail')
       }
     }
     catch (err) {
-      console.error('Failed to load tool detail:', err)
       setLoadError(err instanceof Error ? err.message : 'Failed to load tool detail')
     }
   }

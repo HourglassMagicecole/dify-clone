@@ -99,6 +99,30 @@ interface AgentWizardProviderProps {
 }
 
 /**
+ * Helper: Check if user_input_form has file type fields
+ * Returns file_upload config if file fields exist, null otherwise
+ */
+function generateFileUploadConfig(userInputForm?: UserInputForm[]) {
+  const hasFileField = userInputForm?.some(field => field.input_type === 'file')
+
+  if (hasFileField) {
+    return {
+      enabled: true,
+      allowed_file_upload_methods: ['remote_url', 'local_file'],
+      number_limits: 5,
+      image: {
+        enabled: true,
+        number_limits: 3,
+        detail: 'high',
+        transfer_methods: ['remote_url', 'local_file'],
+      },
+    }
+  }
+
+  return null
+}
+
+/**
  * Provider component
  */
 export function AgentWizardProvider({
@@ -557,6 +581,13 @@ export function AgentWizardProvider({
           },
         }
 
+        // Add file_upload config if file fields exist in user_input_form
+        const fileUploadConfig = generateFileUploadConfig(state.promptSettings.user_input_form)
+        if (fileUploadConfig) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (modelConfigPayload as any).file_upload = fileUploadConfig
+        }
+
         // Add agent_mode for tools (automatically enabled if tools exist)
         if (state.toolsConfig.tools.length > 0) {
           // Don't filter by enabled - send all tools in toolsConfig
@@ -612,6 +643,12 @@ export function AgentWizardProvider({
           opening_statement: state.promptSettings.opening_statement,
           suggested_questions: state.promptSettings.suggested_questions || [],
           user_input_form: transformedUserInputFormCreate as unknown as typeof state.promptSettings.user_input_form,
+        }
+
+        // Add file_upload config if file fields exist in user_input_form
+        const fileUploadConfigCreate = generateFileUploadConfig(state.promptSettings.user_input_form)
+        if (fileUploadConfigCreate) {
+          createAppPayload.file_upload = fileUploadConfigCreate
         }
 
         // eslint-disable-next-line no-console

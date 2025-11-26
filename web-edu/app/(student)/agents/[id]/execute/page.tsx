@@ -48,20 +48,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
     executionTime: null,
   })
 
-  // Debug: Track agentThoughts changes
-  useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('[Execute Page RENDER] agentThoughts updated', executionState.agentThoughts.length, 'thoughts')
-  }, [executionState.agentThoughts])
-
-  // Debug: Track result changes
-  useEffect(() => {
-    if (executionState.result) {
-      // eslint-disable-next-line no-console
-      console.log('[Execute Page RENDER] result updated', executionState.result.length, 'chars')
-    }
-  }, [executionState.result])
-
   // Load agent data on mount
   useEffect(() => {
     const loadAgent = async () => {
@@ -69,20 +55,8 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
         setIsLoadingAgent(true)
         const agentData = await agentAPI.getAgent(_agentId)
 
-        // eslint-disable-next-line no-console
-        console.log('[TaskExecutionPage] Loaded agent data:', agentData)
-        // eslint-disable-next-line no-console
-        console.log('[TaskExecutionPage] enable_api:', agentData.enable_api, 'enable_site:', agentData.enable_site)
-        // eslint-disable-next-line no-console
-        console.log('[TaskExecutionPage] model_config (full JSON):', JSON.stringify(agentData.model_config, null, 2))
-
         // Extract user_input_form from model_config if it exists
         const modelConfig = agentData.model_config as unknown as Record<string, unknown>
-
-        // eslint-disable-next-line no-console
-        console.log('[TaskExecutionPage] model_config.user_input_form:', modelConfig?.user_input_form)
-        // eslint-disable-next-line no-console
-        console.log('[TaskExecutionPage] All model_config keys:', Object.keys(modelConfig || {}))
 
         if (modelConfig?.user_input_form) {
           const backendUserInputForm = modelConfig.user_input_form as Array<Record<string, unknown>>
@@ -105,11 +79,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
           }).filter(Boolean) as UserInputForm[]
 
           agentData.user_input_form = transformedUserInputForm
-          // eslint-disable-next-line no-console
-          console.log('[TaskExecutionPage] Transformed user_input_form:', agentData.user_input_form)
-        }
-        else {
-          console.warn('[TaskExecutionPage] No user_input_form found in model_config')
         }
 
         setAgent(agentData)
@@ -148,11 +117,26 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
         .filter(([_key, value]) => value && typeof value === 'object' && 'id' in value && 'url' in value)
         .map(([_key, value]) => {
           const fileInfo = value as { id: string, name: string, type: string, url: string }
-          return {
-            type: 'document',
+
+          // Determine file type based on MIME type for proper Vision API handling
+          let fileType = 'document'
+          if (fileInfo.type.startsWith('image/')) {
+            fileType = 'image'
+          }
+          else if (fileInfo.type.startsWith('audio/')) {
+            fileType = 'audio'
+          }
+          else if (fileInfo.type.startsWith('video/')) {
+            fileType = 'video'
+          }
+
+          const fileObject = {
+            type: fileType,
             transfer_method: 'remote_url',
             url: fileInfo.url,
           }
+
+          return fileObject
         })
 
       // Prepare inputs (exclude file objects, keep primitive values)
@@ -174,8 +158,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
         },
         {
           onThought: (thought) => {
-            // eslint-disable-next-line no-console
-            console.log('[Execute Page] onThought callback', thought.id, 'tool:', thought.tool)
             // Update agent thoughts in real-time (update existing or add new)
             _setExecutionState((prev) => {
               // Check if thought with same id already exists
@@ -188,16 +170,12 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
                   created_at: updated[existingIndex]?.created_at ?? thought.created_at, // Preserve start time
                   updated_at: Date.now(), // Record completion time
                 }
-                // eslint-disable-next-line no-console
-                console.log('[Execute Page] Updating existing thought', thought.id, 'total:', prev.agentThoughts.length)
                 return {
                   ...prev,
                   agentThoughts: updated,
                 }
               }
               // Add new thought
-              // eslint-disable-next-line no-console
-              console.log('[Execute Page] Adding new thought', thought.id, 'total will be:', prev.agentThoughts.length + 1)
               return {
                 ...prev,
                 agentThoughts: [...prev.agentThoughts, thought],
@@ -205,8 +183,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             })
           },
           onMessage: (message) => {
-            // eslint-disable-next-line no-console
-            console.log('[Execute Page] onMessage callback', 'chunk length:', message.length, 'total result length:', fullResult.length + message.length)
             // Accumulate message chunks
             fullResult += message
             _setExecutionState((prev) => ({
@@ -215,8 +191,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             }))
           },
           onComplete: (response) => {
-            // eslint-disable-next-line no-console
-            console.log('[Execute Page] onComplete callback', 'answer length:', response.data.answer.length, 'thoughts count:', response.agent_thoughts.length)
             // Calculate execution time
             const totalTime = Date.now() - startTime
 
@@ -261,6 +235,9 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
               error: errorMessage,
             }))
             showToast(errorMessage, 'error')
+
+            // Refresh execution history to show failed status
+            historyTableRef.current?.refresh()
           },
         }
       )
@@ -273,6 +250,9 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
         error: errorMessage,
       }))
       showToast(errorMessage, 'error')
+
+      // Refresh execution history to show failed status
+      historyTableRef.current?.refresh()
     }
   }
 

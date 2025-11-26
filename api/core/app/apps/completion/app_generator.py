@@ -109,7 +109,8 @@ class CompletionAppGenerator(MessageBasedAppGenerator):
         # For implementation reference, see the `_parse_file` function and
         # `DraftWorkflowNodeRunApi` class which handle this properly.
         files = args["files"] if args.get("files") else []
-        file_extra_config = FileUploadConfigManager.convert(override_model_config_dict or app_model_config.to_dict())
+        config_for_file_upload = override_model_config_dict or app_model_config.to_dict()
+        file_extra_config = FileUploadConfigManager.convert(config_for_file_upload)
         if file_extra_config:
             file_objs = file_factory.build_from_mappings(
                 mappings=files,

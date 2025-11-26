@@ -568,10 +568,13 @@ class BaseAgentRunner(AppRunner):
         logger.info("[DEBUG] Injecting files for tool %s, files count: %d", tool.entity.identity.name, len(self.files))
         logger.info("[DEBUG] Tool parameters before injection: %s", tool_parameters)
 
-        # Find system-files type parameters
+        # Find system-files or files type parameters
         for param in runtime_parameters:
             logger.info("[DEBUG] Checking parameter %s, type: %s", param.name, param.type)
-            if param.type == ToolParameter.ToolParameterType.SYSTEM_FILES:
+            if param.type in {
+                ToolParameter.ToolParameterType.SYSTEM_FILES,
+                ToolParameter.ToolParameterType.FILES,
+            }:
                 # Inject uploaded files into this parameter
                 if self.files and param.name not in tool_parameters:
                     # Filter files by type based on parameter name

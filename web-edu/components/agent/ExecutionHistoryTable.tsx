@@ -162,19 +162,27 @@ export const ExecutionHistoryTable = forwardRef<ExecutionHistoryTableRef, Execut
         // Transform API response to ExecutionRecord format
         // Note: completion-conversations API doesn't provide token/latency info
         // Use fallback values for now
-        const transformedRecords: ExecutionRecord[] = conversations.map(item => ({
-          id: item.id,
-          inputs: item.message?.inputs || {},
-          result: item.message?.answer || '',
-          status: item.status === 'normal' ? 'success' : 'failed',
-          created_at: new Date(item.created_at * 1000).toISOString(), // Unix timestamp to ISO
-          token_usage: {
-            prompt_tokens: item.message_tokens || item.message?.message_tokens || 0,
-            completion_tokens: item.answer_tokens || item.message?.answer_tokens || 0,
-            total_tokens: item.total_tokens || item.message?.total_tokens || 0,
-          },
-          execution_time: (item.provider_response_latency || item.message?.provider_response_latency || 0) * 1000,
-        }))
+        const transformedRecords: ExecutionRecord[] = conversations.map(item => {
+          // Check both Conversation.status and Message.status for error detection
+          // Backend sets Message.status = 'error' when execution fails
+          const messageStatus = item.message?.status as string | undefined
+          const conversationStatus = item.status as string
+          const isError = conversationStatus !== 'normal' || messageStatus === 'error'
+
+          return {
+            id: item.id,
+            inputs: item.message?.inputs || {},
+            result: item.message?.answer || '',
+            status: isError ? 'failed' : 'success',
+            created_at: new Date(item.created_at * 1000).toISOString(), // Unix timestamp to ISO
+            token_usage: {
+              prompt_tokens: item.message_tokens || item.message?.message_tokens || 0,
+              completion_tokens: item.answer_tokens || item.message?.answer_tokens || 0,
+              total_tokens: item.total_tokens || item.message?.total_tokens || 0,
+            },
+            execution_time: (item.provider_response_latency || item.message?.provider_response_latency || 0) * 1000,
+          }
+        })
 
         setHistoryRecords(transformedRecords)
       }

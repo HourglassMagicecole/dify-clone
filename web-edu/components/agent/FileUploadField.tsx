@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import Cookies from 'js-cookie'
 
 /**
  * Uploaded file information
@@ -32,6 +33,8 @@ export interface FileUploadFieldProps {
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
   'image/*',
+  'audio/*',
+  'video/*',
   'text/*',
   'application/vnd.*', // Office files
   'application/json',
@@ -126,12 +129,15 @@ export function FileUploadField({ name, label, required, onChange, value }: File
         if (xhr.status === 200 || xhr.status === 201) {
           try {
             const data = JSON.parse(xhr.responseText)
+            // Use preview_url with signature for proper file access
+            const fileUrl = data.preview_url || data.source_url || data.url || `/files/${data.id}`
+
             resolve({
               id: data.id,
               name: data.name || file.name,
               type: data.mime_type || file.type,
               size: data.size || file.size,
-              url: data.url || `/files/${data.id}`,
+              url: fileUrl,
             })
           }
           catch {
@@ -158,13 +164,18 @@ export function FileUploadField({ name, label, required, onChange, value }: File
         : 'http://localhost:5001'
 
       // Start upload
-      xhr.open('POST', `${apiBaseUrl}/v1/files/upload`)
+      const uploadUrl = `${apiBaseUrl}/console/api/files/upload`
+      xhr.open('POST', uploadUrl)
 
-      // Get auth token from localStorage
-      const token = localStorage.getItem('access_token')
+      // Get auth token from cookies and add to Authorization header
+      const token = Cookies.get('edu_access_token')
+
       if (token) {
         xhr.setRequestHeader('Authorization', `Bearer ${token}`)
       }
+
+      // Enable credentials to send cookies as well
+      xhr.withCredentials = true
 
       xhr.send(formData)
     })

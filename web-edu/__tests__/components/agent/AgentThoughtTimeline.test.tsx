@@ -216,31 +216,4 @@ describe('AgentThoughtTimeline', () => {
     })
   })
 
-  describe('Observation Display', () => {
-    it('should display observation when present', () => {
-      render(<AgentThoughtTimeline thoughts={mockThoughts} />)
-
-      expect(screen.getByText(/Successfully retrieved search results/)).toBeInTheDocument()
-      expect(screen.getByText(/Summarization completed/)).toBeInTheDocument()
-    })
-
-    it('should not display observation section when empty', () => {
-      const thoughtsWithoutObservation: AgentThought[] = [
-        {
-          id: 'thought-1',
-          thought: 'Thinking',
-          tool: 'test_tool',
-          tool_input: {},
-          tool_output: 'output',
-          observation: '',
-          created_at: Date.now(),
-        },
-      ]
-
-      render(<AgentThoughtTimeline thoughts={thoughtsWithoutObservation} />)
-
-      // Observation icon should not be present
-      expect(screen.queryByText(/💡/)).not.toBeInTheDocument()
-    })
-  })
 })

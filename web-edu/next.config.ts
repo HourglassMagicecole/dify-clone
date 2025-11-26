@@ -6,6 +6,10 @@ const API_HOST = process.env.API_HOST || 'localhost:5001'
 const nextConfig: NextConfig = {
   /* config options here */
 
+  // Disable compression to allow SSE streaming without buffering
+  // Production deployments typically use Nginx for compression instead
+  compress: false,
+
   // Enable standalone output for Docker builds
   output: 'standalone',
 
@@ -14,11 +18,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: 'localhost',
-      },
-      {
-        protocol: 'http',
-        hostname: '127.0.0.1',
+        hostname: '*',
       },
       {
         protocol: 'https',
@@ -33,6 +33,14 @@ const nextConfig: NextConfig = {
       {
         source: '/console/api/:path*',
         destination: `http://${API_HOST}/console/api/:path*`,
+      },
+      {
+        source: '/files/:path*',
+        destination: `http://${API_HOST}/files/:path*`,
+      },
+      {
+        source: '/v1/:path*',
+        destination: `http://${API_HOST}/v1/:path*`,
       },
     ]
   },

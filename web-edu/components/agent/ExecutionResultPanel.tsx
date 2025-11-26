@@ -78,6 +78,7 @@ export function ExecutionResultPanel({
 }: ExecutionResultPanelProps) {
   const { t } = useTranslation('agent')
   const [isCopied, setIsCopied] = useState(false)
+  const [showDebugModal, setShowDebugModal] = useState(false)
 
   // Extract all message_files from agent_thoughts
   // Method 1: Direct message_files field (standard way)
@@ -138,14 +139,6 @@ export function ExecutionResultPanel({
   // Combine both methods
   const allFiles = [...filesFromMessageFiles, ...filesFromToolOutput]
 
-  // Debug: Log extracted files
-  // eslint-disable-next-line no-console
-  console.log('[ExecutionResultPanel] Extracted files:', allFiles)
-  // eslint-disable-next-line no-console
-  console.log('[ExecutionResultPanel] From message_files:', filesFromMessageFiles.length)
-  // eslint-disable-next-line no-console
-  console.log('[ExecutionResultPanel] From tool_output:', filesFromToolOutput.length)
-
   /**
    * Copy result to clipboard
    */
@@ -178,40 +171,27 @@ export function ExecutionResultPanel({
 
   return (
     <div className="space-y-6">
-      {/* DEBUG: Show agent thoughts structure */}
-      {agentThoughts.length > 0 && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 rounded-lg p-4">
-          <h3 className="text-sm font-bold text-yellow-900 dark:text-yellow-200 mb-2">
-            🔍 DEBUG: Agent Thoughts 구조
-          </h3>
-          <div className="text-xs space-y-2">
-            <p className="text-yellow-800 dark:text-yellow-300">
-              총 {agentThoughts.length}개의 thoughts
-            </p>
-            <pre className="bg-white dark:bg-gray-800 p-2 rounded max-h-64 overflow-auto text-yellow-900 dark:text-yellow-100">
-              {JSON.stringify(agentThoughts, null, 2)}
-            </pre>
-            <p className="text-yellow-800 dark:text-yellow-300 font-semibold">
-              추출된 파일: {allFiles.length}개
-            </p>
-            {allFiles.length > 0 && (
-              <pre className="bg-white dark:bg-gray-800 p-2 rounded max-h-32 overflow-auto text-yellow-900 dark:text-yellow-100">
-                {JSON.stringify(allFiles, null, 2)}
-              </pre>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Result Section */}
       {result && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-              📄
-              {' '}
-              {t('execute.result.title', { defaultValue: '결과' })}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                📄
+                {' '}
+                {t('execute.result.title', { defaultValue: '결과' })}
+              </h3>
+              {/* DEBUG Button */}
+              {agentThoughts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowDebugModal(true)}
+                  className="px-2 py-1 text-xs font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors"
+                >
+                  🔍 DEBUG
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleCopy}
@@ -480,6 +460,54 @@ export function ExecutionResultPanel({
               )}
         </button>
       </div>
+
+      {/* DEBUG Modal */}
+      {showDebugModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowDebugModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-yellow-50 dark:bg-yellow-900/30 border-b border-yellow-300 dark:border-yellow-700 p-4 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-yellow-900 dark:text-yellow-200">
+                🔍 DEBUG: Agent Thoughts 구조
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowDebugModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xl font-bold"
+                aria-label={t('execute.close', { defaultValue: '닫기' })}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4 overflow-y-auto flex-1">
+              <div className="text-sm space-y-4">
+                <p className="text-yellow-800 dark:text-yellow-300 font-medium">
+                  총 {agentThoughts.length}개의 thoughts
+                </p>
+                <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg max-h-96 overflow-auto text-xs text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700">
+                  {JSON.stringify(agentThoughts, null, 2)}
+                </pre>
+                <p className="text-yellow-800 dark:text-yellow-300 font-semibold">
+                  추출된 파일: {allFiles.length}개
+                </p>
+                {allFiles.length > 0 && (
+                  <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg max-h-48 overflow-auto text-xs text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700">
+                    {JSON.stringify(allFiles, null, 2)}
+                  </pre>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

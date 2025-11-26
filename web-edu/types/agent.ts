@@ -336,6 +336,17 @@ export interface CreateAppRequest {
       tool_parameters: Record<string, unknown>
     }>
   }
+  file_upload?: {
+    enabled: boolean
+    allowed_file_upload_methods: string[]
+    number_limits: number
+    image: {
+      enabled: boolean
+      number_limits: number
+      detail: string
+      transfer_methods: string[]
+    }
+  }
 }
 
 /**

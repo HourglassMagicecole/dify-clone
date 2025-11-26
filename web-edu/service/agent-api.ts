@@ -212,6 +212,7 @@ export class AgentAPIService {
   /**
    * Copy (Duplicate) Agent
    * Uses Dify's POST /console/api/apps/{app_id}/copy endpoint
+   * Also creates an API key for the copied agent
    */
   async copyAgent(id: string, name?: string): Promise<Agent> {
     const payload: { name?: string } = {}
@@ -228,7 +229,17 @@ export class AgentAPIService {
       throw new Error(response.message || 'Failed to copy agent')
     }
 
-    return response.data
+    const copiedAgent = response.data
+
+    // Create API key for the copied agent (required for execution)
+    try {
+      await this.createAppApiKey(copiedAgent.id)
+    } catch (apiKeyError) {
+      console.error('[copyAgent] Failed to create API key for copied agent:', apiKeyError)
+      // Don't fail the whole operation, just log the error
+    }
+
+    return copiedAgent
   }
 
   /**
@@ -450,16 +461,9 @@ export class AgentAPIService {
       }
 
       // If we reach here without message_end, consider it complete
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.log('[STREAMING DEBUG] Stream ended without message_end event')
-      }
       onComplete({ success: true, conversationId: receivedConversationId, messageId: receivedMessageId })
     }
     catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[STREAMING DEBUG] Error:', error)
-      }
       onError(error as Error)
     }
   }
@@ -754,25 +758,12 @@ export class AgentAPIService {
       const agent = await this.getAgent(agentId)
       const apiKeys = await this.getAppApiKeys(agentId)
 
-      // eslint-disable-next-line no-console
-      console.log('[executeAgent] Agent data:', {
-        id: agent.id,
-        mode: agent.mode,
-        enable_api: (agent as unknown as { enable_api?: boolean }).enable_api,
-      })
-
-      // eslint-disable-next-line no-console
-      console.log('[executeAgent] API keys:', apiKeys.length > 0 ? `Found ${apiKeys.length} key(s)` : 'No keys found')
-
       // Use the first (or most recently used) API token
       if (apiKeys.length === 0 || !apiKeys[0]) {
         throw new Error('Agent API token not found. Make sure the agent has API access enabled.')
       }
 
       const apiToken = apiKeys[0].token
-
-      // eslint-disable-next-line no-console
-      console.log('[executeAgent] Using API token:', `${apiToken.substring(0, 10)}...`)
 
       // Determine endpoint based on agent mode
       const agentMode = agent.mode
@@ -802,24 +793,6 @@ export class AgentAPIService {
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiToken}`,
-      }
-
-      // eslint-disable-next-line no-console
-      console.log('[executeAgent] Request body:', requestBody)
-      // eslint-disable-next-line no-console
-      console.log('[executeAgent] Request headers:', { ...headers, Authorization: `Bearer ${apiToken.substring(0, 10)}...` })
-
-      // Log request for debugging (only in development)
-      if (process.env.NODE_ENV === 'development') {
-        // Development logging for debugging
-        // eslint-disable-next-line no-console
-        console.log('[executeAgent] Request:', {
-          agentId,
-          mode: agentMode,
-          endpoint,
-          inputs: request.inputs,
-          filesCount: request.files?.length || 0,
-        })
       }
 
       // Call Dify Agent API
@@ -948,6 +921,8 @@ export class AgentAPIService {
     const agentThoughts: AgentThought[] = []
     let tokenUsage: TokenUsage | null = null
     let messageId = ''
+    let receivedMessageEnd = false // Track if we received proper completion
+    let lastErrorMessage = '' // Track error messages from stream
 
     try {
       while (true) {
@@ -963,15 +938,6 @@ export class AgentAPIService {
 
           try {
             const data = JSON.parse(line.slice(6)) as Record<string, unknown>
-
-            // Log SSE event
-            // eslint-disable-next-line no-console
-            console.log('[SSE Event]', new Date().toISOString(), data.event, {
-              id: data.id,
-              thought: data.thought ? String(data.thought).substring(0, 50) + '...' : undefined,
-              tool: data.tool,
-              answer: data.answer ? String(data.answer).substring(0, 50) + '...' : undefined,
-            })
 
             // Handle different event types
             switch (data.event) {
@@ -1009,14 +975,10 @@ export class AgentAPIService {
                   if (existingIndex >= 0) {
                     // Update existing thought
                     agentThoughts[existingIndex] = thought
-                    // eslint-disable-next-line no-console
-                    console.log('[SSE Callback] onThought (update)', thought.id, 'total thoughts:', agentThoughts.length)
                   }
                   else {
                     // Add new thought
                     agentThoughts.push(thought)
-                    // eslint-disable-next-line no-console
-                    console.log('[SSE Callback] onThought (new)', thought.id, 'total thoughts:', agentThoughts.length)
                   }
 
                   callbacks?.onThought?.(thought)
@@ -1029,8 +991,6 @@ export class AgentAPIService {
                 if (data.answer) {
                   const chunk = String(data.answer)
                   finalAnswer += chunk
-                  // eslint-disable-next-line no-console
-                  console.log('[SSE Callback] onMessage', 'chunk length:', chunk.length, 'total answer length:', finalAnswer.length)
                   callbacks?.onMessage?.(chunk)
                 }
                 if (data.id) {
@@ -1039,7 +999,8 @@ export class AgentAPIService {
                 break
 
               case 'message_end':
-                // Final event with metadata
+                // Final event with metadata - marks successful completion
+                receivedMessageEnd = true
                 if (data.metadata) {
                   const metadata = data.metadata as Record<string, unknown>
                   const usage = metadata.usage as Record<string, unknown> | undefined
@@ -1054,8 +1015,6 @@ export class AgentAPIService {
                 }
 
                 // Call onComplete callback
-                // eslint-disable-next-line no-console
-                console.log('[SSE Callback] onComplete', 'final answer length:', finalAnswer.length, 'total thoughts:', agentThoughts.length)
                 if (callbacks?.onComplete) {
                   callbacks.onComplete({
                     task_id: String(data.task_id || ''),
@@ -1079,35 +1038,41 @@ export class AgentAPIService {
                 return
 
               case 'error':
-                throw new Error(String(data.message || 'Unknown error'))
+                // Store error message and throw
+                lastErrorMessage = String(data.message || 'Unknown error')
+                throw new Error(lastErrorMessage)
             }
           }
           catch (parseError) {
+            // Check if this is a thrown error from switch case
+            if (parseError instanceof Error && parseError.message === lastErrorMessage) {
+              throw parseError
+            }
             console.warn('[handleStreamingResponse] Failed to parse SSE line:', line, parseError)
           }
         }
       }
 
-      // If we reach here without message_end, still call onComplete
-      if (callbacks?.onComplete) {
-        callbacks.onComplete({
-          task_id: '',
-          workflow_run_id: '',
-          data: {
-            id: messageId,
-            answer: finalAnswer,
-            metadata: {
-              usage: tokenUsage || {
-                prompt_tokens: 0,
-                completion_tokens: 0,
-                total_tokens: 0,
-              },
-              retriever_resources: [],
-            },
-            created_at: Date.now(),
-          },
-          agent_thoughts: agentThoughts,
+      // IMPORTANT: If we reach here without message_end, treat as error
+      // This happens when backend encounters an error mid-stream
+      if (!receivedMessageEnd) {
+        const errorMessage = finalAnswer
+          ? 'Agent 실행 중 오류가 발생했습니다. 부분 결과만 수신되었습니다.'
+          : 'Agent 실행 중 오류가 발생했습니다. 응답을 받지 못했습니다.'
+
+        console.error('[handleStreamingResponse] Stream ended without message_end event', {
+          messageId,
+          hasAnswer: !!finalAnswer,
+          thoughtCount: agentThoughts.length,
         })
+
+        if (callbacks?.onError) {
+          callbacks.onError(new Error(errorMessage))
+        }
+        else {
+          throw new Error(errorMessage)
+        }
+        return
       }
     }
     catch (error) {

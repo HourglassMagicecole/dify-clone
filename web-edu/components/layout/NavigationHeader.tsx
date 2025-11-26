@@ -161,12 +161,14 @@ export function NavigationHeader() {
             </Link>
             <Link
               href="/datasets"
+              prefetch={false}
               className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
             >
               {t('common:nav.datasets')}
             </Link>
             <Link
               href="/workflows"
+              prefetch={false}
               className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
             >
               {t('common:nav.workflows')}

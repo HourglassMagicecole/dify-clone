@@ -107,6 +107,19 @@ docker-clean-all:
 	@echo "   Run 'make docker-rebuild' to rebuild without cache (recommended after clean-all)"
 	@echo "   Or  'make docker-up' for faster start (uses cache if available)"
 
+# Prune all Docker resources system-wide (affects other projects too)
+docker-prune:
+	@echo "⚠️  WARNING: This affects ALL Docker resources on this machine!"
+	@echo "This will remove:"
+	@echo "  - All stopped containers (from ANY project)"
+	@echo "  - All unused networks"
+	@echo "  - All dangling images"
+	@echo ""
+	@echo "Press Ctrl+C to cancel, or Enter to continue..."
+	@read dummy
+	docker system prune -f
+	@echo "✅ Docker system pruned"
+
 # Step 2: Prepare web environment
 prepare-web:
 	@echo "🌐 Setting up web environment..."
@@ -261,6 +274,7 @@ help:
 	@echo "  make docker-restart  - Restart Docker containers"
 	@echo "  make docker-clean    - Remove containers, volumes, and volume directories"
 	@echo "  make docker-clean-all - Remove all Docker resources + reset admin credentials"
+	@echo "  make docker-prune    - Prune system-wide Docker resources (WARNING: affects other projects)"
 	@echo ""
 	@echo "Backend Code Quality:"
 	@echo "  make format         - Format code with ruff"
@@ -276,4 +290,4 @@ help:
 	@echo "  make build-push-all - Build and push all Docker images"
 
 # Phony targets
-.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-rebuild docker-down docker-restart docker-clean docker-clean-all dev-clean dev-clean-all help format check lint type-check
+.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-rebuild docker-down docker-restart docker-clean docker-clean-all docker-prune dev-clean dev-clean-all help format check lint type-check

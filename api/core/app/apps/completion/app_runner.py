@@ -213,13 +213,35 @@ class CompletionAppRunner(AppRunner):
             db.session.close()
 
             # Log prompt_messages before passing to agent runner
+            logger.info("[Agent Execution] Files count: %s", len(files))
+            for i, file in enumerate(files):
+                logger.info(
+                    "[Agent Execution] File %s: type=%s, url=%s",
+                    i,
+                    file.type,
+                    file.remote_url if hasattr(file, "remote_url") else "N/A",
+                )
+
             logger.info("[Agent Execution] Prompt messages being passed to agent runner: %s", len(prompt_messages))
             for i, msg in enumerate(prompt_messages):
                 if hasattr(msg, "content"):
-                    content_preview = str(msg.content)[:200] if msg.content else "(empty)"
-                    logger.info(
-                        "[Agent Execution] Prompt message %s [%s]: %s...", i, msg.__class__.__name__, content_preview
-                    )
+                    if isinstance(msg.content, list):
+                        logger.info(
+                            "[Agent Execution] Prompt message %s [%s]: %s items",
+                            i,
+                            msg.__class__.__name__,
+                            len(msg.content),
+                        )
+                        for j, item in enumerate(msg.content):
+                            logger.info("[Agent Execution]   Item %s: %s", j, type(item).__name__)
+                    else:
+                        content_preview = str(msg.content)[:200] if msg.content else "(empty)"
+                        logger.info(
+                            "[Agent Execution] Prompt message %s [%s]: %s...",
+                            i,
+                            msg.__class__.__name__,
+                            content_preview,
+                        )
 
             # Initialize agent runner
             # Note: Completion mode doesn't have conversation or memory

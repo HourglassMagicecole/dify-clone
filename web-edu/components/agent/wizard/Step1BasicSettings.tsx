@@ -74,30 +74,6 @@ export function Step1BasicSettings(): React.ReactElement {
    */
   const { errors, isSubmitting, isValid } = formState
 
-  /**
-   * Debug: Log validation state in edit mode
-   */
-  React.useEffect(() => {
-    if (isEditMode) {
-      const errorDetails = Object.entries(errors).map(([key, err]) => ({
-        field: key,
-        message: err?.message,
-        type: err?.type
-      }))
-      const hasErrors = Object.keys(errors).length > 0
-      console.warn('[Step1] Edit mode validation state:', {
-        isValid,
-        errorCount: Object.keys(errors).length,
-        errorFields: Object.keys(errors),
-        errorDetails,
-        hasErrors,
-        buttonShouldBeDisabled: hasErrors || isSubmitting,
-        isSubmitting,
-        basicSettings,
-        formValues: watch()
-      })
-    }
-  }, [isEditMode, isValid, errors, basicSettings, watch, isSubmitting])
 
   /**
    * Watch values for character count and mode
@@ -586,7 +562,6 @@ export function Step1BasicSettings(): React.ReactElement {
 
       // Save suggested tools for Step 4 auto-selection
       if ('suggested_tools' in sample && sample.suggested_tools) {
-        console.log('[Step1] Saving suggested_tools:', sample.suggested_tools)
         setSuggestedTools(sample.suggested_tools)
       }
       else {
@@ -635,7 +610,6 @@ export function Step1BasicSettings(): React.ReactElement {
 
       // Save suggested tools for Step 4 auto-selection
       if ('suggested_tools' in sample && sample.suggested_tools) {
-        console.log('[Step1] Saving suggested_tools:', sample.suggested_tools)
         setSuggestedTools(sample.suggested_tools)
       }
       else {
@@ -648,22 +622,16 @@ export function Step1BasicSettings(): React.ReactElement {
    * Form submission handler
    */
   const onSubmit = async (data: BasicSettingsFormData): Promise<void> => {
-    try {
-      // Save to context (include suggested_tools for Step 4 auto-selection)
-      const settingsWithTools = {
-        ...data,
-        suggested_tools: suggestedTools.length > 0 ? suggestedTools : undefined,
-      }
-      console.log('[Step1] Submitting basicSettings with suggested_tools:', settingsWithTools.suggested_tools)
-      setBasicSettings(settingsWithTools)
+    // Save to context (include suggested_tools for Step 4 auto-selection)
+    const settingsWithTools = {
+      ...data,
+      suggested_tools: suggestedTools.length > 0 ? suggestedTools : undefined,
+    }
+    setBasicSettings(settingsWithTools)
 
-      // Auto-save is handled by context's useEffect
-      // Move to next step
-      nextStep()
-    }
-    catch (error) {
-      console.error('Failed to save basic settings:', error)
-    }
+    // Auto-save is handled by context's useEffect
+    // Move to next step
+    nextStep()
   }
 
   return (
