@@ -14,7 +14,7 @@ i18n
   .init({
     lng: 'ko-KR', // Always start with fallback to match SSR
     fallbackLng: 'ko-KR',
-    ns: ['common', 'agent'], // Load common and agent namespaces by default
+    ns: ['common', 'agent', 'dataset'], // Load common, agent, and dataset namespaces by default
     defaultNS: 'common',
     debug: false,
     interpolation: {
