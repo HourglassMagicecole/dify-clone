@@ -16,7 +16,7 @@ import { useRAGWizard } from '@/context/RAGWizardContext'
 import { datasetAPI } from '@/service/dataset-api'
 import { Button } from '@/components/common/Button'
 import { Tooltip } from '@/components/common/Tooltip'
-import type { ProcessRuleLimits, IndexingEstimateRequest, ProcessRuleForAPI } from '@/types/dataset'
+import type { ProcessRuleLimits, IndexingEstimateRequest, ProcessRuleForAPI, FileChunkPreview } from '@/types/dataset'
 
 // Default values matching backend DocumentService.DEFAULT_RULES
 const DEFAULT_RULES = {
@@ -75,6 +75,16 @@ export function Step2Split(): React.ReactElement {
     setPreviewLoading,
     setPreviewError,
     clearPreview,
+    // Task 11.2: File-specific preview state and actions
+    previewByFile,
+    setPreviewByFile,
+    updateFilePreview,
+    clearPreviewByFile,
+    // Task 12.2: Separator type state and actions
+    separatorType,
+    customSeparator,
+    setSeparatorType,
+    setCustomSeparator,
   } = useRAGWizard()
 
   // Limits from API
@@ -85,6 +95,8 @@ export function Step2Split(): React.ReactElement {
   const [embeddingModelAvailable, setEmbeddingModelAvailable] = useState<boolean | null>(null)
   // Track previous uploaded files to detect changes
   const [prevFileIds, setPrevFileIds] = useState<string[]>([])
+  // Task 11.3: Active tab for file-specific preview ('all' or fileId)
+  const [activeTab, setActiveTab] = useState<string>('all')
 
   /**
    * Clear preview when uploaded files change
@@ -96,9 +108,11 @@ export function Step2Split(): React.ReactElement {
     if (currentFileIds !== prevFileIdsStr) {
       // Files changed, clear preview
       clearPreview()
+      clearPreviewByFile()
+      setActiveTab('all')
       setPrevFileIds(uploadedFiles.map(f => f.id))
     }
-  }, [uploadedFiles, prevFileIds, clearPreview])
+  }, [uploadedFiles, prevFileIds, clearPreview, clearPreviewByFile])
 
   /**
    * Initialize with default rules and load limits from API
@@ -186,7 +200,34 @@ export function Step2Split(): React.ReactElement {
   }
 
   /**
-   * Task 5.4: Handle preview chunk request
+   * Get the effective separator based on separatorType
+   */
+  const getEffectiveSeparator = useCallback((): string => {
+    if (separatorType === 'custom' && customSeparator.length > 0) {
+      return customSeparator
+    }
+    return processRule.rules?.segmentation.delimiter || '\n'
+  }, [separatorType, customSeparator, processRule.rules?.segmentation.delimiter])
+
+  /**
+   * Build API process rule with effective separator
+   */
+  const buildApiProcessRule = useCallback((): ProcessRuleForAPI => {
+    return {
+      mode: processRule.mode,
+      rules: processRule.rules ? {
+        pre_processing_rules: processRule.rules.pre_processing_rules,
+        segmentation: {
+          separator: getEffectiveSeparator(),
+          max_tokens: processRule.rules.segmentation.max_tokens,
+          chunk_overlap: processRule.rules.segmentation.chunk_overlap,
+        },
+      } : null,
+    }
+  }, [processRule, getEffectiveSeparator])
+
+  /**
+   * Task 5.4: Handle preview chunk request (all files)
    */
   const handlePreviewChunk = useCallback(async () => {
     if (uploadedFiles.length === 0) {
@@ -199,19 +240,7 @@ export function Step2Split(): React.ReactElement {
     clearPreview()
 
     try {
-      // Convert delimiter to separator for API compatibility
-      // Backend GET /process-rule returns 'delimiter', but POST /indexing-estimate expects 'separator'
-      const apiProcessRule: ProcessRuleForAPI = {
-        mode: processRule.mode,
-        rules: processRule.rules ? {
-          pre_processing_rules: processRule.rules.pre_processing_rules,
-          segmentation: {
-            separator: processRule.rules.segmentation.delimiter, // delimiter → separator
-            max_tokens: processRule.rules.segmentation.max_tokens,
-            chunk_overlap: processRule.rules.segmentation.chunk_overlap,
-          },
-        } : null,
-      }
+      const apiProcessRule = buildApiProcessRule()
 
       const request: IndexingEstimateRequest = {
         info_list: {
@@ -239,7 +268,76 @@ export function Step2Split(): React.ReactElement {
     } finally {
       setPreviewLoading(false)
     }
-  }, [uploadedFiles, processRule, t, setPreviewLoading, setPreviewError, clearPreview, setPreviewChunks])
+  }, [uploadedFiles, buildApiProcessRule, t, setPreviewLoading, setPreviewError, clearPreview, setPreviewChunks])
+
+  /**
+   * Task 11.3: Handle preview chunk request for individual file
+   */
+  const handlePreviewByFile = useCallback(async () => {
+    if (uploadedFiles.length === 0) {
+      setPreviewError(t('step2.previewNoFiles'))
+      return
+    }
+
+    // Initialize file previews with loading state
+    const initialPreviews: FileChunkPreview[] = uploadedFiles.map(file => ({
+      fileId: file.id,
+      fileName: file.name,
+      chunks: [],
+      totalSegments: 0,
+      isLoading: true,
+      error: null,
+    }))
+    setPreviewByFile(initialPreviews)
+    clearPreview()
+
+    // Set active tab to first file
+    if (uploadedFiles.length > 0 && uploadedFiles[0]) {
+      setActiveTab(uploadedFiles[0].id)
+    }
+
+    const apiProcessRule = buildApiProcessRule()
+
+    // Fetch preview for each file individually
+    await Promise.all(uploadedFiles.map(async (file) => {
+      try {
+        const request: IndexingEstimateRequest = {
+          info_list: {
+            data_source_type: 'upload_file',
+            file_info_list: {
+              file_ids: [file.id],
+            },
+          },
+          indexing_technique: 'high_quality',
+          process_rule: apiProcessRule,
+          doc_form: 'text_model',
+          doc_language: 'English',
+          dataset_id: '',
+        }
+
+        const response = await datasetAPI.getIndexingEstimate(request)
+        if (response.result === 'success' && response.data) {
+          updateFilePreview(file.id, {
+            chunks: response.data.preview,
+            totalSegments: response.data.total_segments,
+            isLoading: false,
+            error: null,
+          })
+        } else {
+          updateFilePreview(file.id, {
+            isLoading: false,
+            error: t('step2.filePreviewError', { fileName: file.name }),
+          })
+        }
+      } catch (error) {
+        console.error(`Failed to get preview for ${file.name}:`, error)
+        updateFilePreview(file.id, {
+          isLoading: false,
+          error: t('step2.filePreviewError', { fileName: file.name }),
+        })
+      }
+    }))
+  }, [uploadedFiles, buildApiProcessRule, t, setPreviewByFile, updateFilePreview, clearPreview, setPreviewError])
 
   /**
    * Handle next step
@@ -302,25 +400,66 @@ export function Step2Split(): React.ReactElement {
             {t('step2.segmentation')}
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Delimiter */}
+            {/* Task 12.3: Separator Type Selection */}
             <div>
               <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
                 {t('step2.separator')}
                 <Tooltip content={t('step2.separatorTooltip')} />
               </label>
-              <select
-                value={rules.segmentation.delimiter}
-                onChange={(e) => handleSegmentationChange('delimiter', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                aria-label={t('step2.separator')}
-              >
-                {DELIMITER_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">{t('step2.separatorHelp')}</p>
+
+              {/* Separator Type Radio Buttons */}
+              <div className="flex gap-4 mb-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="separatorType"
+                    value="predefined"
+                    checked={separatorType === 'predefined'}
+                    onChange={() => setSeparatorType('predefined')}
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">{t('step2.predefined')}</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="separatorType"
+                    value="custom"
+                    checked={separatorType === 'custom'}
+                    onChange={() => setSeparatorType('custom')}
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">{t('step2.custom')}</span>
+                </label>
+              </div>
+
+              {/* Pre-defined Dropdown or Custom Input */}
+              {separatorType === 'predefined' ? (
+                <select
+                  value={rules.segmentation.delimiter}
+                  onChange={(e) => handleSegmentationChange('delimiter', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  aria-label={t('step2.separator')}
+                >
+                  {DELIMITER_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={customSeparator}
+                  onChange={(e) => setCustomSeparator(e.target.value)}
+                  placeholder={t('step2.customPlaceholder')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  aria-label={t('step2.custom')}
+                />
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                {separatorType === 'custom' ? t('step2.customSeparatorHelp') : t('step2.separatorHelp')}
+              </p>
             </div>
 
             {/* Max Tokens */}
@@ -408,16 +547,39 @@ export function Step2Split(): React.ReactElement {
         </div>
       </div>
 
-      {/* Task 5.4: Preview Chunk Section */}
+      {/* Task 5.4 & 11.3: Preview Chunk Section with File Selector */}
       <div className="space-y-4">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between gap-4">
+          {/* Task 11.3: File Selector Dropdown (only show when multiple files and has results) */}
+          {uploadedFiles.length > 1 && previewByFile.length > 0 && (
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <label htmlFor="file-selector" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                {t('step2.selectFile')}
+              </label>
+              <select
+                id="file-selector"
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {uploadedFiles.map(file => (
+                  <option key={file.id} value={file.id}>
+                    {file.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Single Preview Button - auto-detects single vs multiple files */}
           <Button
             type="button"
             variant="outline"
-            onClick={handlePreviewChunk}
-            disabled={previewLoading || uploadedFiles.length === 0 || embeddingModelAvailable === false}
+            onClick={uploadedFiles.length > 1 ? handlePreviewByFile : handlePreviewChunk}
+            disabled={previewLoading || previewByFile.some(p => p.isLoading) || uploadedFiles.length === 0 || embeddingModelAvailable === false}
+            className={uploadedFiles.length > 1 && previewByFile.length > 0 ? '' : 'ml-auto'}
           >
-            {previewLoading ? t('step2.previewing') : t('step2.previewChunk')}
+            {(previewLoading || previewByFile.some(p => p.isLoading)) ? t('step2.previewing') : t('step2.previewChunk')}
           </Button>
         </div>
 
@@ -428,7 +590,7 @@ export function Step2Split(): React.ReactElement {
           </div>
         )}
 
-        {/* Preview Loading */}
+        {/* Preview Loading (all files) */}
         {previewLoading && (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -436,8 +598,91 @@ export function Step2Split(): React.ReactElement {
           </div>
         )}
 
-        {/* Preview Results */}
-        {previewChunks.length > 0 && !previewLoading && (
+        {/* Task 11.3: File-specific Preview Results (multiple files) */}
+        {uploadedFiles.length > 1 && previewByFile.length > 0 && (() => {
+          const filePreview = previewByFile.find(p => p.fileId === activeTab)
+          if (!filePreview) return null
+
+          if (filePreview.isLoading) {
+            return (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-sm text-gray-600">
+                  {t('step2.filePreviewLoading', { fileName: filePreview.fileName })}
+                </span>
+              </div>
+            )
+          }
+
+          if (filePreview.error) {
+            return (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{filePreview.error}</p>
+              </div>
+            )
+          }
+
+          return (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>{t('step2.previewResult', { count: filePreview.totalSegments })}</span>
+                <span className="text-xs text-gray-400">
+                  {t('step2.previewShowing', { showing: filePreview.chunks.length, total: filePreview.totalSegments })}
+                </span>
+              </div>
+              <div className="max-h-96 overflow-y-auto space-y-2">
+                {filePreview.chunks.map((chunk, idx) => {
+                  const prevChunk = idx > 0 ? filePreview.chunks[idx - 1] : null
+                  const overlapWithPrev = prevChunk ? findOverlap(prevChunk.content, chunk.content) : ''
+                  const nextChunk = idx < filePreview.chunks.length - 1 ? filePreview.chunks[idx + 1] : null
+                  const overlapWithNext = nextChunk ? findOverlap(chunk.content, nextChunk.content) : ''
+                  const startOverlapLen = overlapWithPrev.length
+                  const endOverlapLen = overlapWithNext.length
+                  const startPart = chunk.content.slice(0, startOverlapLen)
+                  const middlePart = chunk.content.slice(startOverlapLen, chunk.content.length - endOverlapLen || undefined)
+                  const endPart = endOverlapLen > 0 ? chunk.content.slice(-endOverlapLen) : ''
+
+                  return (
+                    <div key={idx} className="p-3 bg-white border border-gray-200 rounded-md shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                            Chunk {idx + 1}
+                          </span>
+                          {(startOverlapLen > 0 || endOverlapLen > 0) && (
+                            <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
+                              {startOverlapLen > 0 && `↑${startOverlapLen}`}
+                              {startOverlapLen > 0 && endOverlapLen > 0 && ' / '}
+                              {endOverlapLen > 0 && `↓${endOverlapLen}`}
+                              {' chars overlap'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400">{chunk.content.length} chars</span>
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                        {startPart && (
+                          <span className="bg-orange-100 text-orange-800 rounded px-0.5" title={`Overlap with Chunk ${idx}`}>
+                            {startPart}
+                          </span>
+                        )}
+                        {middlePart}
+                        {endPart && (
+                          <span className="bg-green-100 text-green-800 rounded px-0.5" title={`Overlap with Chunk ${idx + 2}`}>
+                            {endPart}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Preview Results (single file) */}
+        {uploadedFiles.length <= 1 && previewChunks.length > 0 && !previewLoading && (
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm text-gray-600">
               <span>{t('step2.previewResult', { count: totalSegments })}</span>

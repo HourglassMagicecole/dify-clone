@@ -79,7 +79,15 @@
     "embeddingModelNotConfigured": "Embedding model not configured",
     "embeddingModelNotConfiguredHint": "Please configure a default text-embedding model in Settings → Model Provider to use this feature.",
     "overlapPrev": "Overlap with previous chunk",
-    "overlapNext": "Overlap with next chunk"
+    "overlapNext": "Overlap with next chunk",
+    "selectFile": "Select file",
+    "filePreviewLoading": "Loading preview for {{fileName}}...",
+    "filePreviewError": "Failed to preview {{fileName}}",
+    "separatorType": "Separator Type",
+    "predefined": "Pre-defined",
+    "custom": "Custom",
+    "customPlaceholder": "e.g., ###, ---, ===",
+    "customSeparatorHelp": "Enter the string that separates sections in your document"
   },
   "common": {
     "next": "Next",
@@ -98,7 +106,8 @@
     "maxTokensMin": "Minimum 50 tokens required",
     "maxTokensMax": "Maximum 4000 tokens allowed",
     "chunkOverlapMin": "Overlap must be 0 or more",
-    "chunkOverlapMaxDynamic": "Overlap must be at most 50% of max chunk size"
+    "chunkOverlapMaxDynamic": "Overlap must be at most 50% of max chunk size",
+    "customSeparatorRequired": "Please enter a custom separator"
   },
   "errors": {
     "fileTooLarge": "File size exceeds 15MB",

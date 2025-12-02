@@ -56,3 +56,18 @@ export const processRuleSchema = z.object({
 })
 
 export type ProcessRuleFormData = z.infer<typeof processRuleSchema>
+
+/**
+ * Task 12.5: Custom separator validation schema
+ *
+ * Validates that when separatorType is 'custom', the customSeparator is not empty
+ */
+export const customSeparatorSchema = z.object({
+  separatorType: z.enum(['predefined', 'custom']),
+  customSeparator: z.string().optional(),
+}).refine(
+  (data) => data.separatorType !== 'custom' || (data.customSeparator && data.customSeparator.length > 0),
+  { message: 'validation.customSeparatorRequired' }
+)
+
+export type CustomSeparatorFormData = z.infer<typeof customSeparatorSchema>

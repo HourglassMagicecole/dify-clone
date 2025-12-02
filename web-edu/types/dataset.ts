@@ -344,3 +344,31 @@ export interface ProviderWithModels {
  * null response means no default model is configured
  */
 export type DefaultModelResult = DefaultModelResponse | null
+
+// ============================================================================
+// Task 11.1: File-specific chunk preview type
+// ============================================================================
+
+/**
+ * File-specific chunk preview for per-file display
+ * Allows users to view chunking results for each uploaded file separately
+ */
+export interface FileChunkPreview {
+  fileId: string
+  fileName: string
+  chunks: ChunkPreview[]
+  totalSegments: number
+  isLoading: boolean
+  error: string | null
+}
+
+// ============================================================================
+// Task 12.1: Separator type for custom separator support
+// ============================================================================
+
+/**
+ * Separator type for chunking
+ * 'predefined': Use pre-defined separators (newline, double newline, etc.)
+ * 'custom': User-defined custom separator string
+ */
+export type SeparatorType = 'predefined' | 'custom'

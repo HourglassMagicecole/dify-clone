@@ -15,6 +15,8 @@ import {
   ProcessRule,
   DEFAULT_PROCESS_RULE,
   ChunkPreview,
+  FileChunkPreview,
+  SeparatorType,
 } from '@/types/dataset'
 
 // ============================================================================
@@ -45,6 +47,18 @@ interface RAGWizardContextValue extends RAGWizardState {
   setPreviewLoading: (loading: boolean) => void
   setPreviewError: (error: string | null) => void
   clearPreview: () => void
+
+  // Task 11.2: File-specific preview state
+  previewByFile: FileChunkPreview[]
+  setPreviewByFile: (previews: FileChunkPreview[]) => void
+  updateFilePreview: (fileId: string, update: Partial<Omit<FileChunkPreview, 'fileId' | 'fileName'>>) => void
+  clearPreviewByFile: () => void
+
+  // Task 12.2: Separator type state
+  separatorType: SeparatorType
+  customSeparator: string
+  setSeparatorType: (type: SeparatorType) => void
+  setCustomSeparator: (separator: string) => void
 
   // Navigation
   nextStep: () => void
@@ -109,6 +123,13 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
   const [previewLoading, setPreviewLoadingState] = useState(false)
   const [previewError, setPreviewErrorState] = useState<string | null>(null)
   const [totalSegments, setTotalSegments] = useState(0)
+
+  // Task 11.2: File-specific preview state
+  const [previewByFile, setPreviewByFileState] = useState<FileChunkPreview[]>([])
+
+  // Task 12.2: Separator type state
+  const [separatorType, setSeparatorTypeState] = useState<SeparatorType>('predefined')
+  const [customSeparator, setCustomSeparatorState] = useState<string>('')
 
   // Step 1: Load actions
   const setDatasetName = useCallback((name: string) => {
@@ -192,6 +213,30 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     setTotalSegments(0)
   }, [])
 
+  // Task 11.2: File-specific preview actions
+  const setPreviewByFile = useCallback((previews: FileChunkPreview[]) => {
+    setPreviewByFileState(previews)
+  }, [])
+
+  const updateFilePreview = useCallback((fileId: string, update: Partial<Omit<FileChunkPreview, 'fileId' | 'fileName'>>) => {
+    setPreviewByFileState(prev => prev.map(p =>
+      p.fileId === fileId ? { ...p, ...update } : p
+    ))
+  }, [])
+
+  const clearPreviewByFile = useCallback(() => {
+    setPreviewByFileState([])
+  }, [])
+
+  // Task 12.2: Separator type actions
+  const setSeparatorType = useCallback((type: SeparatorType) => {
+    setSeparatorTypeState(type)
+  }, [])
+
+  const setCustomSeparator = useCallback((separator: string) => {
+    setCustomSeparatorState(separator)
+  }, [])
+
   // Navigation
   const nextStep = useCallback(() => {
     setState(prev => {
@@ -248,6 +293,16 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     setPreviewLoading,
     setPreviewError,
     clearPreview,
+    // Task 11.2: File-specific preview state and actions
+    previewByFile,
+    setPreviewByFile,
+    updateFilePreview,
+    clearPreviewByFile,
+    // Task 12.2: Separator type state and actions
+    separatorType,
+    customSeparator,
+    setSeparatorType,
+    setCustomSeparator,
     // Navigation
     nextStep,
     prevStep,
@@ -272,6 +327,14 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     setPreviewLoading,
     setPreviewError,
     clearPreview,
+    previewByFile,
+    setPreviewByFile,
+    updateFilePreview,
+    clearPreviewByFile,
+    separatorType,
+    customSeparator,
+    setSeparatorType,
+    setCustomSeparator,
     nextStep,
     prevStep,
     goToStep,

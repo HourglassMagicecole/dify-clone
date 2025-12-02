@@ -79,7 +79,15 @@
     "embeddingModelNotConfigured": "Embedding 모델이 설정되지 않음",
     "embeddingModelNotConfiguredHint": "이 기능을 사용하려면 설정 → 모델 제공자에서 기본 text-embedding 모델을 설정해주세요.",
     "overlapPrev": "이전 청크와 겹침",
-    "overlapNext": "다음 청크와 겹침"
+    "overlapNext": "다음 청크와 겹침",
+    "selectFile": "파일 선택",
+    "filePreviewLoading": "{{fileName}} 미리보기 로딩 중...",
+    "filePreviewError": "{{fileName}} 미리보기 실패",
+    "separatorType": "구분자 유형",
+    "predefined": "기본 제공",
+    "custom": "직접 입력",
+    "customPlaceholder": "예: ###, ---, ===",
+    "customSeparatorHelp": "문서에서 섹션을 구분하는 문자열을 입력하세요"
   },
   "common": {
     "next": "다음",
@@ -98,7 +106,8 @@
     "maxTokensMin": "최소 50 토큰 이상이어야 합니다",
     "maxTokensMax": "최대 4000 토큰까지 가능합니다",
     "chunkOverlapMin": "오버랩은 0 이상이어야 합니다",
-    "chunkOverlapMaxDynamic": "오버랩은 최대 청크 크기의 50% 이하여야 합니다"
+    "chunkOverlapMaxDynamic": "오버랩은 최대 청크 크기의 50% 이하여야 합니다",
+    "customSeparatorRequired": "커스텀 구분자를 입력해주세요"
   },
   "errors": {
     "fileTooLarge": "파일 크기가 15MB를 초과합니다",
