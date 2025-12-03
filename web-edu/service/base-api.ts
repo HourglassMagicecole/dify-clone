@@ -114,6 +114,8 @@ export class ApiClient {
   /**
    * GET request for Dify native API (returns data directly without result wrapper)
    * Use this for endpoints that return { data: ... } instead of { result: 'success', data: ... }
+   * Note: This unwraps json.data, so pagination metadata (total, page, etc.) is lost.
+   * Use getDifyNativeFull() for paginated responses.
    */
   async getDifyNative<T>(endpoint: string): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -131,6 +133,29 @@ export class ApiClient {
     return {
       result: 'success',
       data: json.data || json,
+    }
+  }
+
+  /**
+   * GET request for Dify native API that preserves the full response
+   * Use this for paginated endpoints that return { data: [...], total, page, limit, has_more }
+   */
+  async getDifyNativeFull<T>(endpoint: string): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    }
+
+    const json = await response.json()
+
+    // Return the full response without unwrapping
+    return {
+      result: 'success',
+      data: json,
     }
   }
 
@@ -176,6 +201,31 @@ export class ApiClient {
     const json = await response.json()
 
     // Wrap native Dify response in our standard format
+    return {
+      result: 'success',
+      data: json.data || json,
+    }
+  }
+
+  /**
+   * DELETE request for Dify native API
+   */
+  async deleteDifyNative<T>(endpoint: string): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    }
+
+    // DELETE often returns empty body or 204
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return { result: 'success' } as ApiResponse<T>
+    }
+
+    const json = await response.json()
     return {
       result: 'success',
       data: json.data || json,

@@ -394,6 +394,8 @@ class DatasetInitApi(Resource):
         parser.add_argument("retrieval_model", type=dict, required=False, nullable=False, location="json")
         parser.add_argument("embedding_model", type=str, required=False, nullable=True, location="json")
         parser.add_argument("embedding_model_provider", type=str, required=False, nullable=True, location="json")
+        parser.add_argument("name", type=str, required=False, nullable=True, location="json")
+        parser.add_argument("description", type=str, required=False, nullable=True, location="json")
         args = parser.parse_args()
 
         knowledge_config = KnowledgeConfig(**args)

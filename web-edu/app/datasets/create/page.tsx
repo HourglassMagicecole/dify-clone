@@ -13,6 +13,8 @@ import { RAGWizardProvider, useRAGWizard } from '@/context/RAGWizardContext'
 import { RAGPipelineVisualization } from '@/components/rag/RAGPipelineVisualization'
 import { Step1Load } from '@/components/rag/wizard/Step1Load'
 import { Step2Split } from '@/components/rag/wizard/Step2Split'
+import { Step3Embed } from '@/components/rag/wizard/Step3Embed'
+import { Step4Store } from '@/components/rag/wizard/Step4Store'
 import { RAGWizardStep } from '@/types/dataset'
 import { Button } from '@/components/common/Button'
 import { datasetAPI } from '@/service/dataset-api'
@@ -62,19 +64,9 @@ function RAGWizardContent(): React.ReactElement {
       case RAGWizardStep.SPLIT:
         return <Step2Split />
       case RAGWizardStep.EMBED:
+        return <Step3Embed />
       case RAGWizardStep.STORE:
-        // Placeholder for Story 3.2
-        return (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🚧</div>
-            <h3 className="text-lg font-medium text-gray-900">
-              {t('common.comingSoon')}
-            </h3>
-            <p className="text-sm text-gray-500 mt-2">
-              {t('common.comingSoonDesc')}
-            </p>
-          </div>
-        )
+        return <Step4Store />
       default:
         return null
     }
@@ -143,7 +135,7 @@ function RAGWizardContent(): React.ReactElement {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/datasets')}
           >
             {t('common.cancel')}
           </Button>

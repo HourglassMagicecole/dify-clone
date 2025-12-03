@@ -177,6 +177,8 @@ export enum RAGWizardStep {
 /**
  * RAG Wizard state interface
  * Similar pattern to AgentWizardContext
+ * Story 3.1: LOAD, SPLIT
+ * Story 3.2: EMBED, STORE 추가
  */
 export interface RAGWizardState {
   currentStep: RAGWizardStep
@@ -189,6 +191,18 @@ export interface RAGWizardState {
 
   // Step 2: Split
   processRule: ProcessRule
+
+  // Step 3: Embed (Story 3.2)
+  selectedEmbeddingModel: string | null
+  selectedEmbeddingProvider: string | null
+  embeddingModels: EmbeddingModelProvider[]
+
+  // Step 4: Store (Story 3.2)
+  createdDataset: Dataset | null
+  createdDocuments: DocumentInfo[]
+  batchId: string | null
+  indexingStatus: DocumentIndexingStatus[]
+  isIndexingComplete: boolean
 
   // Common
   isLoading: boolean
@@ -304,12 +318,38 @@ export interface IndexingEstimateResponse {
 export type ModelType = 'llm' | 'text-embedding' | 'rerank' | 'speech2text' | 'moderation' | 'tts'
 
 /**
+ * Provider info in default model response
+ * The provider field can be either a string or an object depending on the API version
+ */
+export interface DefaultModelProviderInfo {
+  provider: string
+  label?: { en_US: string; zh_Hans?: string }
+  icon_small?: { en_US: string; zh_Hans?: string }
+  icon_large?: { en_US: string; zh_Hans?: string }
+  supported_model_types?: ModelType[]
+  models?: unknown[]
+  tenant_id?: string
+}
+
+/**
  * Default model response from API
  * Endpoint: GET /console/api/workspaces/current/default-model?model_type=text-embedding
+ * Note: provider can be string or object depending on API response
  */
 export interface DefaultModelResponse {
   model: string
-  provider: string
+  model_type?: ModelType
+  provider: string | DefaultModelProviderInfo
+}
+
+/**
+ * Helper to extract provider ID from DefaultModelResponse
+ */
+export function getProviderIdFromDefault(provider: string | DefaultModelProviderInfo): string {
+  if (typeof provider === 'string') {
+    return provider
+  }
+  return provider.provider
 }
 
 /**
@@ -372,3 +412,256 @@ export interface FileChunkPreview {
  * 'custom': User-defined custom separator string
  */
 export type SeparatorType = 'predefined' | 'custom'
+
+// ============================================================================
+// Story 3.2: Embed & Store 타입 정의
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Task 1.1: 임베딩 모델 관련 타입
+// ----------------------------------------------------------------------------
+
+/**
+ * Embedding model detailed info
+ * Source: GET /console/api/workspaces/current/models/model-types/text-embedding
+ */
+export interface EmbeddingModelInfo {
+  model: string
+  label: {
+    en_US: string
+    zh_Hans?: string
+  }
+  model_type: 'text-embedding'
+  features?: string[] | null
+  fetch_from?: string
+  deprecated?: boolean
+  model_properties?: {
+    context_size?: number
+    max_chunks?: number
+  }
+}
+
+/**
+ * Model provider status
+ */
+export type ProviderStatus = 'active' | 'no-configure' | 'quota-exceeded' | 'no-permission'
+
+/**
+ * Provider with embedding models
+ */
+export interface EmbeddingModelProvider {
+  provider: string
+  label: {
+    en_US: string
+    zh_Hans?: string
+  }
+  icon_small?: {
+    en_US: string
+  }
+  icon_large?: {
+    en_US: string
+  }
+  status: ProviderStatus
+  models: EmbeddingModelInfo[]
+}
+
+// ----------------------------------------------------------------------------
+// Task 1.2: 인덱싱 상태 관련 타입
+// ----------------------------------------------------------------------------
+
+/**
+ * Document indexing status
+ * Endpoint: GET /console/api/datasets/{dataset_id}/documents/{document_id}/indexing-status
+ */
+export type DocumentStatus = 'waiting' | 'parsing' | 'cleaning' | 'splitting' | 'indexing' | 'completed' | 'error' | 'paused'
+
+export interface DocumentIndexingStatus {
+  id: string
+  indexing_status: DocumentStatus
+  processing_started_at: number | null
+  parsing_completed_at: number | null
+  cleaning_completed_at: number | null
+  splitting_completed_at: number | null
+  completed_at: number | null
+  paused_at: number | null
+  error: string | null
+  stopped_at: number | null
+  completed_segments: number
+  total_segments: number
+}
+
+/**
+ * Batch indexing status response
+ * Endpoint: GET /console/api/datasets/{dataset_id}/batch/{batch}/indexing-status
+ *
+ * Note: The backend returns { "data": [...] }, but getDifyNative unwraps it,
+ * so the actual response is an array of DocumentIndexingStatus
+ */
+export type BatchIndexingStatusResponse = DocumentIndexingStatus[]
+
+// ----------------------------------------------------------------------------
+// Task 1.3: Dataset 생성 요청/응답 타입
+// ----------------------------------------------------------------------------
+
+/**
+ * Dataset initialization request (with documents)
+ * Endpoint: POST /console/api/datasets/init
+ * Source: api/controllers/console/datasets/datasets_document.py - DatasetInitApi
+ * Source: api/services/entities/knowledge_entities/knowledge_entities.py - KnowledgeConfig
+ */
+export interface DatasetInitRequest {
+  name?: string
+  description?: string
+  indexing_technique: IndexingTechnique
+  data_source: {
+    info_list: {
+      data_source_type: DataSourceType
+      file_info_list?: {
+        file_ids: string[]
+      }
+      notion_info_list?: Array<{
+        credential_id: string
+        workspace_id: string
+        pages: Array<{
+          page_id: string
+          page_name: string
+          type: string
+        }>
+      }>
+      website_info_list?: {
+        provider: string
+        job_id: string
+        urls: string[]
+        only_main_content?: boolean
+      }
+    }
+  }
+  process_rule: ProcessRuleForAPI
+  doc_form: ChunkingMode
+  doc_language: string
+  retrieval_model?: {
+    search_method: 'semantic_search' | 'full_text_search' | 'hybrid_search'
+    reranking_enable: boolean
+    reranking_model?: {
+      reranking_provider_name: string
+      reranking_model_name: string
+    }
+    top_k: number
+    score_threshold_enabled: boolean
+    score_threshold?: number
+  }
+  embedding_model: string
+  embedding_model_provider: string
+}
+
+/**
+ * Document info in response
+ */
+export interface DocumentInfo {
+  id: string
+  position: number
+  data_source_type: DataSourceType
+  data_source_info: {
+    upload_file_id: string
+  }
+  dataset_process_rule_id: string
+  name: string
+  created_from: string
+  created_by: string
+  created_at: number
+  tokens: number
+  indexing_status: DocumentStatus
+  error: string | null
+  enabled: boolean
+  disabled_at: number | null
+  disabled_by: string | null
+  archived: boolean
+  display_status: string
+  word_count: number
+  hit_count: number
+  doc_form: ChunkingMode
+}
+
+/**
+ * Dataset initialization response
+ * Endpoint: POST /console/api/datasets/init
+ */
+export interface DatasetInitResponse {
+  dataset: Dataset
+  documents: DocumentInfo[]
+  batch: string
+}
+
+// ============================================================================
+// Document List & Segment Types (for Dataset Detail Page)
+// ============================================================================
+
+/**
+ * Document list response with pagination
+ * Endpoint: GET /console/api/datasets/{dataset_id}/documents
+ */
+export interface DocumentListResponse {
+  data: DocumentInfo[]
+  has_more: boolean
+  limit: number
+  total: number
+  page: number
+}
+
+/**
+ * Segment (chunk) in a document
+ * Endpoint: GET /console/api/datasets/{dataset_id}/documents/{document_id}/segments
+ */
+export interface Segment {
+  id: string
+  position: number
+  document_id: string
+  content: string
+  sign_content: string | null
+  answer: string | null
+  word_count: number
+  tokens: number
+  keywords: string[]
+  index_node_id: string
+  index_node_hash: string
+  hit_count: number
+  enabled: boolean
+  disabled_at: number | null
+  disabled_by: string | null
+  status: string
+  created_by: string
+  created_at: number
+  updated_at: number
+  updated_by: string | null
+  indexing_at: number | null
+  completed_at: number | null
+  error: string | null
+  stopped_at: number | null
+  child_chunks?: ChildChunk[]
+}
+
+/**
+ * Child chunk within a segment
+ */
+export interface ChildChunk {
+  id: string
+  segment_id: string
+  content: string
+  position: number
+  word_count: number
+  type: string
+  created_at: number
+  updated_at: number
+}
+
+/**
+ * Segment list response with pagination
+ * Endpoint: GET /console/api/datasets/{dataset_id}/documents/{document_id}/segments
+ */
+export interface SegmentListResponse {
+  data: Segment[]
+  limit: number
+  total: number
+  total_pages: number
+  page: number
+}

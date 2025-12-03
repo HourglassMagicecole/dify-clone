@@ -298,8 +298,9 @@ export function Step2Split(): React.ReactElement {
 
     const apiProcessRule = buildApiProcessRule()
 
-    // Fetch preview for each file individually
-    await Promise.all(uploadedFiles.map(async (file) => {
+    // Fetch preview for each file sequentially to avoid pypdfium2 resource conflicts
+    // when multiple PDFs are parsed simultaneously
+    for (const file of uploadedFiles) {
       try {
         const request: IndexingEstimateRequest = {
           info_list: {
@@ -336,18 +337,11 @@ export function Step2Split(): React.ReactElement {
           error: t('step2.filePreviewError', { fileName: file.name }),
         })
       }
-    }))
+    }
   }, [uploadedFiles, buildApiProcessRule, t, setPreviewByFile, updateFilePreview, clearPreview, setPreviewError])
 
-  /**
-   * Handle next step
-   * Note: Story 3.1 ends here. Story 3.2 will implement Embed & Store.
-   */
-  const handleNext = () => {
-    // For Story 3.1, just show a message that Embed & Store are coming
-    // Story 3.2 will implement actual nextStep() to EMBED
-    alert(t('common.comingSoon'))
-  }
+  // Story 3.2: Use nextStep from context to navigate to Embed step
+  const { nextStep } = useRAGWizard()
 
   return (
     <div className="space-y-6">
@@ -783,7 +777,7 @@ export function Step2Split(): React.ReactElement {
         </Button>
         <Button
           type="button"
-          onClick={handleNext}
+          onClick={nextStep}
           disabled={isLoading}
         >
           {t('common.next')}

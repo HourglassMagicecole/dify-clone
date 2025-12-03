@@ -21,6 +21,7 @@ import { Input } from '@/components/common/Input'
 import { Textarea } from '@/components/common/Textarea'
 import { Button } from '@/components/common/Button'
 import { datasetBasicInfoSchema, type DatasetBasicInfoFormData } from '@/schemas/dataset-schema'
+import { getErrorMessage, logError } from '@/utils/error-messages'
 import type { FileUploadProgress } from '@/types/dataset'
 
 /**
@@ -112,21 +113,23 @@ export function Step1Load(): React.ReactElement {
         // Add to context
         addUploadedFile(response)
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+        const errorInfo = getErrorMessage(error, t)
+        logError(errorInfo, 'Step1Load.onDrop')
+        const displayError = `${errorInfo.userMessage} (${errorInfo.code})`
         setLocalProgress(prev =>
           prev.map(p =>
             p.file.name === file.name
-              ? { ...p, status: 'error', error: errorMessage }
+              ? { ...p, status: 'error', error: displayError }
               : p
           )
         )
-        updateUploadProgress(file.name, { status: 'error', error: errorMessage })
-        setError(errorMessage)
+        updateUploadProgress(file.name, { status: 'error', error: displayError })
+        setError(displayError)
       } finally {
         setLoading(false)
       }
     }
-  }, [addUploadedFile, addUploadProgress, updateUploadProgress, setError, setLoading, uploadedFiles])
+  }, [addUploadedFile, addUploadProgress, updateUploadProgress, setError, setLoading, uploadedFiles, t])
 
   /**
    * Handle rejected files (size too large, unsupported format)

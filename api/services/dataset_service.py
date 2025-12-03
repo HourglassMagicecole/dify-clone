@@ -2254,10 +2254,18 @@ class DocumentService:
 
         documents, batch = DocumentService.save_document_with_dataset_id(dataset, knowledge_config, account)
 
-        cut_length = 18
-        cut_name = documents[0].name[:cut_length]
-        dataset.name = cut_name + "..."
-        dataset.description = "useful for when you want to answer queries about the " + documents[0].name
+        # Use provided name/description or generate default
+        if knowledge_config.name:
+            dataset.name = knowledge_config.name
+        else:
+            cut_length = 18
+            cut_name = documents[0].name[:cut_length]
+            dataset.name = cut_name + "..."
+
+        if knowledge_config.description:
+            dataset.description = knowledge_config.description
+        else:
+            dataset.description = "useful for when you want to answer queries about the " + documents[0].name
         db.session.commit()
 
         return dataset, documents, batch

@@ -1,12 +1,15 @@
 """Abstract interface for document loader implementations."""
 
 import contextlib
+import logging
 from collections.abc import Iterator
 
 from core.rag.extractor.blob.blob import Blob
 from core.rag.extractor.extractor_base import BaseExtractor
 from core.rag.models.document import Document
 from extensions.ext_storage import storage
+
+logger = logging.getLogger(__name__)
 
 
 class PdfExtractor(BaseExtractor):
@@ -52,15 +55,31 @@ class PdfExtractor(BaseExtractor):
         """Lazily parse the blob."""
         import pypdfium2  # type: ignore
 
-        with blob.as_bytes_io() as file_path:
-            pdf_reader = pypdfium2.PdfDocument(file_path, autoclose=True)
-            try:
+        pdf_reader = None
+        try:
+            with blob.as_bytes_io() as file_path:
+                pdf_reader = pypdfium2.PdfDocument(file_path, autoclose=True)
                 for page_number, page in enumerate(pdf_reader):
-                    text_page = page.get_textpage()
-                    content = text_page.get_text_range()
-                    text_page.close()
-                    page.close()
-                    metadata = {"source": blob.source, "page": page_number}
-                    yield Document(page_content=content, metadata=metadata)
-            finally:
-                pdf_reader.close()
+                    try:
+                        text_page = page.get_textpage()
+                        content = text_page.get_text_range()
+                        text_page.close()
+                        page.close()
+                        metadata = {"source": blob.source, "page": page_number}
+                        yield Document(page_content=content, metadata=metadata)
+                    except Exception:
+                        logger.warning("Failed to extract page %d from %s", page_number, blob.source, exc_info=True)
+                        page.close()
+                        continue
+        except pypdfium2.PdfiumError as e:
+            logger.exception("Failed to load PDF document %s", blob.source)
+            raise ValueError(f"Failed to parse PDF file: {e}") from e
+        except Exception as e:
+            logger.exception("Unexpected error parsing PDF %s", blob.source)
+            raise ValueError(f"Unexpected error parsing PDF file: {e}") from e
+        finally:
+            if pdf_reader is not None:
+                try:
+                    pdf_reader.close()
+                except Exception:
+                    logger.warning("Failed to close PDF reader for %s", blob.source, exc_info=True)

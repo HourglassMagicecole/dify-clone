@@ -122,6 +122,7 @@ class KnowledgeConfig(BaseModel):
     embedding_model: str | None = None
     embedding_model_provider: str | None = None
     name: str | None = None
+    description: str | None = None
 
 
 class SegmentUpdateArgs(BaseModel):

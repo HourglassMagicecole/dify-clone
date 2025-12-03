@@ -19,6 +19,14 @@ import type {
   ModelType,
   DefaultModelResponse,
   ProviderWithModels,
+  // Story 3.2: Embed & Store types
+  EmbeddingModelProvider,
+  DatasetInitRequest,
+  DatasetInitResponse,
+  BatchIndexingStatusResponse,
+  // Dataset Detail Page types
+  DocumentListResponse,
+  SegmentListResponse,
 } from '@/types/dataset'
 
 // ============================================================================
@@ -245,6 +253,100 @@ export class DatasetAPI {
     } catch {
       return false
     }
+  }
+
+  // ============================================================================
+  // Story 3.2: Embed & Store API methods
+  // ============================================================================
+
+  /**
+   * Get available embedding models with provider info
+   * Endpoint: GET /console/api/workspaces/current/models/model-types/text-embedding
+   *
+   * @returns Promise<EmbeddingModelProvider[]> - List of providers with their embedding models
+   */
+  async getEmbeddingModels(): Promise<ApiResponse<EmbeddingModelProvider[]>> {
+    return apiClient.getDifyNative('/console/api/workspaces/current/models/model-types/text-embedding')
+  }
+
+  /**
+   * Initialize dataset with documents (creates dataset + starts indexing)
+   * Endpoint: POST /console/api/datasets/init
+   *
+   * This is the main API for Step 4 Store:
+   * 1. Creates a new Dataset
+   * 2. Creates Documents from uploaded files
+   * 3. Starts async indexing via Celery
+   *
+   * @param request - Dataset initialization parameters
+   * @returns Promise<DatasetInitResponse> - Created dataset, documents, and batch ID
+   */
+  async initDataset(request: DatasetInitRequest): Promise<ApiResponse<DatasetInitResponse>> {
+    return apiClient.postDifyNative('/console/api/datasets/init', request)
+  }
+
+  /**
+   * Get batch indexing status for monitoring progress
+   * Endpoint: GET /console/api/datasets/{dataset_id}/batch/{batch}/indexing-status
+   *
+   * Poll this API every 2 seconds to track embedding generation progress
+   *
+   * @param datasetId - Dataset ID
+   * @param batchId - Batch ID returned from initDataset()
+   * @returns Promise<BatchIndexingStatusResponse> - Status of all documents in batch
+   */
+  async getBatchIndexingStatus(
+    datasetId: string,
+    batchId: string
+  ): Promise<ApiResponse<BatchIndexingStatusResponse>> {
+    return apiClient.getDifyNative(
+      `/console/api/datasets/${datasetId}/batch/${batchId}/indexing-status`
+    )
+  }
+
+  // ============================================================================
+  // Document & Segment APIs (for Dataset Detail Page)
+  // ============================================================================
+
+  /**
+   * Get documents in a dataset with pagination
+   * Endpoint: GET /console/api/datasets/{dataset_id}/documents
+   */
+  async getDocuments(
+    datasetId: string,
+    params?: { page?: number; limit?: number; keyword?: string }
+  ): Promise<ApiResponse<DocumentListResponse>> {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.append('page', params.page.toString())
+    if (params?.limit) searchParams.append('limit', params.limit.toString())
+    if (params?.keyword) searchParams.append('keyword', params.keyword)
+
+    const query = searchParams.toString()
+    // Use getDifyNativeFull to preserve pagination metadata (total, page, etc.)
+    return apiClient.getDifyNativeFull(
+      `/console/api/datasets/${datasetId}/documents${query ? `?${query}` : ''}`
+    )
+  }
+
+  /**
+   * Get segments (chunks) in a document with pagination
+   * Endpoint: GET /console/api/datasets/{dataset_id}/documents/{document_id}/segments
+   */
+  async getSegments(
+    datasetId: string,
+    documentId: string,
+    params?: { page?: number; limit?: number; keyword?: string }
+  ): Promise<ApiResponse<SegmentListResponse>> {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.append('page', params.page.toString())
+    if (params?.limit) searchParams.append('limit', params.limit.toString())
+    if (params?.keyword) searchParams.append('keyword', params.keyword)
+
+    const query = searchParams.toString()
+    // Use getDifyNativeFull to preserve pagination metadata (total, page, etc.)
+    return apiClient.getDifyNativeFull(
+      `/console/api/datasets/${datasetId}/documents/${documentId}/segments${query ? `?${query}` : ''}`
+    )
   }
 }
 

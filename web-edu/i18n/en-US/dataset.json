@@ -1,4 +1,15 @@
 {
+  "list": {
+    "title": "RAG Knowledge Base",
+    "description": "Manage your knowledge bases and create new ones.",
+    "createButton": "New Knowledge Base",
+    "emptyTitle": "No Knowledge Bases",
+    "emptyDescription": "Create your first RAG knowledge base.",
+    "documents": "{{count}} documents",
+    "words": "{{count}} words",
+    "ready": "Ready",
+    "processing": "Processing"
+  },
   "create": {
     "title": "Create RAG Knowledge Base",
     "subtitle": "Follow the 4-step pipeline to create your own knowledge base",
@@ -89,14 +100,54 @@
     "customPlaceholder": "e.g., ###, ---, ===",
     "customSeparatorHelp": "Enter the string that separates sections in your document"
   },
+  "step3": {
+    "title": "Select Embedding Model",
+    "description": "Choose an embedding model to convert your documents into vectors.",
+    "loadingModels": "Loading available models...",
+    "active": "Active",
+    "noActiveModels": "No active embedding models available. Please configure a model provider first.",
+    "selectedModel": "Selected Model",
+    "provider": "Provider",
+    "modelId": "Model ID",
+    "contextSize": "Context Size"
+  },
+  "step4": {
+    "title": "Create RAG Knowledge Base",
+    "description": "Review your settings and create the knowledge base.",
+    "summary": "Summary",
+    "datasetName": "Name",
+    "fileCount": "Files",
+    "embeddingModel": "Embedding Model",
+    "chunkSize": "Chunk Size",
+    "indexing": "Creating embeddings...",
+    "progress": "Progress",
+    "status": {
+      "waiting": "Waiting",
+      "parsing": "Parsing",
+      "cleaning": "Cleaning",
+      "splitting": "Splitting",
+      "indexing": "Indexing",
+      "completed": "Completed",
+      "error": "Error",
+      "paused": "Paused"
+    },
+    "success": "RAG Knowledge Base Created!",
+    "successDesc": "{{count}} chunks have been created and indexed.",
+    "viewDataset": "View Knowledge Base",
+    "error": "Indexing Failed",
+    "unknownError": "An unknown error occurred during indexing.",
+    "timeoutError": "Indexing is taking longer than expected. The system may be busy. Please try again in a few minutes, or contact your administrator if the problem persists.",
+    "retry": "Retry",
+    "createRAG": "Create RAG",
+    "creating": "Creating...",
+    "embeddingModelRequired": "Please select an embedding model first."
+  },
   "common": {
     "next": "Next",
     "previous": "Previous",
     "back": "Back",
     "cancel": "Cancel",
-    "uploading": "Uploading...",
-    "comingSoon": "Coming Soon",
-    "comingSoonDesc": "Embed and Store steps will be available in the next version"
+    "uploading": "Uploading..."
   },
   "validation": {
     "nameRequired": "Please enter a knowledge base name",
@@ -113,6 +164,74 @@
     "fileTooLarge": "File size exceeds 15MB",
     "unsupportedFormat": "Unsupported file format",
     "uploadFailed": "File upload failed",
-    "loadFailed": "Failed to load data"
+    "loadFailed": "Failed to load data",
+    "generic": "An unexpected error occurred. Please try again.",
+    "network": "Unable to connect to server. Please check your internet connection.",
+    "http": {
+      "badRequest": "The request could not be processed. Please check your input.",
+      "unauthorized": "Your session has expired. Please log in again.",
+      "forbidden": "You don't have permission to perform this action.",
+      "notFound": "The requested resource was not found.",
+      "timeout": "The request timed out. Please try again.",
+      "payloadTooLarge": "The file is too large to upload.",
+      "tooManyRequests": "Too many requests. Please wait a moment and try again.",
+      "serverError": "A server error occurred. Please try again later.",
+      "badGateway": "The service is temporarily unavailable. Please try again later.",
+      "serviceUnavailable": "The service is currently unavailable. Please try again later.",
+      "gatewayTimeout": "The server took too long to respond. Please try again."
+    },
+    "api": {
+      "datasetNotFound": "The knowledge base was not found.",
+      "documentNotFound": "The document was not found.",
+      "invalidRequest": "The request is invalid. Please check your input.",
+      "unauthorized": "You need to log in to perform this action.",
+      "permissionDenied": "You don't have permission to access this resource.",
+      "fileTooLarge": "The file exceeds the maximum size limit.",
+      "unsupportedFileType": "This file type is not supported.",
+      "embeddingNotConfigured": "The embedding model is not configured. Please contact your administrator.",
+      "rateLimitExceeded": "Too many requests. Please wait a moment and try again."
+    }
+  },
+  "detail": {
+    "backToList": "Back to list",
+    "info": "Knowledge Base Info",
+    "documentCount": "Documents",
+    "wordCount": "Words",
+    "embeddingModel": "Embedding Model",
+    "createdAt": "Created",
+    "documents": "Documents",
+    "noDocuments": "No documents",
+    "words": "words",
+    "delete": "Delete",
+    "status": {
+      "waiting": "Waiting",
+      "parsing": "Parsing",
+      "cleaning": "Cleaning",
+      "splitting": "Splitting",
+      "indexing": "Indexing",
+      "completed": "Completed",
+      "error": "Error",
+      "paused": "Paused"
+    },
+    "deleteDialog": {
+      "title": "Delete Knowledge Base",
+      "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    }
+  },
+  "document": {
+    "title": "Document Detail",
+    "backToDataset": "Back to Knowledge Base",
+    "segments": "Chunks (Segments)",
+    "segmentsDescription": "All chunks that make up this document. Each chunk is a unit for RAG retrieval.",
+    "noSegments": "No segments",
+    "words": "words",
+    "hitCount": "{{count}} hits",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "overlapPrev": "Overlap with previous",
+    "overlapNext": "Overlap with next",
+    "overlapBoth": "Overlap with both"
   }
 }

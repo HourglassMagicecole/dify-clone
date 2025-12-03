@@ -17,6 +17,11 @@ import {
   ChunkPreview,
   FileChunkPreview,
   SeparatorType,
+  // Story 3.2: Embed & Store types
+  EmbeddingModelProvider,
+  Dataset,
+  DocumentInfo,
+  DocumentIndexingStatus,
 } from '@/types/dataset'
 
 // ============================================================================
@@ -60,6 +65,25 @@ interface RAGWizardContextValue extends RAGWizardState {
   setSeparatorType: (type: SeparatorType) => void
   setCustomSeparator: (separator: string) => void
 
+  // Story 3.2 - Step 3: Embed actions
+  embeddingModels: EmbeddingModelProvider[]
+  selectedEmbeddingModel: string | null
+  selectedEmbeddingProvider: string | null
+  setEmbeddingModels: (models: EmbeddingModelProvider[]) => void
+  setSelectedEmbeddingModel: (model: string | null, provider: string | null) => void
+
+  // Story 3.2 - Step 4: Store actions
+  createdDataset: Dataset | null
+  createdDocuments: DocumentInfo[]
+  batchId: string | null
+  indexingStatus: DocumentIndexingStatus[]
+  isIndexingComplete: boolean
+  setCreatedDataset: (dataset: Dataset | null) => void
+  setCreatedDocuments: (documents: DocumentInfo[]) => void
+  setBatchId: (batchId: string | null) => void
+  setIndexingStatus: (status: DocumentIndexingStatus[]) => void
+  setIsIndexingComplete: (complete: boolean) => void
+
   // Navigation
   nextStep: () => void
   prevStep: () => void
@@ -76,11 +100,24 @@ interface RAGWizardContextValue extends RAGWizardState {
  */
 const initialState: RAGWizardState = {
   currentStep: RAGWizardStep.LOAD,
+  // Step 1: Load
   datasetName: '',
   datasetDescription: '',
   uploadedFiles: [],
   uploadProgress: [],
+  // Step 2: Split
   processRule: DEFAULT_PROCESS_RULE,
+  // Step 3: Embed (Story 3.2)
+  selectedEmbeddingModel: null,
+  selectedEmbeddingProvider: null,
+  embeddingModels: [],
+  // Step 4: Store (Story 3.2)
+  createdDataset: null,
+  createdDocuments: [],
+  batchId: null,
+  indexingStatus: [],
+  isIndexingComplete: false,
+  // Common
   isLoading: false,
   error: null,
 }
@@ -130,6 +167,18 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
   // Task 12.2: Separator type state
   const [separatorType, setSeparatorTypeState] = useState<SeparatorType>('predefined')
   const [customSeparator, setCustomSeparatorState] = useState<string>('')
+
+  // Story 3.2: Step 3 Embed state
+  const [embeddingModels, setEmbeddingModelsState] = useState<EmbeddingModelProvider[]>([])
+  const [selectedEmbeddingModel, setSelectedEmbeddingModelState] = useState<string | null>(null)
+  const [selectedEmbeddingProvider, setSelectedEmbeddingProviderState] = useState<string | null>(null)
+
+  // Story 3.2: Step 4 Store state
+  const [createdDataset, setCreatedDatasetState] = useState<Dataset | null>(null)
+  const [createdDocuments, setCreatedDocumentsState] = useState<DocumentInfo[]>([])
+  const [batchId, setBatchIdState] = useState<string | null>(null)
+  const [indexingStatus, setIndexingStatusState] = useState<DocumentIndexingStatus[]>([])
+  const [isIndexingComplete, setIsIndexingCompleteState] = useState(false)
 
   // Step 1: Load actions
   const setDatasetName = useCallback((name: string) => {
@@ -237,12 +286,42 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     setCustomSeparatorState(separator)
   }, [])
 
+  // Story 3.2: Step 3 Embed actions
+  const setEmbeddingModels = useCallback((models: EmbeddingModelProvider[]) => {
+    setEmbeddingModelsState(models)
+  }, [])
+
+  const setSelectedEmbeddingModel = useCallback((model: string | null, provider: string | null) => {
+    setSelectedEmbeddingModelState(model)
+    setSelectedEmbeddingProviderState(provider)
+  }, [])
+
+  // Story 3.2: Step 4 Store actions
+  const setCreatedDataset = useCallback((dataset: Dataset | null) => {
+    setCreatedDatasetState(dataset)
+  }, [])
+
+  const setCreatedDocuments = useCallback((documents: DocumentInfo[]) => {
+    setCreatedDocumentsState(documents)
+  }, [])
+
+  const setBatchId = useCallback((id: string | null) => {
+    setBatchIdState(id)
+  }, [])
+
+  const setIndexingStatus = useCallback((status: DocumentIndexingStatus[]) => {
+    setIndexingStatusState(status)
+  }, [])
+
+  const setIsIndexingComplete = useCallback((complete: boolean) => {
+    setIsIndexingCompleteState(complete)
+  }, [])
+
   // Navigation
   const nextStep = useCallback(() => {
     setState(prev => {
-      // Story 3.1: Only LOAD -> SPLIT transition
-      // Story 3.2 will add SPLIT -> EMBED -> STORE
-      if (prev.currentStep < RAGWizardStep.SPLIT) {
+      // Story 3.2: LOAD -> SPLIT -> EMBED -> STORE
+      if (prev.currentStep < RAGWizardStep.STORE) {
         return { ...prev, currentStep: prev.currentStep + 1 }
       }
       return prev
@@ -303,6 +382,23 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     customSeparator,
     setSeparatorType,
     setCustomSeparator,
+    // Story 3.2: Step 3 Embed state and actions
+    embeddingModels,
+    selectedEmbeddingModel,
+    selectedEmbeddingProvider,
+    setEmbeddingModels,
+    setSelectedEmbeddingModel,
+    // Story 3.2: Step 4 Store state and actions
+    createdDataset,
+    createdDocuments,
+    batchId,
+    indexingStatus,
+    isIndexingComplete,
+    setCreatedDataset,
+    setCreatedDocuments,
+    setBatchId,
+    setIndexingStatus,
+    setIsIndexingComplete,
     // Navigation
     nextStep,
     prevStep,
@@ -335,6 +431,21 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     customSeparator,
     setSeparatorType,
     setCustomSeparator,
+    embeddingModels,
+    selectedEmbeddingModel,
+    selectedEmbeddingProvider,
+    setEmbeddingModels,
+    setSelectedEmbeddingModel,
+    createdDataset,
+    createdDocuments,
+    batchId,
+    indexingStatus,
+    isIndexingComplete,
+    setCreatedDataset,
+    setCreatedDocuments,
+    setBatchId,
+    setIndexingStatus,
+    setIsIndexingComplete,
     nextStep,
     prevStep,
     goToStep,
