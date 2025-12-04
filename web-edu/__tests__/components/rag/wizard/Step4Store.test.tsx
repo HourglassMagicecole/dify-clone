@@ -130,6 +130,13 @@ jest.mock('@/context/RAGWizardContext', () => ({
   useRAGWizard: () => mockContextValues,
 }))
 
+// Mock SessionContext
+jest.mock('@/context/SessionContext', () => ({
+  useSession: () => ({
+    currentSession: { id: 'session-123', name: 'Test Session' },
+  }),
+}))
+
 // Mock dataset API
 const mockInitDataset = jest.fn()
 const mockGetBatchIndexingStatus = jest.fn()

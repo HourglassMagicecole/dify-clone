@@ -6,7 +6,8 @@
 
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react'
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import {
   RAGWizardStep,
   RAGWizardState,
@@ -93,6 +94,15 @@ interface RAGWizardContextValue extends RAGWizardState {
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   resetWizard: () => void
+
+  // Story 3.3: Draft management
+  isDraft: boolean
+  showDraftPrompt: boolean
+  draftData: Partial<RAGWizardState> | null
+  saveAsDraft: () => Promise<void>
+  restoreDraft: () => void
+  discardDraft: () => void
+  clearDraft: () => void
 }
 
 /**
@@ -153,7 +163,14 @@ interface RAGWizardProviderProps {
  * Provider component
  */
 export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.ReactElement {
+  const { user } = useAuth()
   const [state, setState] = useState<RAGWizardState>(initialState)
+  const hasLoadedRef = useRef(false)
+
+  // Story 3.3: Draft management state
+  const [isDraft, setIsDraft] = useState(false)
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false)
+  const [draftData, setDraftData] = useState<Partial<RAGWizardState> | null>(null)
 
   // Task 5.3: Preview Chunk state
   const [previewChunks, setPreviewChunksState] = useState<ChunkPreview[]>([])
@@ -350,9 +367,177 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     setState(prev => ({ ...prev, error }))
   }, [])
 
+  // ============================================================================
+  // Story 3.3: Draft management (localStorage persistence)
+  // ============================================================================
+
+  /**
+   * Get localStorage key for current user
+   */
+  const localStorageKey = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return 'rag-wizard-draft-anonymous'
+    }
+    const userId = user?.id || 'anonymous'
+    return `rag-wizard-draft-${userId}`
+  }, [user?.id])
+
+  /**
+   * Save to localStorage
+   */
+  const saveToLocalStorage = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      const data = {
+        currentStep: state.currentStep,
+        datasetName: state.datasetName,
+        datasetDescription: state.datasetDescription,
+        uploadedFiles: state.uploadedFiles,
+        processRule: state.processRule,
+        selectedEmbeddingModel,
+        selectedEmbeddingProvider,
+        separatorType,
+        customSeparator,
+        timestamp: new Date().toISOString(),
+      }
+      localStorage.setItem(localStorageKey, JSON.stringify(data))
+    } catch (error) {
+      console.error('Failed to save draft to localStorage:', error)
+    }
+  }, [state, localStorageKey, selectedEmbeddingModel, selectedEmbeddingProvider, separatorType, customSeparator])
+
+  /**
+   * Reset hasLoadedRef when localStorageKey changes (e.g., after user login)
+   */
+  useEffect(() => {
+    hasLoadedRef.current = false
+  }, [localStorageKey])
+
+  /**
+   * Load draft from localStorage on mount
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || hasLoadedRef.current) {
+      return
+    }
+
+    hasLoadedRef.current = true
+
+    try {
+      const saved = localStorage.getItem(localStorageKey)
+
+      if (saved) {
+        const data = JSON.parse(saved)
+
+        // Show draft restore prompt instead of auto-restoring
+        setDraftData(data)
+        setShowDraftPrompt(true)
+      }
+    } catch (error) {
+      console.error('Failed to load draft from localStorage:', error)
+    }
+  }, [localStorageKey])
+
+  /**
+   * Save as draft (manual save with confirmation)
+   */
+  const saveAsDraft = useCallback(async () => {
+    setState(prev => ({ ...prev, isLoading: true }))
+
+    try {
+      saveToLocalStorage()
+      setIsDraft(true)
+      setState(prev => ({ ...prev, isLoading: false }))
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to save draft',
+      }))
+      throw error
+    }
+  }, [saveToLocalStorage])
+
+  /**
+   * Auto-save to localStorage when state changes (matching AgentWizardContext pattern)
+   */
+  useEffect(() => {
+    // Skip if no meaningful data to save
+    if (state.uploadedFiles.length === 0 && !state.datasetName && !state.datasetDescription) {
+      return
+    }
+
+    saveToLocalStorage()
+  }, [state.uploadedFiles, state.datasetName, state.datasetDescription, state.processRule, state.currentStep, selectedEmbeddingModel, selectedEmbeddingProvider, separatorType, customSeparator, saveToLocalStorage])
+
+  /**
+   * Restore draft from draftData
+   */
+  const restoreDraft = useCallback(() => {
+    if (!draftData) {
+      return
+    }
+
+    setState(prev => ({
+      ...prev,
+      currentStep: (draftData.currentStep as RAGWizardStep) || RAGWizardStep.LOAD,
+      datasetName: (draftData.datasetName as string) || '',
+      datasetDescription: (draftData.datasetDescription as string) || '',
+      uploadedFiles: (draftData.uploadedFiles as FileUploadResponse[]) || [],
+      processRule: (draftData.processRule as typeof DEFAULT_PROCESS_RULE) || DEFAULT_PROCESS_RULE,
+    }))
+
+    // Restore separate useState values
+    // Use type assertion since draftData includes fields not in RAGWizardState
+    const draft = draftData as Record<string, unknown>
+    setSelectedEmbeddingModelState((draft.selectedEmbeddingModel as string | null) || null)
+    setSelectedEmbeddingProviderState((draft.selectedEmbeddingProvider as string | null) || null)
+    setSeparatorTypeState((draft.separatorType as SeparatorType) || 'predefined')
+    setCustomSeparatorState((draft.customSeparator as string) || '')
+
+    setIsDraft(true)
+    setShowDraftPrompt(false)
+    setDraftData(null)
+  }, [draftData])
+
+  /**
+   * Discard draft and start fresh
+   */
+  const discardDraft = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(localStorageKey)
+    }
+
+    setShowDraftPrompt(false)
+    setDraftData(null)
+  }, [localStorageKey])
+
+  /**
+   * Clear draft from localStorage only (without resetting state)
+   * Used after successful RAG creation
+   */
+  const clearDraft = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(localStorageKey)
+    }
+    setIsDraft(false)
+  }, [localStorageKey])
+
+  /**
+   * Reset wizard state and clear localStorage draft
+   */
   const resetWizard = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(localStorageKey)
+    }
     setState(initialState)
-  }, [])
+    setIsDraft(false)
+    setShowDraftPrompt(false)
+    setDraftData(null)
+  }, [localStorageKey])
 
   const value = useMemo<RAGWizardContextValue>(() => ({
     ...state,
@@ -406,6 +591,14 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     setLoading,
     setError,
     resetWizard,
+    // Story 3.3: Draft management
+    isDraft,
+    showDraftPrompt,
+    draftData,
+    saveAsDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
   }), [
     state,
     setDatasetName,
@@ -452,6 +645,14 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     setLoading,
     setError,
     resetWizard,
+    // Story 3.3: Draft management dependencies
+    isDraft,
+    showDraftPrompt,
+    draftData,
+    saveAsDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
   ])
 
   return (

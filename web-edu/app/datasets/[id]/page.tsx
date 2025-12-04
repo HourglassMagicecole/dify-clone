@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import {
@@ -8,14 +8,19 @@ import {
   ArrowPathIcon,
   DocumentTextIcon,
   TrashIcon,
+  PencilIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline'
 import { datasetAPI } from '@/service/dataset-api'
 import type { Dataset, DocumentInfo } from '@/types/dataset'
 import { Button } from '@/components/common/Button'
 import { Pagination } from '@/components/common/Pagination'
 import { DeleteConfirmDialog } from '@/components/common/DeleteConfirmDialog'
+import { DatasetEditModal } from '@/components/rag/DatasetEditModal'
+import { DocumentAddModal } from '@/components/rag/DocumentAddModal'
 
 const ITEMS_PER_PAGE = 20
+const INDEXING_STATUSES = ['waiting', 'parsing', 'cleaning', 'splitting', 'indexing']
 
 /**
  * Dataset Detail Page
@@ -36,6 +41,16 @@ export default function DatasetDetailPage() {
   const [totalItems, setTotalItems] = useState(0)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  // Document delete state
+  const [documentToDelete, setDocumentToDelete] = useState<DocumentInfo | null>(null)
+  const [isDeletingDocument, setIsDeletingDocument] = useState(false)
+
+  // Document add modal state
+  const [isAddDocumentModalOpen, setIsAddDocumentModalOpen] = useState(false)
 
   const loadDataset = useCallback(async () => {
     try {
@@ -73,10 +88,92 @@ export default function DatasetDetailPage() {
     }
   }, [datasetId])
 
+  // Silent polling function - updates only changed documents without full re-render
+  const pollDocuments = useCallback(async (page: number) => {
+    try {
+      const response = await datasetAPI.getDocuments(datasetId, {
+        page,
+        limit: ITEMS_PER_PAGE,
+      })
+
+      if (response.result === 'success' && response.data) {
+        const newDocs = response.data.data || []
+
+        // Smart merge: only update documents that changed
+        setDocuments(prevDocs => {
+          const hasChanges = newDocs.some((newDoc: DocumentInfo, index: number) => {
+            const oldDoc = prevDocs[index]
+            return !oldDoc ||
+              oldDoc.indexing_status !== newDoc.indexing_status ||
+              oldDoc.word_count !== newDoc.word_count ||
+              oldDoc.tokens !== newDoc.tokens
+          }) || newDocs.length !== prevDocs.length
+
+          return hasChanges ? newDocs : prevDocs
+        })
+
+        setTotalPages(Math.ceil((response.data.total || 0) / ITEMS_PER_PAGE))
+        setTotalItems(response.data.total || 0)
+      }
+    } catch (err) {
+      // Silent fail for polling
+      console.error('Polling failed:', err)
+    }
+  }, [datasetId])
+
+  // Silent dataset refresh
+  const pollDataset = useCallback(async () => {
+    try {
+      const response = await datasetAPI.getDataset(datasetId)
+      if (response.result === 'success' && response.data) {
+        setDataset(prev => {
+          if (!prev) return response.data!
+          // Only update if relevant fields changed
+          if (prev.word_count !== response.data!.word_count ||
+              prev.document_count !== response.data!.document_count) {
+            return response.data!
+          }
+          return prev
+        })
+      }
+    } catch {
+      // Silent fail for polling
+    }
+  }, [datasetId])
+
   useEffect(() => {
     loadDataset()
     loadDocuments(1)
   }, [loadDataset, loadDocuments])
+
+  // Polling: Auto-refresh when documents are indexing
+  const pollingRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    const hasIndexingDocuments = documents.some(doc =>
+      INDEXING_STATUSES.includes(doc.indexing_status)
+    )
+
+    if (hasIndexingDocuments) {
+      // Start polling every 5 seconds (silent updates)
+      pollingRef.current = setInterval(() => {
+        pollDocuments(currentPage)
+        pollDataset()
+      }, 5000)
+    } else {
+      // Stop polling when all documents are done
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+      }
+    }
+  }, [documents, currentPage, pollDocuments, pollDataset])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -98,6 +195,29 @@ export default function DatasetDetailPage() {
     } finally {
       setIsDeleting(false)
       setIsDeleteDialogOpen(false)
+    }
+  }
+
+  const handleEditSuccess = (updatedDataset: Dataset) => {
+    setDataset(updatedDataset)
+  }
+
+  const handleDeleteDocument = async () => {
+    if (!documentToDelete) return
+
+    try {
+      setIsDeletingDocument(true)
+      await datasetAPI.deleteDocument(datasetId, documentToDelete.id)
+      // Refresh document list
+      loadDocuments(currentPage)
+      // Refresh dataset info (document count may have changed)
+      loadDataset()
+    } catch (err) {
+      console.error('Failed to delete document:', err)
+      setError(err instanceof Error ? err.message : 'Failed to delete document')
+    } finally {
+      setIsDeletingDocument(false)
+      setDocumentToDelete(null)
     }
   }
 
@@ -168,10 +288,17 @@ export default function DatasetDetailPage() {
           </button>
 
           <div className="flex items-start justify-between">
-            <div>
+            <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {dataset.name}
               </h1>
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label={t('actions.edit')}
+              >
+                <PencilIcon className="h-5 w-5" />
+              </button>
             </div>
             <Button
               variant="outline"
@@ -219,10 +346,18 @@ export default function DatasetDetailPage() {
 
         {/* Document List */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">
               {t('detail.documents')} ({totalItems})
             </h2>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsAddDocumentModalOpen(true)}
+            >
+              <PlusIcon className="h-4 w-4 mr-1" />
+              {t('detail.addDocument')}
+            </Button>
           </div>
 
           {documents.length === 0 ? (
@@ -234,11 +369,13 @@ export default function DatasetDetailPage() {
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                  onClick={() => handleDocumentClick(doc.id)}
+                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                      onClick={() => handleDocumentClick(doc.id)}
+                    >
                       <DocumentTextIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
                       <div className="min-w-0">
                         <p className="font-medium text-gray-900 dark:text-white truncate">
@@ -256,6 +393,16 @@ export default function DatasetDetailPage() {
                       <span className="text-sm text-gray-500">
                         {formatDate(doc.created_at)}
                       </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDocumentToDelete(doc)
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-all"
+                        aria-label={t('detail.deleteDocument')}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -287,6 +434,37 @@ export default function DatasetDetailPage() {
         confirmLabel={t('detail.deleteDialog.confirm')}
         cancelLabel={t('detail.deleteDialog.cancel')}
         isLoading={isDeleting}
+      />
+
+      {/* Edit Modal */}
+      <DatasetEditModal
+        isOpen={isEditModalOpen}
+        dataset={dataset}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={handleEditSuccess}
+      />
+
+      {/* Document Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={documentToDelete !== null}
+        onClose={() => setDocumentToDelete(null)}
+        onConfirm={handleDeleteDocument}
+        title={t('detail.deleteDocumentDialog.title')}
+        message={t('detail.deleteDocumentDialog.message', { name: documentToDelete?.name })}
+        confirmLabel={t('detail.deleteDocumentDialog.confirm')}
+        cancelLabel={t('detail.deleteDocumentDialog.cancel')}
+        isLoading={isDeletingDocument}
+      />
+
+      {/* Document Add Modal */}
+      <DocumentAddModal
+        isOpen={isAddDocumentModalOpen}
+        dataset={dataset}
+        onClose={() => setIsAddDocumentModalOpen(false)}
+        onSuccess={() => {
+          loadDocuments(currentPage)
+          loadDataset()
+        }}
       />
     </div>
   )

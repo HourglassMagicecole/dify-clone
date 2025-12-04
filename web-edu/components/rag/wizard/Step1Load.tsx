@@ -10,7 +10,7 @@
 
 'use client'
 
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useEffect } from 'react'
 import { useDropzone, type FileRejection } from 'react-dropzone'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -66,6 +66,7 @@ export function Step1Load(): React.ReactElement {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isValid },
   } = useForm<DatasetBasicInfoFormData>({
     resolver: zodResolver(datasetBasicInfoSchema),
@@ -75,6 +76,19 @@ export function Step1Load(): React.ReactElement {
       description: datasetDescription,
     },
   })
+
+  // Auto-save to context when form changes (matching Agent wizard pattern)
+  useEffect(() => {
+    const subscription = watch((value) => {
+      if (value.name !== undefined) {
+        setDatasetName(value.name)
+      }
+      if (value.description !== undefined) {
+        setDatasetDescription(value.description || '')
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [watch, setDatasetName, setDatasetDescription])
 
   /**
    * Handle file drop

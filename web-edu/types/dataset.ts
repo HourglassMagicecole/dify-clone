@@ -26,6 +26,8 @@ export interface Dataset {
   created_by: string
   created_at: number
   updated_at: number
+  /** Owner name for display in Owner/Admin table view (Story 3.3) */
+  author_name?: string
 }
 
 export interface DatasetListResponse {
@@ -513,6 +515,7 @@ export interface DatasetInitRequest {
   name?: string
   description?: string
   indexing_technique: IndexingTechnique
+  session_id?: string  // EduAI: Session to tag the dataset to
   data_source: {
     info_list: {
       data_source_type: DataSourceType
@@ -664,4 +667,135 @@ export interface SegmentListResponse {
   total: number
   total_pages: number
   page: number
+}
+
+// ============================================================================
+// Story 3.3: RAG List and Management 타입 정의
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Task 1.1: Dataset 업데이트 타입
+// ----------------------------------------------------------------------------
+
+/**
+ * Dataset update request
+ * Endpoint: PATCH /console/api/datasets/{id}
+ * Source: api/controllers/console/datasets/datasets.py - DatasetApi.patch
+ */
+export interface UpdateDatasetRequest {
+  name?: string
+  description?: string
+  permission?: DatasetPermission
+  indexing_technique?: IndexingTechnique
+  retrieval_model?: {
+    search_method: 'semantic_search' | 'full_text_search' | 'hybrid_search'
+    reranking_enable: boolean
+    reranking_model?: {
+      reranking_provider_name: string
+      reranking_model_name: string
+    }
+    top_k: number
+    score_threshold_enabled: boolean
+    score_threshold?: number
+  }
+}
+
+/**
+ * Dataset update response (returns updated Dataset)
+ */
+export type UpdateDatasetResponse = Dataset
+
+// ----------------------------------------------------------------------------
+// Task 1.2: Dataset 정렬 및 검색 타입
+// ----------------------------------------------------------------------------
+
+/**
+ * Dataset list sort fields
+ */
+export type DatasetSortField = 'created_at' | 'name' | 'document_count' | 'author_name'
+
+/**
+ * Sort order
+ */
+export type DatasetSortOrder = 'asc' | 'desc'
+
+/**
+ * Dataset list query parameters
+ */
+export interface DatasetListParams {
+  page?: number
+  limit?: number
+  keyword?: string
+  session_id?: string
+  sort_by?: DatasetSortField
+  sort_order?: DatasetSortOrder
+}
+
+// ----------------------------------------------------------------------------
+// Task 1.3: 스토리지 모니터링 타입
+// ----------------------------------------------------------------------------
+
+/**
+ * Storage usage information
+ * Note: 현재 Dify API에서 직접 제공하지 않으므로
+ * Dataset 목록의 word_count 합계로 계산
+ */
+export interface StorageUsage {
+  totalDocuments: number
+  totalWords: number
+  totalDatasets: number
+}
+
+/**
+ * Storage limit configuration (optional)
+ * Can be configured per session in future
+ */
+export interface StorageLimit {
+  maxDocuments?: number
+  maxWords?: number
+  maxDatasets?: number
+}
+
+// ----------------------------------------------------------------------------
+// Story 3.3 Extension: Document Management 타입
+// ----------------------------------------------------------------------------
+
+/**
+ * Document delete response
+ * Endpoint: DELETE /console/api/datasets/{dataset_id}/documents/{document_id}
+ */
+export interface DeleteDocumentResponse {
+  result: 'success'
+}
+
+/**
+ * Document create by file request
+ * Endpoint: POST /console/api/datasets/{dataset_id}/documents
+ * Source: api/controllers/console/datasets/datasets_document.py - DatasetDocumentListApi.post
+ * Structure matches: api/services/entities/knowledge_entities/knowledge_entities.py
+ */
+export interface CreateDocumentByFileRequest {
+  data_source: {
+    info_list: {
+      data_source_type: DataSourceType
+      file_info_list?: {
+        file_ids: string[]
+      }
+      notion_info_list?: unknown[]
+      website_info_list?: unknown
+    }
+  }
+  indexing_technique: IndexingTechnique
+  doc_form: ChunkingMode
+  doc_language: string
+  process_rule: ProcessRuleForAPI
+}
+
+/**
+ * Document create response
+ * Endpoint: POST /console/api/datasets/{dataset_id}/document/create_by_file
+ */
+export interface CreateDocumentResponse {
+  documents: DocumentInfo[]
+  batch: string
 }

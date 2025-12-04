@@ -26,7 +26,13 @@ import type {
   BatchIndexingStatusResponse,
   // Dataset Detail Page types
   DocumentListResponse,
+  DocumentInfo,
   SegmentListResponse,
+  // Story 3.3: RAG List and Management types
+  UpdateDatasetRequest,
+  DeleteDocumentResponse,
+  CreateDocumentByFileRequest,
+  CreateDocumentResponse,
 } from '@/types/dataset'
 
 // ============================================================================
@@ -80,10 +86,34 @@ export class DatasetAPI {
 
   /**
    * Delete dataset
-   * Endpoint: DELETE /console/api/datasets/:id
+   * Endpoint: DELETE /console/api/datasets/{id}
+   *
+   * WARNING: This also deletes all associated vectors from the vector database
+   *
+   * @param datasetId - Dataset ID to delete
+   * @returns Promise<void>
    */
   async deleteDataset(datasetId: string): Promise<ApiResponse<void>> {
-    return apiClient.delete(`/console/api/datasets/${datasetId}`)
+    return apiClient.deleteDifyNative(`/console/api/datasets/${datasetId}`)
+  }
+
+  // ============================================================================
+  // Story 3.3: RAG List and Management API methods
+  // ============================================================================
+
+  /**
+   * Update dataset metadata
+   * Endpoint: PATCH /console/api/datasets/{id}
+   *
+   * @param datasetId - Dataset ID to update
+   * @param data - Fields to update (name, description, etc.)
+   * @returns Promise<Dataset> - Updated dataset
+   */
+  async updateDataset(
+    datasetId: string,
+    data: UpdateDatasetRequest
+  ): Promise<ApiResponse<Dataset>> {
+    return apiClient.patchDifyNative(`/console/api/datasets/${datasetId}`, data)
   }
 
   // ============================================================================
@@ -346,6 +376,59 @@ export class DatasetAPI {
     // Use getDifyNativeFull to preserve pagination metadata (total, page, etc.)
     return apiClient.getDifyNativeFull(
       `/console/api/datasets/${datasetId}/documents/${documentId}/segments${query ? `?${query}` : ''}`
+    )
+  }
+
+  // ============================================================================
+  // Story 3.3 Extension: Document Management APIs
+  // ============================================================================
+
+  /**
+   * Delete a document from dataset
+   * Endpoint: DELETE /console/api/datasets/{dataset_id}/documents/{document_id}
+   *
+   * WARNING: This permanently deletes the document and its vectors
+   *
+   * @param datasetId - Dataset ID
+   * @param documentId - Document ID to delete
+   */
+  async deleteDocument(
+    datasetId: string,
+    documentId: string
+  ): Promise<ApiResponse<DeleteDocumentResponse>> {
+    return apiClient.deleteDifyNative(
+      `/console/api/datasets/${datasetId}/documents/${documentId}`
+    )
+  }
+
+  /**
+   * Add a document to existing dataset
+   * Endpoint: POST /console/api/datasets/{dataset_id}/documents
+   *
+   * @param datasetId - Dataset ID to add document to
+   * @param request - Document creation parameters
+   * @returns Promise<CreateDocumentResponse> - Created documents and batch ID
+   */
+  async createDocumentByFile(
+    datasetId: string,
+    request: CreateDocumentByFileRequest
+  ): Promise<ApiResponse<CreateDocumentResponse>> {
+    return apiClient.postDifyNative(
+      `/console/api/datasets/${datasetId}/documents`,
+      request
+    )
+  }
+
+  /**
+   * Get single document info
+   * Endpoint: GET /console/api/datasets/{dataset_id}/documents/{document_id}
+   */
+  async getDocument(
+    datasetId: string,
+    documentId: string
+  ): Promise<ApiResponse<DocumentInfo>> {
+    return apiClient.getDifyNative(
+      `/console/api/datasets/${datasetId}/documents/${documentId}`
     )
   }
 }

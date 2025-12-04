@@ -105,49 +105,54 @@ class DatasetService:
     ):
         query = select(Dataset).where(Dataset.tenant_id == tenant_id).order_by(Dataset.created_at.desc())
 
-        if user:
-            # get permitted dataset ids
-            dataset_permission = (
-                db.session.query(DatasetPermission).filter_by(account_id=user.id, tenant_id=tenant_id).all()
-            )
-            permitted_dataset_ids = {dp.dataset_id for dp in dataset_permission} if dataset_permission else None
+        # EduAI: When session_id is provided, skip Dify permission filtering
+        # and use session-based filtering instead (applied later)
+        if not session_id:
+            if user:
+                # get permitted dataset ids
+                dataset_permission = (
+                    db.session.query(DatasetPermission).filter_by(account_id=user.id, tenant_id=tenant_id).all()
+                )
+                permitted_dataset_ids = {dp.dataset_id for dp in dataset_permission} if dataset_permission else None
 
-            if user.current_role == TenantAccountRole.DATASET_OPERATOR:
-                # only show datasets that the user has permission to access
-                # Check if permitted_dataset_ids is not empty to avoid WHERE false condition
-                if permitted_dataset_ids and len(permitted_dataset_ids) > 0:
-                    query = query.where(Dataset.id.in_(permitted_dataset_ids))
-                else:
-                    return [], 0
-            else:
-                if user.current_role != TenantAccountRole.OWNER or not include_all:
-                    # show all datasets that the user has permission to access
+                if user.current_role == TenantAccountRole.DATASET_OPERATOR:
+                    # only show datasets that the user has permission to access
                     # Check if permitted_dataset_ids is not empty to avoid WHERE false condition
                     if permitted_dataset_ids and len(permitted_dataset_ids) > 0:
-                        query = query.where(
-                            sa.or_(
-                                Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
-                                sa.and_(
-                                    Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
-                                ),
-                                sa.and_(
-                                    Dataset.permission == DatasetPermissionEnum.PARTIAL_TEAM,
-                                    Dataset.id.in_(permitted_dataset_ids),
-                                ),
-                            )
-                        )
+                        query = query.where(Dataset.id.in_(permitted_dataset_ids))
                     else:
-                        query = query.where(
-                            sa.or_(
-                                Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
-                                sa.and_(
-                                    Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
-                                ),
+                        return [], 0
+                else:
+                    if user.current_role != TenantAccountRole.OWNER or not include_all:
+                        # show all datasets that the user has permission to access
+                        # Check if permitted_dataset_ids is not empty to avoid WHERE false condition
+                        if permitted_dataset_ids and len(permitted_dataset_ids) > 0:
+                            query = query.where(
+                                sa.or_(
+                                    Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
+                                    sa.and_(
+                                        Dataset.permission == DatasetPermissionEnum.ONLY_ME,
+                                        Dataset.created_by == user.id,
+                                    ),
+                                    sa.and_(
+                                        Dataset.permission == DatasetPermissionEnum.PARTIAL_TEAM,
+                                        Dataset.id.in_(permitted_dataset_ids),
+                                    ),
+                                )
                             )
-                        )
-        else:
-            # if no user, only show datasets that are shared with all team members
-            query = query.where(Dataset.permission == DatasetPermissionEnum.ALL_TEAM)
+                        else:
+                            query = query.where(
+                                sa.or_(
+                                    Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
+                                    sa.and_(
+                                        Dataset.permission == DatasetPermissionEnum.ONLY_ME,
+                                        Dataset.created_by == user.id,
+                                    ),
+                                )
+                            )
+            else:
+                # if no user, only show datasets that are shared with all team members
+                query = query.where(Dataset.permission == DatasetPermissionEnum.ALL_TEAM)
 
         if search:
             query = query.where(Dataset.name.ilike(f"%{search}%"))
@@ -2262,10 +2267,7 @@ class DocumentService:
             cut_name = documents[0].name[:cut_length]
             dataset.name = cut_name + "..."
 
-        if knowledge_config.description:
-            dataset.description = knowledge_config.description
-        else:
-            dataset.description = "useful for when you want to answer queries about the " + documents[0].name
+        dataset.description = knowledge_config.description or ""
         db.session.commit()
 
         return dataset, documents, batch

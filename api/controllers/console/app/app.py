@@ -309,6 +309,11 @@ class AppApi(Resource):
         if not current_user.is_editor:
             raise Forbidden()
 
+        # EduAI: Student can only modify their own resources
+        if not current_user.is_admin_or_owner:
+            if str(app_model.created_by) != str(current_user.id):
+                raise Forbidden("You can only modify your own resources.")
+
         parser = reqparse.RequestParser()
         parser.add_argument("name", type=str, required=True, nullable=False, location="json")
         parser.add_argument("description", type=_validate_description_length, location="json")
@@ -350,6 +355,11 @@ class AppApi(Resource):
         # The role of the current user in the ta table must be admin, owner, or editor
         if not current_user.is_editor:
             raise Forbidden()
+
+        # EduAI: Student can only delete their own resources
+        if not current_user.is_admin_or_owner:
+            if str(app_model.created_by) != str(current_user.id):
+                raise Forbidden("You can only delete your own resources.")
 
         app_service = AppService()
         app_service.delete_app(app_model)

@@ -8,13 +8,104 @@
     "documents": "{{count}} documents",
     "words": "{{count}} words",
     "ready": "Ready",
+    "processing": "Processing",
+    "sessionRequired": "Session Required",
+    "sessionRequiredDescription": "You need to be part of an active education session to view the knowledge base list. Please contact your administrator.",
+    "backToDashboard": "Back to Dashboard"
+  },
+  "actions": {
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "more": "More"
+  },
+  "edit": {
+    "title": "Edit Knowledge Base",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter knowledge base name",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Enter description (optional)",
+    "nameRequired": "Name is required",
+    "updateFailed": "Failed to update knowledge base",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "success": "\"{{name}}\" has been updated",
+    "close": "Close"
+  },
+  "delete": {
+    "title": "Delete Knowledge Base",
+    "confirmMessage": "Are you sure you want to delete \"{{name}}\"?",
+    "vectorWarning": "All associated vectors in the vector database will also be deleted. This action cannot be undone.",
+    "confirm": "Delete",
+    "deleting": "Deleting...",
+    "deleteFailed": "Failed to delete knowledge base",
+    "success": "\"{{name}}\" has been deleted",
+    "cancel": "Cancel",
+    "close": "Close",
+    "notFound": "Knowledge base not found"
+  },
+  "storage": {
+    "datasets": "Knowledge Bases",
+    "documents": "Documents",
+    "words": "Words",
+    "overLimitWarning": "You have exceeded your storage limit. Please delete some knowledge bases to continue."
+  },
+  "draft": {
+    "foundTitle": "Draft Found",
+    "foundDescription": "You have an unsaved draft from a previous session.",
+    "restore": "Restore",
+    "discard": "Start Fresh"
+  },
+  "search": {
+    "placeholder": "Search knowledge bases...",
+    "placeholderWithOwner": "Search by name, description, or owner...",
+    "noResults": "No knowledge bases found"
+  },
+  "sort": {
+    "label": "Sort",
+    "createdAt": "Created Date",
+    "name": "Name",
+    "documentCount": "Document Count",
+    "owner": "Owner"
+  },
+  "card": {
+    "ariaLabel": "Knowledge Base Card",
+    "viewAriaLabel": "View knowledge base",
+    "editAriaLabel": "Edit knowledge base",
+    "deleteAriaLabel": "Delete knowledge base",
+    "documents": "{{count}} documents",
+    "words": "{{count}} words",
+    "ready": "Ready",
     "processing": "Processing"
+  },
+  "table": {
+    "name": "Name",
+    "owner": "Owner",
+    "documents": "Documents",
+    "status": "Status",
+    "createdAt": "Created",
+    "actions": "Actions",
+    "words": "words"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "items": "items",
+    "ariaLabel": "Pagination",
+    "ariaPrevious": "Go to previous page",
+    "ariaNext": "Go to next page"
+  },
+  "toast": {
+    "draftRestored": "Draft has been restored",
+    "draftSaved": "Draft has been saved"
   },
   "create": {
     "title": "Create RAG Knowledge Base",
     "subtitle": "Follow the 4-step pipeline to create your own knowledge base",
     "embeddingModelWarning": "Embedding model not configured",
-    "embeddingModelWarningDesc": "RAG knowledge base creation requires a text-embedding model."
+    "embeddingModelWarningDesc": "RAG knowledge base creation requires a text-embedding model.",
+    "cancelConfirm": "Changes may not be saved. Are you sure you want to cancel?"
   },
   "pipeline": {
     "load": "Load",
@@ -218,7 +309,18 @@
       "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
       "confirm": "Delete",
       "cancel": "Cancel"
-    }
+    },
+    "addDocument": "Add Document",
+    "deleteDocument": "Delete document",
+    "deleteDocumentDialog": {
+      "title": "Delete Document",
+      "message": "Are you sure you want to delete \"{{name}}\"? This will also remove its vectors from the database.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "addDocumentTitle": "Add Documents",
+    "addingDocuments": "Adding...",
+    "addDocumentsButton": "Add {{count}} Document(s)"
   },
   "document": {
     "title": "Document Detail",

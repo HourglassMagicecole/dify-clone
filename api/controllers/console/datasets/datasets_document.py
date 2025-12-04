@@ -396,7 +396,11 @@ class DatasetInitApi(Resource):
         parser.add_argument("embedding_model_provider", type=str, required=False, nullable=True, location="json")
         parser.add_argument("name", type=str, required=False, nullable=True, location="json")
         parser.add_argument("description", type=str, required=False, nullable=True, location="json")
+        parser.add_argument("session_id", type=str, required=False, nullable=True, location="json")  # EduAI session
         args = parser.parse_args()
+
+        # Extract session_id before passing to KnowledgeConfig
+        provided_session_id = args.pop("session_id", None)
 
         knowledge_config = KnowledgeConfig(**args)
         if knowledge_config.indexing_technique == "high_quality":
@@ -433,13 +437,17 @@ class DatasetInitApi(Resource):
 
         logger.info("Dataset created via /init: %s (ID: %s, User: %s)", dataset.name, dataset.id, current_user.id)
 
-        # Add session resource tag - automatically find user's active session
-        active_session = get_user_active_session(current_user.id)
-        if active_session:
+        # Add session resource tag - use provided session_id or fall back to user's active session
+        target_session_id = provided_session_id
+        if not target_session_id:
+            active_session = get_user_active_session(current_user.id)
+            target_session_id = active_session.id if active_session else None
+
+        if target_session_id:
             try:
                 resource_tagging_service = ResourceTaggingService()
                 resource_tagging_service.add_tag(
-                    session_id=active_session.id,
+                    session_id=target_session_id,
                     resource_type="dataset",
                     resource_id=dataset.id,
                     account_id=current_user.id,
@@ -447,7 +455,7 @@ class DatasetInitApi(Resource):
                 logger.info(
                     "Added SessionResourceTag for dataset %s in session %s",
                     dataset.id,
-                    active_session.id,
+                    target_session_id,
                 )
             except Exception as e:
                 # Don't fail dataset creation if tagging fails
@@ -458,7 +466,7 @@ class DatasetInitApi(Resource):
                     exc_info=True,
                 )
         else:
-            logger.warning("No active session found for user %s during dataset init", current_user.id)
+            logger.warning("No session found for user %s during dataset init", current_user.id)
 
         response = {"dataset": dataset, "documents": documents, "batch": batch}
 

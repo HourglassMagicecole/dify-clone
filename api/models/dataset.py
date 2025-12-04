@@ -118,6 +118,15 @@ class Dataset(Base):
         return db.session.get(Account, self.created_by)
 
     @property
+    def author_name(self) -> str | None:
+        """Get the name of the account that created this dataset."""
+        if self.created_by:
+            account = db.session.query(Account).where(Account.id == self.created_by).first()
+            if account:
+                return account.name
+        return None
+
+    @property
     def latest_process_rule(self):
         return (
             db.session.query(DatasetProcessRule)

@@ -184,6 +184,30 @@ export class ApiClient {
   }
 
   /**
+   * PATCH request for Dify native API (returns data directly without result wrapper)
+   * Use this for partial update endpoints (Story 3.3)
+   */
+  async patchDifyNative<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    }
+
+    const json = await response.json()
+
+    // Wrap native Dify response in our standard format
+    return {
+      result: 'success',
+      data: json.data || json,
+    }
+  }
+
+  /**
    * PUT request for Dify native API (returns data directly without result wrapper)
    * Use this for endpoints that return app object directly instead of { result: 'success', data: ... }
    */

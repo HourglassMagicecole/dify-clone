@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
 import { RAGWizardProvider, useRAGWizard } from '@/context/RAGWizardContext'
+import { DraftRestorePrompt } from '@/components/rag/DraftRestorePrompt'
 import { RAGPipelineVisualization } from '@/components/rag/RAGPipelineVisualization'
 import { Step1Load } from '@/components/rag/wizard/Step1Load'
 import { Step2Split } from '@/components/rag/wizard/Step2Split'
@@ -27,7 +28,15 @@ const TOTAL_STEPS = 4
 function RAGWizardContent(): React.ReactElement {
   const { t } = useTranslation('dataset')
   const router = useRouter()
-  const { currentStep, goToStep, error } = useRAGWizard()
+  const {
+    currentStep,
+    goToStep,
+    error,
+    showDraftPrompt,
+    restoreDraft,
+    discardDraft,
+    resetWizard,
+  } = useRAGWizard()
 
   // Check embedding model availability on page load
   const [embeddingModelAvailable, setEmbeddingModelAvailable] = useState<boolean | null>(null)
@@ -43,6 +52,17 @@ function RAGWizardContent(): React.ReactElement {
     }
     checkEmbeddingModel()
   }, [])
+
+  /**
+   * Handle cancel button (matching AgentWizard pattern)
+   */
+  const handleCancel = (): void => {
+    const confirmed = window.confirm(t('create.cancelConfirm'))
+    if (confirmed) {
+      resetWizard()
+      router.push('/datasets')
+    }
+  }
 
   /**
    * Handle step click from visualization
@@ -87,6 +107,17 @@ function RAGWizardContent(): React.ReactElement {
           </div>
         </div>
       </header>
+
+      {/* Draft Restore Prompt */}
+      {showDraftPrompt && (
+        <div className="max-w-4xl mx-auto px-4 pt-6">
+          <DraftRestorePrompt
+            isVisible={showDraftPrompt}
+            onRestore={restoreDraft}
+            onDiscard={discardDraft}
+          />
+        </div>
+      )}
 
       {/* Embedding Model Warning Banner */}
       {embeddingModelAvailable === false && (
@@ -135,7 +166,7 @@ function RAGWizardContent(): React.ReactElement {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/datasets')}
+            onClick={handleCancel}
           >
             {t('common.cancel')}
           </Button>

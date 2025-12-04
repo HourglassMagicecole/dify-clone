@@ -14,6 +14,7 @@ import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { useRAGWizard } from '@/context/RAGWizardContext'
+import { useSession } from '@/context/SessionContext'
 import { datasetAPI } from '@/service/dataset-api'
 import { Button } from '@/components/common/Button'
 import { getErrorMessage, logError } from '@/utils/error-messages'
@@ -25,6 +26,7 @@ const PROGRESS_TIMEOUT = 60000 // 1 minute - timeout if no progress change
 export function Step4Store(): React.ReactElement {
   const { t } = useTranslation('dataset')
   const router = useRouter()
+  const { currentSession } = useSession()
   const {
     // Step 1 data
     datasetName,
@@ -50,6 +52,7 @@ export function Step4Store(): React.ReactElement {
     // Common
     prevStep,
     setError,
+    clearDraft,
   } = useRAGWizard()
 
   const [isCreating, setIsCreating] = useState(false)
@@ -105,6 +108,10 @@ export function Step4Store(): React.ReactElement {
             clearInterval(pollingRef.current)
             pollingRef.current = null
           }
+          // Clear draft from localStorage on success
+          if (allCompleted && !hasError) {
+            clearDraft()
+          }
           return
         }
 
@@ -130,7 +137,7 @@ export function Step4Store(): React.ReactElement {
     } catch (err) {
       console.error('Failed to fetch indexing status:', err)
     }
-  }, [setIndexingStatus, setIsIndexingComplete])
+  }, [setIndexingStatus, setIsIndexingComplete, clearDraft])
 
   /**
    * Start polling for indexing status
@@ -196,6 +203,7 @@ export function Step4Store(): React.ReactElement {
         name: datasetName || undefined,
         description: datasetDescription || undefined,
         indexing_technique: 'high_quality',
+        session_id: currentSession?.id,
         data_source: {
           info_list: {
             data_source_type: 'upload_file',

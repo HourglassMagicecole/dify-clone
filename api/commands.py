@@ -1916,18 +1916,18 @@ def init_tenant(email: str, password: str, name: str) -> None:
             )
             session.add(session_member)
 
-            # Assign admin role to the tenant owner (within same transaction)
-            admin_role = EduUserRole(
+            # Assign owner role to the tenant owner (within same transaction)
+            owner_role = EduUserRole(
                 session_id=default_session.id,
                 account_id=account.id,
-                role="admin",
+                role="owner",
                 assigned_by=None,  # System auto-assigned
                 assigned_at=datetime.now(UTC),
             )
-            session.add(admin_role)
+            session.add(owner_role)
 
             click.echo(click.style(f"Success: Default education session created - {default_session.id}", fg="green"))
-            click.echo(click.style(f"Success: Admin role assigned to {email}", fg="green"))
+            click.echo(click.style(f"Success: Owner role assigned to {email}", fg="green"))
 
     except Exception as e:
         click.echo(click.style(f"Error creating default session: {str(e)}", fg="red"))

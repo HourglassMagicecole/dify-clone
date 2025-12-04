@@ -8,13 +8,104 @@
     "documents": "{{count}}개 문서",
     "words": "{{count}}개 단어",
     "ready": "사용 가능",
+    "processing": "처리 중",
+    "sessionRequired": "세션이 필요합니다",
+    "sessionRequiredDescription": "지식베이스 목록을 보려면 활성화된 교육 세션에 속해있어야 합니다. 관리자에게 문의하세요.",
+    "backToDashboard": "대시보드로 돌아가기"
+  },
+  "actions": {
+    "view": "보기",
+    "edit": "편집",
+    "delete": "삭제",
+    "more": "더보기"
+  },
+  "edit": {
+    "title": "지식베이스 편집",
+    "nameLabel": "이름",
+    "namePlaceholder": "지식베이스 이름을 입력하세요",
+    "descriptionLabel": "설명",
+    "descriptionPlaceholder": "설명을 입력하세요 (선택)",
+    "nameRequired": "이름은 필수입니다",
+    "updateFailed": "지식베이스 업데이트에 실패했습니다",
+    "cancel": "취소",
+    "save": "저장",
+    "saving": "저장 중...",
+    "success": "\"{{name}}\"이(가) 업데이트되었습니다",
+    "close": "닫기"
+  },
+  "delete": {
+    "title": "지식베이스 삭제",
+    "confirmMessage": "\"{{name}}\"을(를) 삭제하시겠습니까?",
+    "vectorWarning": "벡터 데이터베이스의 모든 관련 벡터도 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+    "confirm": "삭제",
+    "deleting": "삭제 중...",
+    "deleteFailed": "지식베이스 삭제에 실패했습니다",
+    "success": "\"{{name}}\"이(가) 삭제되었습니다",
+    "cancel": "취소",
+    "close": "닫기",
+    "notFound": "지식베이스를 찾을 수 없습니다"
+  },
+  "storage": {
+    "datasets": "지식베이스",
+    "documents": "문서",
+    "words": "단어",
+    "overLimitWarning": "스토리지 한도를 초과했습니다. 계속하려면 일부 지식베이스를 삭제하세요."
+  },
+  "draft": {
+    "foundTitle": "임시 저장 발견",
+    "foundDescription": "이전 세션에서 저장되지 않은 임시 저장이 있습니다.",
+    "restore": "복원",
+    "discard": "새로 시작"
+  },
+  "search": {
+    "placeholder": "지식베이스 검색...",
+    "placeholderWithOwner": "이름, 설명 또는 소유자로 검색...",
+    "noResults": "지식베이스를 찾을 수 없습니다"
+  },
+  "sort": {
+    "label": "정렬",
+    "createdAt": "생성일",
+    "name": "이름",
+    "documentCount": "문서 수",
+    "owner": "소유자"
+  },
+  "card": {
+    "ariaLabel": "지식베이스 카드",
+    "viewAriaLabel": "지식베이스 보기",
+    "editAriaLabel": "지식베이스 편집",
+    "deleteAriaLabel": "지식베이스 삭제",
+    "documents": "{{count}}개 문서",
+    "words": "{{count}}개 단어",
+    "ready": "사용 가능",
     "processing": "처리 중"
+  },
+  "table": {
+    "name": "이름",
+    "owner": "소유자",
+    "documents": "문서",
+    "status": "상태",
+    "createdAt": "생성일",
+    "actions": "작업",
+    "words": "단어"
+  },
+  "pagination": {
+    "previous": "이전",
+    "next": "다음",
+    "items": "개",
+    "ariaLabel": "페이지 네비게이션",
+    "ariaPrevious": "이전 페이지로 이동",
+    "ariaNext": "다음 페이지로 이동"
+  },
+  "toast": {
+    "draftRestored": "임시 저장이 복원되었습니다",
+    "draftSaved": "임시 저장되었습니다"
   },
   "create": {
     "title": "RAG 지식베이스 생성",
     "subtitle": "4단계 파이프라인을 따라 나만의 지식베이스를 만들어보세요",
     "embeddingModelWarning": "Embedding 모델이 설정되지 않음",
-    "embeddingModelWarningDesc": "RAG 지식베이스 생성에는 text-embedding 모델이 필요합니다."
+    "embeddingModelWarningDesc": "RAG 지식베이스 생성에는 text-embedding 모델이 필요합니다.",
+    "cancelConfirm": "변경사항이 저장되지 않을 수 있습니다. 정말 취소하시겠습니까?"
   },
   "pipeline": {
     "load": "Load",
@@ -218,7 +309,18 @@
       "message": "\"{{name}}\" 지식베이스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
       "confirm": "삭제",
       "cancel": "취소"
-    }
+    },
+    "addDocument": "문서 추가",
+    "deleteDocument": "문서 삭제",
+    "deleteDocumentDialog": {
+      "title": "문서 삭제",
+      "message": "\"{{name}}\" 문서를 삭제하시겠습니까? 벡터 데이터베이스에서도 삭제됩니다.",
+      "confirm": "삭제",
+      "cancel": "취소"
+    },
+    "addDocumentTitle": "문서 추가",
+    "addingDocuments": "추가 중...",
+    "addDocumentsButton": "{{count}}개 문서 추가"
   },
   "document": {
     "title": "문서 상세",

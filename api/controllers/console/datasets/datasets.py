@@ -77,6 +77,15 @@ class DatasetListApi(Resource):
         include_all = request.args.get("include_all", default="false").lower() == "true"
         session_id = request.args.get("session_id", default=None, type=str)
         edu_account_id = request.args.get("edu_account_id", default=None, type=str)
+
+        # Session-based resource filtering (Same as Agent - Story 2.2B)
+        # - Students: see only their own resources within session
+        # - Administrators/Owners: see all resources within session
+        if session_id and not edu_account_id:
+            if not current_user.is_admin_or_owner:
+                # Student: filter by account_id
+                edu_account_id = current_user.id
+
         if ids:
             datasets, total = DatasetService.get_datasets_by_ids(ids, current_user.current_tenant_id)
         else:
@@ -291,6 +300,11 @@ class DatasetApi(Resource):
         if dataset is None:
             raise NotFound("Dataset not found.")
 
+        # EduAI: Student can only modify their own resources
+        if not current_user.is_admin_or_owner:
+            if str(dataset.created_by) != str(current_user.id):
+                raise Forbidden("You can only modify your own resources.")
+
         parser = reqparse.RequestParser()
         parser.add_argument(
             "name",
@@ -408,6 +422,12 @@ class DatasetApi(Resource):
         # The role of the current user in the ta table must be admin, owner, or editor
         if not (current_user.is_editor or current_user.is_dataset_operator):
             raise Forbidden()
+
+        # EduAI: Student can only delete their own resources
+        if not current_user.is_admin_or_owner:
+            dataset = DatasetService.get_dataset(dataset_id_str)
+            if dataset and str(dataset.created_by) != str(current_user.id):
+                raise Forbidden("You can only delete your own resources.")
 
         try:
             if DatasetService.delete_dataset(dataset_id_str, current_user):
