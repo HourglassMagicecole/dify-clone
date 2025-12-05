@@ -179,11 +179,10 @@ services:
       - ssrf_proxy_network
       - default
 
-  # The Weaviate vector store.
+  # The Weaviate vector store (optional - use profile 'weaviate' to enable)
   weaviate:
     image: semitechnologies/weaviate:1.19.0
     profiles:
-      - ""
       - weaviate
     restart: always
     volumes:
@@ -206,6 +205,38 @@ services:
       AUTHORIZATION_ADMINLIST_USERS: ${WEAVIATE_AUTHORIZATION_ADMINLIST_USERS:-hello@dify.ai}
     ports:
       - "${EXPOSE_WEAVIATE_PORT:-8080}:8080"
+
+  # Elasticsearch with Korean language support (Nori tokenizer)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+    restart: always
+    volumes:
+      - ./elasticsearch/docker-entrypoint.sh:/docker-entrypoint-mount.sh
+      - ./volumes/elasticsearch/data:/usr/share/elasticsearch/data
+    env_file:
+      - ./middleware.env
+    environment:
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic}
+      VECTOR_STORE: ${VECTOR_STORE:-elasticsearch-ko}
+      cluster.name: dify-es-cluster
+      node.name: dify-es0
+      discovery.type: single-node
+      xpack.license.self_generated.type: basic
+      xpack.security.enabled: "true"
+      xpack.security.enrollment.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    entrypoint: ["sh", "-c", "sh /docker-entrypoint-mount.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:9200/_cluster/health?pretty"]
+      interval: 30s
+      timeout: 10s
+      retries: 50
 
 networks:
   # create a network between sandbox, api and ssrf_proxy, and can not access outside.

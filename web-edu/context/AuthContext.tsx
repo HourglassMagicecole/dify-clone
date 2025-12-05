@@ -110,9 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       actualRole, // 실제 역할 ('owner' | 'admin' | 'student')
     })
 
-    // 모든 역할이 공용 /dashboard로 이동 (Story 2.2B - 통합 완료)
-    router.push('/dashboard')
-  }, [router])
+    // 리다이렉트는 SignIn 페이지의 useEffect에서 처리
+    // (isAuthenticated 상태 변경 감지 → router.replace('/dashboard'))
+  }, [])
 
   // 로그아웃 함수
   const signOut = useCallback(async () => {

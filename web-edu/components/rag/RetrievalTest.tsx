@@ -49,6 +49,10 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
   const [results, setResults] = useState<HitTestingRecord[]>([])
   const [hasSearched, setHasSearched] = useState(false)
 
+  // Store the query and method used for the last search (for displaying results)
+  const [lastSearchQuery, setLastSearchQuery] = useState('')
+  const [lastSearchMethod, setLastSearchMethod] = useState<SearchMethod>(DEFAULT_SEARCH_METHOD)
+
   // Loading & timing
   const [isLoading, setIsLoading] = useState(false)
   const [searchTime, setSearchTime] = useState<number | null>(null)
@@ -91,6 +95,10 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
       setIsLoading(true)
       setError(null)
       setHasSearched(true)
+
+      // Store the query and method used for this search
+      setLastSearchQuery(query.trim())
+      setLastSearchMethod(settings.searchMethod)
 
       const startTime = performance.now()
 
@@ -360,8 +368,8 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
                   key={`${record.segment.id}-${index}`}
                   record={record}
                   rank={index + 1}
-                  query={query}
-                  searchMethod={settings.searchMethod}
+                  query={lastSearchQuery}
+                  searchMethod={lastSearchMethod}
                 />
               ))}
             </div>

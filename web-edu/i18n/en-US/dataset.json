@@ -369,6 +369,7 @@
     "words": "words",
     "keywords": "Keywords",
     "unknownDocument": "Unknown Document",
+    "chunk": "Chunk #{{position}}",
     "rerankingNotConfigured": "Reranking model not configured",
     "matchHint": {
       "semantic": "Retrieved by semantic similarity (meaning-based)",

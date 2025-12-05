@@ -19,6 +19,7 @@ class VectorType(StrEnum):
     ORACLE = "oracle"
     ELASTICSEARCH = "elasticsearch"
     ELASTICSEARCH_JA = "elasticsearch-ja"
+    ELASTICSEARCH_KO = "elasticsearch-ko"
     LINDORM = "lindorm"
     COUCHBASE = "couchbase"
     BAIDU = "baidu"

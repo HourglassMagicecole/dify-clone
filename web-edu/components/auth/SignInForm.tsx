@@ -31,6 +31,8 @@ export function SignInForm() {
     try {
       setError(null)
       await signIn(data.email, data.password)
+      // signIn 성공 후 직접 리다이렉트 (React 상태와 라우터 충돌 방지)
+      window.location.href = '/dashboard'
     }
     catch {
       setError(t('signin.error.login_failed'))

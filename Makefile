@@ -73,7 +73,7 @@ docker-clean:
 	@rm -rf docker/volumes/app
 	@rm -rf docker/volumes/db
 	@rm -rf docker/volumes/redis
-	@rm -rf docker/volumes/weaviate
+	@rm -rf docker/volumes/elasticsearch
 	@rm -rf docker/volumes/plugin_daemon
 	@rm -rf docker/volumes/certbot
 	@echo "✅ Docker containers and volumes removed"
@@ -89,7 +89,7 @@ docker-clean-all:
 	@rm -rf docker/volumes/app
 	@rm -rf docker/volumes/db
 	@rm -rf docker/volumes/redis
-	@rm -rf docker/volumes/weaviate
+	@rm -rf docker/volumes/elasticsearch
 	@rm -rf docker/volumes/plugin_daemon
 	@rm -rf docker/volumes/certbot
 	@echo "🔧 Resetting admin credentials in docker/.env..."
@@ -137,13 +137,13 @@ prepare-api:
 	@awk -v key="$$(cd api && uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" '/^API_KEY_ENCRYPTION_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env
 	@cd api && uv run flask db upgrade
 	@echo "👤 Creating initial tenant (development default)..."
-	@cd api && uv run flask init-tenant --email admin@test.com --password Test1234! --name "Admin" 2>/dev/null || echo "ℹ️  Tenant already exists (skipped)"
+	@cd api && uv run flask init-tenant --email owner@test.com --password Test1234! --name "Admin" 2>/dev/null || echo "ℹ️  Tenant already exists (skipped)"
 	@echo "🔌 Installing model provider plugins..."
 	@cd api && uv run flask provider install-plugins || echo "⚠️  Plugin installation failed (will retry on API Key creation)"
 	@echo "✅ API environment prepared (not started)"
 	@echo ""
 	@echo "📝 Development Credentials:"
-	@echo "   Email: admin@test.com"
+	@echo "   Email: owner@test.com"
 	@echo "   Password: Test1234!"
 
 # Step 4: Prepare web-edu environment
@@ -176,7 +176,7 @@ dev-clean-all:
 	@echo "⚠️  WARNING: This will remove ALL dev resources AND environment files!"
 	@echo "This includes:"
 	@echo "  - All Docker containers, volumes, and images"
-	@echo "  - All database data (PostgreSQL, Redis, Weaviate)"
+	@echo "  - All database data (PostgreSQL, Redis, Elasticsearch)"
 	@echo "  - All build artifacts (node_modules, .next, .venv)"
 	@echo "  - All .env files (web/.env, web-edu/.env.local, api/.env)"
 	@echo ""
@@ -188,7 +188,7 @@ dev-clean-all:
 	@rm -rf docker/volumes/db
 	@rm -rf docker/volumes/redis
 	@rm -rf docker/volumes/plugin_daemon
-	@rm -rf docker/volumes/weaviate
+	@rm -rf docker/volumes/elasticsearch
 	@echo "🗑️  Removing build artifacts and .env files..."
 	@rm -rf web/node_modules web/.next web/.env
 	@rm -rf web-edu/node_modules web-edu/.next web-edu/.env.local
