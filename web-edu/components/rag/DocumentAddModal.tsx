@@ -133,7 +133,10 @@ export function DocumentAddModal({
     // Upload files sequentially
     const startIndex = uploadingFiles.length
     for (let i = 0; i < validFiles.length; i++) {
-      await uploadFile(validFiles[i].file, startIndex + i)
+      const fileItem = validFiles[i]
+      if (fileItem) {
+        await uploadFile(fileItem.file, startIndex + i)
+      }
     }
   }
 

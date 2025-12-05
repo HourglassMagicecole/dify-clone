@@ -294,6 +294,10 @@
     "noDocuments": "No documents",
     "words": "words",
     "delete": "Delete",
+    "tabs": {
+      "documents": "Documents",
+      "retrievalTest": "Retrieval Test"
+    },
     "status": {
       "waiting": "Waiting",
       "parsing": "Parsing",
@@ -335,5 +339,46 @@
     "overlapPrev": "Overlap with previous",
     "overlapNext": "Overlap with next",
     "overlapBoth": "Overlap with both"
+  },
+  "retrievalTest": {
+    "title": "Retrieval Test",
+    "description": "Test your knowledge base by entering queries and viewing search results.",
+    "queryLabel": "Search Query",
+    "queryPlaceholder": "Enter your search query here...",
+    "searchMethod": "Search Method",
+    "methods": {
+      "semantic": "Semantic",
+      "semanticDesc": "Meaning-based (similar expressions found)",
+      "fullText": "Keyword",
+      "fullTextDesc": "Exact word match required",
+      "hybrid": "Hybrid",
+      "hybridDesc": "Semantic + Keyword combined"
+    },
+    "topK": "Top Results",
+    "topKTooltip": "Number of most relevant chunks to retrieve. Higher values return more results but may include less relevant content.",
+    "reranking": "Reranking",
+    "rerankingTooltip": "Re-scores search results using an AI model to improve ranking accuracy. Useful when initial results need better ordering.",
+    "search": "Search",
+    "searching": "Searching...",
+    "resultCount": "{{count}} results found",
+    "resultCount_one": "{{count}} result found",
+    "searchTime": "{{time}}ms",
+    "noResults": "No results found",
+    "noResultsHint": "Try different keywords or increase the Top-K value.",
+    "score": "Score",
+    "words": "words",
+    "keywords": "Keywords",
+    "unknownDocument": "Unknown Document",
+    "rerankingNotConfigured": "Reranking model not configured",
+    "matchHint": {
+      "semantic": "Retrieved by semantic similarity (meaning-based)",
+      "fullText": "Retrieved by keyword matching",
+      "fullTextMatched": "Matched keywords: {{words}}",
+      "hybrid": "Retrieved by combined semantic + keyword search",
+      "hybridMatched": "Matched keywords: {{words}} (+ semantic similarity)"
+    },
+    "errors": {
+      "searchFailed": "Search failed. Please try again."
+    }
   }
 }

@@ -18,6 +18,8 @@ import { Pagination } from '@/components/common/Pagination'
 import { DeleteConfirmDialog } from '@/components/common/DeleteConfirmDialog'
 import { DatasetEditModal } from '@/components/rag/DatasetEditModal'
 import { DocumentAddModal } from '@/components/rag/DocumentAddModal'
+import { DatasetDetailTabs, type DatasetDetailTab } from '@/components/rag/DatasetDetailTabs'
+import { RetrievalTest } from '@/components/rag/RetrievalTest'
 
 const ITEMS_PER_PAGE = 20
 const INDEXING_STATUSES = ['waiting', 'parsing', 'cleaning', 'splitting', 'indexing']
@@ -51,6 +53,9 @@ export default function DatasetDetailPage() {
 
   // Document add modal state
   const [isAddDocumentModalOpen, setIsAddDocumentModalOpen] = useState(false)
+
+  // Tab state (Story 3.4)
+  const [activeTab, setActiveTab] = useState<DatasetDetailTab>('documents')
 
   const loadDataset = useCallback(async () => {
     try {
@@ -312,7 +317,7 @@ export default function DatasetDetailPage() {
         </div>
 
         {/* Dataset Info */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
             {t('detail.info')}
           </h2>
@@ -344,14 +349,24 @@ export default function DatasetDetailPage() {
           </div>
         </div>
 
-        {/* Document List */}
+        {/* Tab Navigation (Story 3.4) */}
+        <div className="mb-6">
+          <DatasetDetailTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            documentCount={totalItems}
+          />
+        </div>
+
+        {/* Documents Tab Content */}
+        {activeTab === 'documents' && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">
               {t('detail.documents')} ({totalItems})
             </h2>
             <Button
-              variant="primary"
+              variant="default"
               size="sm"
               onClick={() => setIsAddDocumentModalOpen(true)}
             >
@@ -422,6 +437,14 @@ export default function DatasetDetailPage() {
             </div>
           )}
         </div>
+        )}
+
+        {/* Retrieval Test Tab Content (Story 3.4) */}
+        {activeTab === 'retrieval-test' && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <RetrievalTest datasetId={datasetId} />
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

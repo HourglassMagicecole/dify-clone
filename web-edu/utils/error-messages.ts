@@ -66,7 +66,7 @@ function extractHttpStatusCode(message: string): string | null {
 
   for (const pattern of patterns) {
     const match = message.match(pattern)
-    if (match) {
+    if (match && match[1]) {
       return match[1]
     }
   }

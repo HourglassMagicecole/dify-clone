@@ -117,7 +117,7 @@ export function DatasetCard({
           {t('card.documents', { count: dataset.document_count })}
         </span>
         <span>
-          {t('card.words', { count: formatNumber(dataset.word_count) })}
+          {formatNumber(dataset.word_count)} {t('table.words')}
         </span>
       </div>
 

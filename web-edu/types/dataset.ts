@@ -799,3 +799,111 @@ export interface CreateDocumentResponse {
   documents: DocumentInfo[]
   batch: string
 }
+
+// ============================================================================
+// Story 3.4: RAG Search Test Interface 타입 정의
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Task 1.1: RetrievalModel 타입 추가
+// ----------------------------------------------------------------------------
+
+/**
+ * Search method for RAG retrieval
+ * Source: api/core/rag/retrieval/retrieval_methods.py
+ */
+export type SearchMethod = 'semantic_search' | 'full_text_search' | 'hybrid_search'
+
+/**
+ * Reranking model configuration
+ */
+export interface RerankingModel {
+  reranking_provider_name: string
+  reranking_model_name: string
+}
+
+/**
+ * Retrieval model configuration for hit testing
+ * Source: api/services/hit_testing_service.py - default_retrieval_model
+ */
+export interface RetrievalModel {
+  search_method: SearchMethod
+  reranking_enable: boolean
+  reranking_model: RerankingModel
+  top_k: number
+  score_threshold_enabled: boolean
+  score_threshold?: number
+}
+
+// ----------------------------------------------------------------------------
+// Task 1.2: HitTestingRequest 타입 추가
+// ----------------------------------------------------------------------------
+
+/**
+ * Hit testing request body
+ * Endpoint: POST /console/api/datasets/{dataset_id}/hit-testing
+ * Source: api/controllers/console/datasets/hit_testing.py
+ */
+export interface HitTestingRequest {
+  query: string
+  retrieval_model?: Partial<RetrievalModel>
+}
+
+// ----------------------------------------------------------------------------
+// Task 1.3: HitTestingResponse 타입 추가
+// ----------------------------------------------------------------------------
+
+/**
+ * Document info in hit testing result
+ */
+export interface HitTestingDocument {
+  id: string
+  data_source_type: string
+  name: string
+  doc_type: string | null
+}
+
+/**
+ * Segment (chunk) in hit testing result
+ * Source: api/fields/hit_testing_fields.py - segment_fields
+ */
+export interface HitTestingSegment {
+  id: string
+  position: number
+  document_id: string
+  content: string
+  answer: string | null
+  word_count: number
+  tokens: number
+  keywords: string[]
+  hit_count: number
+  enabled: boolean
+  status: string
+  document: HitTestingDocument
+}
+
+/**
+ * Single hit testing record
+ * Source: api/fields/hit_testing_fields.py - hit_testing_record_fields
+ */
+export interface HitTestingRecord {
+  segment: HitTestingSegment
+  score: number
+  child_chunks?: Array<{
+    id: string
+    content: string
+    position: number
+    score: number
+  }>
+}
+
+/**
+ * Hit testing response
+ * Endpoint: POST /console/api/datasets/{dataset_id}/hit-testing
+ */
+export interface HitTestingResponse {
+  query: {
+    content: string
+  }
+  records: HitTestingRecord[]
+}

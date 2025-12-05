@@ -33,6 +33,9 @@ import type {
   DeleteDocumentResponse,
   CreateDocumentByFileRequest,
   CreateDocumentResponse,
+  // Story 3.4: RAG Search Test Interface types
+  HitTestingRequest,
+  HitTestingResponse,
 } from '@/types/dataset'
 
 // ============================================================================
@@ -429,6 +432,28 @@ export class DatasetAPI {
   ): Promise<ApiResponse<DocumentInfo>> {
     return apiClient.getDifyNative(
       `/console/api/datasets/${datasetId}/documents/${documentId}`
+    )
+  }
+
+  // ============================================================================
+  // Story 3.4: RAG Search Test Interface API methods
+  // ============================================================================
+
+  /**
+   * Perform hit testing (retrieval test) on a dataset
+   * Endpoint: POST /console/api/datasets/{dataset_id}/hit-testing
+   *
+   * @param datasetId - Dataset ID
+   * @param request - Hit testing request with query and retrieval options
+   * @returns Promise<HitTestingResponse> - Query and matching records with scores
+   */
+  async hitTesting(
+    datasetId: string,
+    request: HitTestingRequest
+  ): Promise<ApiResponse<HitTestingResponse>> {
+    return apiClient.postDifyNative(
+      `/console/api/datasets/${datasetId}/hit-testing`,
+      request
     )
   }
 }

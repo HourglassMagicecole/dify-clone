@@ -1,12 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@/hooks/useAuth'
 import '@/i18n'
 
 export default function HomePage() {
   const { t } = useTranslation('common')
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
   const [isMounted, setIsMounted] = useState(false)
 
   // Prevent hydration mismatch by only rendering i18n after client mount
@@ -14,7 +18,15 @@ export default function HomePage() {
     setIsMounted(true)
   }, [])
 
-  if (!isMounted) {
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (isMounted && !isLoading && user) {
+      router.replace('/dashboard')
+    }
+  }, [isMounted, isLoading, user, router])
+
+  // Show loading while checking auth or redirecting
+  if (!isMounted || isLoading || user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
