@@ -45,6 +45,7 @@ describe('MessageList', () => {
         isStreaming={false}
         streamingContent=""
         onRegenerate={mockOnRegenerate}
+        hasConversationSelected={true}
       />
     )
 

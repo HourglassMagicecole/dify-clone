@@ -151,6 +151,7 @@ describe('Chat Page Components Integration', () => {
         isStreaming={false}
         streamingContent=""
         onRegenerate={() => {}}
+        hasConversationSelected={true}
       />
     )
 

@@ -241,3 +241,4 @@ scripts/stress-test/reports/
 .claude
 docs/
 *.png
+docker/volumes

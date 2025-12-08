@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { MessageMetadata } from './MessageMetadata'
+import { RetrieverResources } from './RetrieverResources'
 import type { Message } from '@/types/chat'
 
 // Dynamically import ECharts to avoid SSR issues
@@ -15,13 +16,20 @@ interface MessageListProps {
   isStreaming: boolean
   streamingContent: string
   onRegenerate?: () => void
+  hasConversationSelected?: boolean
 }
 
 /**
  * MessageList Component
  * Displays a scrollable list of chat messages with auto-scroll and streaming support
  */
-export function MessageList({ messages, isStreaming, streamingContent, onRegenerate }: MessageListProps) {
+export function MessageList({
+  messages,
+  isStreaming,
+  streamingContent,
+  onRegenerate,
+  hasConversationSelected = false,
+}: MessageListProps) {
   const { t } = useTranslation('chat')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [expandedThoughts, setExpandedThoughts] = useState<Set<string>>(new Set())
@@ -55,8 +63,15 @@ export function MessageList({ messages, isStreaming, streamingContent, onRegener
       aria-live="polite"
       aria-label={t('messageList')}
     >
-      {/* No messages state */}
-      {messages.length === 0 && !isStreaming && (
+      {/* No conversation selected state */}
+      {!hasConversationSelected && messages.length === 0 && !isStreaming && (
+        <div className="text-center text-gray-500 mt-8">
+          {t('selectConversation')}
+        </div>
+      )}
+
+      {/* No messages state (conversation selected but empty) */}
+      {hasConversationSelected && messages.length === 0 && !isStreaming && (
         <div className="text-center text-gray-500 mt-8">
           {t('noMessages')}
         </div>
@@ -229,8 +244,18 @@ export function MessageList({ messages, isStreaming, streamingContent, onRegener
               )
             })()}
 
-            {/* Display agent thoughts (tool usage) for assistant messages */}
-            {message.role === 'assistant' && message.agent_thoughts && message.agent_thoughts.length > 0 && (
+            {/* Display RAG references (Story 3.5) */}
+            {message.role === 'assistant' && message.retriever_resources && message.retriever_resources.length > 0 && (
+              <RetrieverResources resources={message.retriever_resources} />
+            )}
+
+            {/* Display agent thoughts (tool usage) for assistant messages - only when tools were actually used */}
+            {message.role === 'assistant' && message.agent_thoughts && (() => {
+              // Filter to only show thoughts that have actual tool calls
+              const toolThoughts = message.agent_thoughts.filter(thought => thought.tool)
+              if (toolThoughts.length === 0) return null
+
+              return (
               <div className="mt-3 border-t border-gray-300 pt-2">
                 <button
                   onClick={() => toggleThought(message.id)}
@@ -240,13 +265,13 @@ export function MessageList({ messages, isStreaming, streamingContent, onRegener
                     ▶
                   </span>
                   <span className="font-medium">
-                    {t('toolUsageHistory')} ({message.agent_thoughts.length})
+                    {t('toolUsageHistory')} ({toolThoughts.length})
                   </span>
                 </button>
 
                 {expandedThoughts.has(message.id) && (
                   <div className="mt-2 space-y-2 max-h-96 overflow-y-auto break-words">
-                    {message.agent_thoughts.map((thought, index) => (
+                    {toolThoughts.map((thought, index) => (
                       <div
                         key={thought.id}
                         className="bg-white bg-opacity-50 rounded p-2 text-sm border border-gray-300"
@@ -442,7 +467,8 @@ export function MessageList({ messages, isStreaming, streamingContent, onRegener
                   </div>
                 )}
               </div>
-            )}
+              )
+            })()}
 
             {/* Display metadata for assistant messages */}
             {message.role === 'assistant' && (

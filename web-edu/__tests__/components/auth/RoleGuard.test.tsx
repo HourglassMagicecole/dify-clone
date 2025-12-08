@@ -51,6 +51,7 @@ describe('RoleGuard', () => {
       id: 'test-id',
       name: 'Test Owner',
       email: 'owner@test.com',
+      avatar: null,
       role: 'admin',
       actualRole: 'owner',
     }
@@ -71,6 +72,7 @@ describe('RoleGuard', () => {
       id: 'test-id',
       name: 'Test Admin',
       email: 'admin@test.com',
+      avatar: null,
       role: 'admin',
       actualRole: 'admin',
     }
@@ -91,6 +93,7 @@ describe('RoleGuard', () => {
       id: 'test-id',
       name: 'Test Student',
       email: 'student@test.com',
+      avatar: null,
       role: 'normal',
       actualRole: 'student',
     }
@@ -128,6 +131,7 @@ describe('RoleGuard', () => {
       id: 'test-id',
       name: 'Test Admin',
       email: 'admin@test.com',
+      avatar: null,
       role: 'admin',
       actualRole: 'admin',
     }
@@ -151,6 +155,7 @@ describe('RoleGuard', () => {
       id: 'test-id',
       name: 'Test Admin',
       email: 'admin@test.com',
+      avatar: null,
       role: 'admin',
       actualRole: 'admin',
     }

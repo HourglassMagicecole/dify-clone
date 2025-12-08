@@ -14,6 +14,7 @@
   "responseTime": "Response Time",
   "noConversations": "No conversation history",
   "noMessages": "Send a message to start the conversation",
+  "selectConversation": "Select a conversation from the left or start a new one",
   "messageList": "Message List",
   "assistantTyping": "AI is generating a response",
   "preparingResponse": "Preparing response",
@@ -55,6 +56,7 @@
   "topP": "Top P",
   "enabledTools": "Enabled Tools",
   "noToolsEnabled": "No tools enabled",
+  "knowledgeBase": "Knowledge Base",
   "systemPrompt": "System Prompt",
   "toolUsageHistory": "Tool Usage History",
   "thinking": "Thinking",
@@ -63,6 +65,9 @@
   "observation": "Observation",
   "generatedFiles": "Generated Files",
   "downloadFile": "Download File",
+  "retrieverResources": {
+    "title": "Knowledge Base References"
+  },
   "error": {
     "loadAgent": "Failed to load Agent",
     "sendMessage": "Failed to send message",

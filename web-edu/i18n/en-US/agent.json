@@ -240,6 +240,16 @@
     "promptTitle": "Prompt",
     "modelTitle": "LLM Model",
     "toolsTitle": "Tools",
+    "knowledgeBaseTitle": "Knowledge Base (RAG)",
+    "noKnowledgeBaseSelected": "No knowledge base connected",
+    "topK": "Top K",
+    "scoreThreshold": "Score Threshold",
+    "reranking": "Reranking",
+    "retrievalModel": "Retrieval",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "multipleDatasets": "Multiple",
+    "singleDataset": "Single",
     "testAgentTitle": "Test Agent",
     "testAgentDescription": "You can preview and test your Agent before creating it",
     "startTestSession": "Send a test message to start the conversation",
@@ -251,6 +261,33 @@
     "creatingAgent": "Creating Agent...",
     "noToolsSelectedWarning": "No tools selected",
     "editStep": "Edit"
+  },
+  "ragSettings": {
+    "title": "Knowledge Base (RAG)",
+    "description": "Connect knowledge bases to enhance your agent with domain-specific information."
+  },
+  "datasetSelector": {
+    "selected": "Selected",
+    "noDatasets": "No knowledge bases available",
+    "createFirst": "Create a knowledge base first to connect it to your agent.",
+    "createLink": "Create Knowledge Base",
+    "searchPlaceholder": "Search knowledge bases...",
+    "noResults": "No results found",
+    "docCount": "{{count}} documents",
+    "wordCount": "{{count}} words",
+    "viewDetails": "View details",
+    "remove": "Remove",
+    "retry": "Retry"
+  },
+  "retrievalSettings": {
+    "title": "Retrieval Settings",
+    "topK": "Top Results",
+    "topKTooltip": "Number of top chunks to retrieve. Higher values return more results.",
+    "scoreThreshold": "Min Score",
+    "scoreThresholdTooltip": "Minimum similarity score. Results below this threshold are excluded.",
+    "reranking": "Reranking",
+    "rerankingTooltip": "Re-rank results using an AI model for better accuracy.",
+    "rerankingNotConfigured": "Reranking model not configured"
   },
   "validation": {
     "nameRequired": "Please enter an Agent name",

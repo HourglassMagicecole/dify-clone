@@ -268,6 +268,7 @@ export interface AgentSummary {
   prompt: AgentPromptSettings
   model: AgentModelConfig
   tools: AgentToolsConfig
+  datasets: AgentDatasetConfig | null  // NEW: Story 3.5
 }
 
 /**
@@ -279,6 +280,8 @@ export interface AgentWizardState {
   promptSettings: AgentPromptSettings | null    // Step 2 (NEW)
   modelConfig: AgentModelConfig | null          // Step 3 (NEW)
   toolsConfig: AgentToolsConfig | null          // Step 4 (NEW)
+  datasetConfig: AgentDatasetConfig | null      // NEW: Story 3.5
+  agentOwnerId?: string                         // NEW: Agent 소유자 ID (Edit 모드에서 사용)
   isDraft: boolean
   isLoading: boolean
   error: string | null
@@ -347,6 +350,8 @@ export interface CreateAppRequest {
       transfer_methods: string[]
     }
   }
+  dataset_configs?: AgentDatasetConfig  // NEW: Story 3.5
+  dataset_query_variable?: string       // NEW: Required for completion mode with RAG
 }
 
 /**
@@ -418,6 +423,7 @@ export interface UpdateAgentRequest {
       tool_parameters: Record<string, unknown>
     }>
   }
+  dataset_configs?: AgentDatasetConfig  // NEW: Story 3.5
 }
 
 /**
@@ -516,4 +522,56 @@ export interface AgentExecutionResponse {
     created_at: number
   }
   agent_thoughts: AgentThought[]      // Tool execution history
+}
+
+// ============================================================================
+// Story 3.5: Connect RAG to Agent 타입 정의
+// ============================================================================
+
+/**
+ * Dataset retrieval configuration
+ * Source: api/core/app/app_config/entities.py - DatasetRetrieveConfigEntity
+ */
+export interface DatasetRetrievalConfig {
+  search_method: 'semantic_search' | 'full_text_search' | 'hybrid_search'
+  reranking_enable: boolean
+  reranking_model?: {
+    reranking_provider_name: string
+    reranking_model_name: string
+  }
+  top_k: number
+  score_threshold_enabled: boolean
+  score_threshold?: number
+}
+
+/**
+ * Single dataset item in dataset_configs
+ * Source: api/core/app/app_config/easy_ui_based_app/dataset/manager.py
+ */
+export interface DatasetConfigItem {
+  dataset: {
+    enabled: boolean
+    id: string
+    name?: string  // For display purposes in UI (not sent to API)
+  }
+}
+
+/**
+ * Agent dataset configuration (for dataset_configs field)
+ * Source: api/controllers/console/app/model_config.py
+ */
+export interface AgentDatasetConfig {
+  datasets: {
+    strategy: 'router' | 'single'
+    datasets: DatasetConfigItem[]
+  }
+  retrieval_model: 'single' | 'multiple'
+  top_k?: number
+  score_threshold_enabled?: boolean
+  score_threshold?: number
+  reranking_enabled?: boolean
+  reranking_model?: {
+    reranking_provider_name: string
+    reranking_model_name: string
+  }
 }

@@ -16,6 +16,7 @@ export interface Message {
   tokenUsage?: TokenUsage
   responseTime?: number // milliseconds
   agent_thoughts?: ProcessingStep[] // Agent tool call history (Dify format)
+  retriever_resources?: RetrieverResource[] // RAG search results (Story 3.5)
 }
 
 /**
@@ -133,4 +134,24 @@ export interface CompletionResult {
   conversationId?: string
   messageId?: string
   tokenUsage?: TokenUsage
+  retrieverResources?: RetrieverResource[]
+}
+
+// ============================================================================
+// Story 3.5: RAG Reference Display Types
+// ============================================================================
+
+/**
+ * Retriever Resource (RAG Search Result)
+ * Represents a single retrieved chunk from knowledge base
+ */
+export interface RetrieverResource {
+  position: number               // 순위 (1-based)
+  dataset_id: string             // Dataset ID
+  dataset_name: string           // Dataset 이름
+  document_id: string            // Document ID
+  document_name: string          // Document 이름 (파일명)
+  segment_id: string             // Segment (chunk) ID
+  score: number                  // 유사도 점수 (0.0 ~ 1.0)
+  content: string                // Chunk 내용
 }

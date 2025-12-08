@@ -456,6 +456,70 @@ export class DatasetAPI {
       request
     )
   }
+
+  // ============================================================================
+  // Story 3.5: Connect RAG to Agent API methods
+  // ============================================================================
+
+  /**
+   * Get available datasets for agent connection
+   * Returns only datasets owned by the agent owner that are ready for use
+   *
+   * @param sessionId - Session ID for filtering
+   * @param agentOwnerId - Agent owner's account ID (created_by)
+   *   - Create mode: current user ID
+   *   - Edit mode: Agent's created_by field
+   * @returns Promise<Dataset[]> - List of available datasets
+   */
+  async getAvailableDatasets(
+    sessionId?: string,
+    agentOwnerId?: string
+  ): Promise<ApiResponse<Dataset[]>> {
+    const response = await this.getDatasets({
+      session_id: sessionId,
+      limit: 100,
+    })
+
+    // Handle response - data can be either Dataset[] directly or { data: Dataset[], ... }
+    // getDifyNative returns the data directly as an array
+    const datasets: Dataset[] = Array.isArray(response.data)
+      ? response.data
+      : response.data?.data ?? []
+
+    if (response.result === 'success' && datasets.length > 0) {
+      // Filter datasets:
+      // 1. Owned by agent owner (agentOwnerId) - if provided
+      // 2. Has at least one document (document_count > 0)
+      // Note: embedding_available check removed - datasets with docs are usable
+      const availableDatasets = datasets.filter(dataset => {
+        const isOwnedByAgentOwner = agentOwnerId
+          ? dataset.created_by === agentOwnerId
+          : true
+        const isReady = dataset.document_count > 0
+        return isOwnedByAgentOwner && isReady
+      })
+
+      return {
+        result: 'success',
+        data: availableDatasets,
+      }
+    }
+
+    // Empty data case
+    if (response.result === 'success') {
+      return {
+        result: 'success',
+        data: [],
+      }
+    }
+
+    // Error case
+    return {
+      result: response.result,
+      message: response.message,
+      data: [],
+    }
+  }
 }
 
 export const datasetAPI = new DatasetAPI()

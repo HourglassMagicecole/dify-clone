@@ -15,6 +15,7 @@ import {
   AgentPromptSettings,
   AgentModelConfig,
   AgentToolsConfig,
+  AgentDatasetConfig,  // NEW: Story 3.5
   CreateAppRequest,
   AgentType,
   SelectedTool,
@@ -38,6 +39,8 @@ interface AgentWizardState {
   promptSettings: AgentPromptSettings | null    // NEW: Step 2
   modelConfig: AgentModelConfig | null          // NEW: Step 3
   toolsConfig: AgentToolsConfig | null          // NEW: Step 4
+  datasetConfig: AgentDatasetConfig | null      // NEW: Story 3.5
+  agentOwnerId?: string                         // NEW: Agent 소유자 ID (Edit 모드에서 사용)
   isDraft: boolean
   isLoading: boolean
   isInitializing: boolean
@@ -55,6 +58,7 @@ interface AgentWizardContextValue extends AgentWizardState {
   setPromptSettings: (settings: AgentPromptSettings) => void  // NEW
   setModelConfig: (config: AgentModelConfig) => void          // NEW
   setToolsConfig: (config: AgentToolsConfig) => void          // NEW
+  setDatasetConfig: (config: AgentDatasetConfig | null) => void  // NEW: Story 3.5
   nextStep: () => void
   previousStep: () => void
   goToStep: (step: AgentWizardStep) => void
@@ -75,6 +79,7 @@ const initialState: AgentWizardState = {
   promptSettings: null,
   modelConfig: null,
   toolsConfig: null,
+  datasetConfig: null,  // NEW: Story 3.5
   isDraft: false,
   isLoading: false,
   isInitializing: true,
@@ -165,13 +170,14 @@ export function AgentWizardProvider({
         promptSettings: state.promptSettings,
         modelConfig: state.modelConfig,
         toolsConfig: state.toolsConfig,
+        datasetConfig: state.datasetConfig,  // NEW: Story 3.5
         timestamp: new Date().toISOString(),
       }
       localStorage.setItem(localStorageKey, JSON.stringify(data))
     } catch (error) {
       console.error('Failed to save draft to localStorage:', error)
     }
-  }, [state.basicSettings, state.promptSettings, state.modelConfig, state.toolsConfig, state.currentStep, localStorageKey, isEditMode])
+  }, [state.basicSettings, state.promptSettings, state.modelConfig, state.toolsConfig, state.datasetConfig, state.currentStep, localStorageKey, isEditMode])
 
   /**
    * Reset hasLoadedRef when localStorageKey changes (e.g., after user login)
@@ -213,6 +219,16 @@ export function AgentWizardProvider({
             || agentData.pre_prompt
             || modelConfig.configs?.pre_prompt
             || ''
+
+          // Extract opening_statement from different possible locations
+          const openingStatement = modelConfig.opening_statement
+            || agentData.opening_statement
+            || ''
+
+          // Extract suggested_questions from different possible locations
+          const suggestedQuestions = modelConfig.suggested_questions
+            || agentData.suggested_questions
+            || []
 
           // Fetch full tool information to get i18n labels
           const enrichToolsWithI18n = async (tools: SelectedTool[]) => {
@@ -291,6 +307,25 @@ export function AgentWizardProvider({
             }
           }).filter(Boolean) as UserInputForm[]
 
+          // Extract dataset_configs for RAG connection (Story 3.5)
+          // Debug logging (TODO: remove after debugging)
+          console.warn('[AgentWizardContext] Full modelConfig:', JSON.stringify(modelConfig, null, 2))
+
+          // Dify stores datasets in modelConfig.dataset_configs.datasets (array of {dataset: {id, enabled}})
+          // and retrieval settings in modelConfig.dataset_configs
+          const rawDatasetConfigs = modelConfig.dataset_configs || {}
+          const datasetConfigs = rawDatasetConfigs.datasets?.datasets?.length
+            ? {
+                datasets: rawDatasetConfigs.datasets,
+                retrieval_model: rawDatasetConfigs.retrieval_model || 'single',
+                top_k: rawDatasetConfigs.top_k,
+                score_threshold_enabled: rawDatasetConfigs.score_threshold_enabled,
+                score_threshold: rawDatasetConfigs.score_threshold,
+                reranking_enabled: rawDatasetConfigs.reranking_enable,
+                reranking_model: rawDatasetConfigs.reranking_model,
+              }
+            : null
+
           // Map Agent data to wizard state
           setState(prev => ({
             ...prev,
@@ -309,8 +344,8 @@ export function AgentWizardProvider({
               prompt_type: 'simple',
               user_input_form: userInputForm,
               output_format: undefined, // Output format not stored in backend, will be redefined in edit mode
-              opening_statement: agentData.opening_statement,
-              suggested_questions: agentData.suggested_questions || [],
+              opening_statement: openingStatement,
+              suggested_questions: suggestedQuestions,
             },
             modelConfig: {
               provider: modelInfo.provider || '',
@@ -329,6 +364,8 @@ export function AgentWizardProvider({
             toolsConfig: {
               tools: enrichedTools,
             },
+            datasetConfig: datasetConfigs,  // NEW: Story 3.5
+            agentOwnerId: agentData.created_by,  // NEW: Agent 소유자 ID (Story 3.5)
             createdAppId: agentData.id,
             isInitializing: false,
           }))
@@ -446,6 +483,18 @@ export function AgentWizardProvider({
     setState(prev => ({
       ...prev,
       toolsConfig: config,
+      isDraft: !isEditMode,
+    }))
+  }, [isEditMode])
+
+  /**
+   * Set dataset config (Step 4 - RAG Connection)
+   * Story 3.5: Connect RAG to Agent
+   */
+  const setDatasetConfig = useCallback((config: AgentDatasetConfig | null) => {
+    setState(prev => ({
+      ...prev,
+      datasetConfig: config,
       isDraft: !isEditMode,
     }))
   }, [isEditMode])
@@ -606,6 +655,12 @@ export function AgentWizardProvider({
           }
         }
 
+        // Add dataset_configs for RAG connection (Story 3.5)
+        if (state.datasetConfig) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (modelConfigPayload as any).dataset_configs = state.datasetConfig
+        }
+
         await agentAPI.updateModelConfig(initialAgentId, modelConfigPayload)
 
         agentId = initialAgentId
@@ -654,8 +709,10 @@ export function AgentWizardProvider({
         // eslint-disable-next-line no-console
         console.log('[AgentWizard] Creating agent with payload:', JSON.stringify(createAppPayload, null, 2))
 
-        // Add agent_mode for agent-chat type (automatically enabled if tools exist)
-        if (state.toolsConfig.tools.length > 0) {
+        // Add agent_mode for agent-chat type (required for agent-chat mode to work)
+        // For agent-chat mode, agent_mode.enabled must be true even without tools
+        const isAgentChatMode = createAppPayload.mode === 'agent-chat'
+        if (isAgentChatMode || state.toolsConfig.tools.length > 0) {
           createAppPayload.agent_mode = {
             enabled: true,
             strategy: 'function_call',
@@ -666,10 +723,31 @@ export function AgentWizardProvider({
                 provider_type: tool.provider_type,
                 tool_name: tool.tool_name,
                 tool_parameters: tool.tool_parameters,
-                enabled: true, // Include enabled field (already filtered)
+                enabled: true,
               })),
           }
         }
+
+        // Add dataset_configs for RAG connection (Story 3.5)
+        if (state.datasetConfig) {
+          createAppPayload.dataset_configs = state.datasetConfig
+
+          // For completion mode, dataset_query_variable is required
+          // Use the first text/paragraph variable from user_input_form
+          const userInputFormForCreate = state.promptSettings?.user_input_form || []
+          if (!isAgentChatMode && userInputFormForCreate.length > 0) {
+            const textVar = userInputFormForCreate.find(
+              (field: { input_type: string; variable: string }) =>
+                field.input_type === 'text-input' || field.input_type === 'paragraph'
+            )
+            if (textVar) {
+              createAppPayload.dataset_query_variable = textVar.variable
+            }
+          }
+        }
+
+        // Debug logging (TODO: remove after debugging)
+        console.warn('[AgentWizardContext] Creating app with payload:', JSON.stringify(createAppPayload, null, 2))
 
         const response = await difyAPI.createAppWithConfig(createAppPayload)
 
@@ -678,6 +756,69 @@ export function AgentWizardProvider({
         }
 
         agentId = response.data.id
+
+        // Call updateModelConfig to trigger app_model_config_was_updated event
+        // This is required for dataset_configs to be saved to AppDatasetJoin table
+        // Also required for agent-chat mode to have agent_mode set properly
+        if (isAgentChatMode || state.datasetConfig || state.toolsConfig.tools.length > 0) {
+          const modelConfigPayload: Record<string, unknown> = {
+            pre_prompt: state.promptSettings.pre_prompt,
+            opening_statement: state.promptSettings.opening_statement,
+            suggested_questions: state.promptSettings.suggested_questions || [],
+            model: {
+              provider: state.modelConfig.original_provider || state.modelConfig.provider,
+              name: state.modelConfig.model,
+              mode: state.modelConfig.mode,
+              completion_params: state.modelConfig.completion_params,
+            },
+            user_input_form: transformedUserInputFormCreate,
+          }
+
+          // Add agent_mode (required for agent-chat mode, optional for completion with tools)
+          if (isAgentChatMode || state.toolsConfig.tools.length > 0) {
+            modelConfigPayload.agent_mode = {
+              enabled: true,
+              strategy: 'function_call',
+              tools: state.toolsConfig.tools
+                .filter(tool => tool.enabled)
+                .map(tool => ({
+                  provider_id: tool.provider_id,
+                  provider_type: tool.provider_type,
+                  tool_name: tool.tool_name,
+                  tool_parameters: tool.tool_parameters,
+                  enabled: true,
+                })),
+            }
+          }
+
+          // Add dataset_configs for RAG connection
+          if (state.datasetConfig) {
+            modelConfigPayload.dataset_configs = state.datasetConfig
+
+            // For completion mode, dataset_query_variable is required
+            // Use the first text/paragraph variable from user_input_form
+            const userInputForm = state.promptSettings?.user_input_form || []
+            if (!isAgentChatMode && userInputForm.length > 0) {
+              const textVariable = userInputForm.find(
+                (field: { input_type: string; variable: string }) =>
+                  field.input_type === 'text-input' || field.input_type === 'paragraph'
+              )
+              if (textVariable) {
+                modelConfigPayload.dataset_query_variable = textVariable.variable
+              }
+            }
+          }
+
+          // Add file_upload config
+          if (fileUploadConfigCreate) {
+            modelConfigPayload.file_upload = fileUploadConfigCreate
+          }
+
+          // eslint-disable-next-line no-console
+          console.log('[AgentWizard] Updating model config with payload:', JSON.stringify(modelConfigPayload, null, 2))
+          await agentAPI.updateModelConfig(agentId, modelConfigPayload)
+        }
+
         showToast(t('toasts.agentCreated'), 'success')
 
         // Create API Token for new agent (required for execution)
@@ -754,6 +895,7 @@ export function AgentWizardProvider({
       promptSettings: data.promptSettings || null,
       modelConfig: data.modelConfig || null,
       toolsConfig: data.toolsConfig || null,
+      datasetConfig: data.datasetConfig || null,  // NEW: Story 3.5
       isDraft: true,
       showDraftPrompt: false,
       draftData: null,
@@ -794,6 +936,7 @@ export function AgentWizardProvider({
     setPromptSettings,
     setModelConfig,
     setToolsConfig,
+    setDatasetConfig,  // NEW: Story 3.5
     nextStep,
     previousStep,
     goToStep,
@@ -803,7 +946,7 @@ export function AgentWizardProvider({
     restoreDraft,
     discardDraft,
     isEditMode,
-  }), [state, setBasicSettings, setPromptSettings, setModelConfig, setToolsConfig, nextStep, previousStep, goToStep, saveAsDraft, createAgent, resetWizard, restoreDraft, discardDraft, isEditMode])
+  }), [state, setBasicSettings, setPromptSettings, setModelConfig, setToolsConfig, setDatasetConfig, nextStep, previousStep, goToStep, saveAsDraft, createAgent, resetWizard, restoreDraft, discardDraft, isEditMode])
 
   return (
     <AgentWizardContext.Provider value={contextValue}>

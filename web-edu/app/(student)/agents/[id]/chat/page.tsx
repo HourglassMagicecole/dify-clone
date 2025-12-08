@@ -60,16 +60,42 @@ export default function AgentChatPage() {
   const handleSelectConversation = async (conversationId: string) => {
     setCurrentConversationId(conversationId)
 
-    // If selecting the temporary conversation, don't load messages
+    // If selecting the temporary conversation, restore opening_statement
     if (conversationId === 'temp-new-conversation') {
-      setMessages([])
       setStreamingContent('')
+      const openingStatement = (agent?.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
+      if (openingStatement) {
+        const openingMessage: Message = {
+          id: 'opening-statement',
+          conversationId: 'temp-new-conversation',
+          role: 'assistant',
+          content: openingStatement,
+          createdAt: new Date().toISOString(),
+        }
+        setMessages([openingMessage])
+      } else {
+        setMessages([])
+      }
       return
     }
 
     try {
       const loadedMessages = await agentAPI.getConversationMessages(agentId, conversationId)
-      setMessages(loadedMessages)
+
+      // Prepend opening_statement as first message if it exists and not already in messages
+      const openingStatement = (agent?.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
+      if (openingStatement && loadedMessages.length > 0 && loadedMessages[0]?.id !== 'opening-statement') {
+        const openingMessage: Message = {
+          id: 'opening-statement',
+          conversationId,
+          role: 'assistant',
+          content: openingStatement,
+          createdAt: loadedMessages[0]?.createdAt || new Date().toISOString(),
+        }
+        setMessages([openingMessage, ...loadedMessages])
+      } else {
+        setMessages(loadedMessages)
+      }
     }
     catch (error) {
       // Security: Handle forbidden access
@@ -84,6 +110,25 @@ export default function AgentChatPage() {
 
   // Handle new conversation
   const handleNewConversation = () => {
+    // If already on temp conversation, just reset messages
+    if (currentConversationId === 'temp-new-conversation') {
+      setStreamingContent('')
+      const openingStatement = (agent?.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
+      if (openingStatement) {
+        const openingMessage: Message = {
+          id: 'opening-statement',
+          conversationId: 'temp-new-conversation',
+          role: 'assistant',
+          content: openingStatement,
+          createdAt: new Date().toISOString(),
+        }
+        setMessages([openingMessage])
+      } else {
+        setMessages([])
+      }
+      return
+    }
+
     // Create temporary conversation
     const tempConversation: Conversation = {
       id: 'temp-new-conversation',
@@ -94,13 +139,28 @@ export default function AgentChatPage() {
       messageCount: 0,
     }
 
-    // Add temporary conversation to the list
-    mutateConversations([tempConversation, ...(conversations || [])], false)
+    // Remove any existing temp conversation and add new one
+    const filteredConversations = (conversations || []).filter(c => c.id !== 'temp-new-conversation')
+    mutateConversations([tempConversation, ...filteredConversations], false)
 
     // Select the temporary conversation
     setCurrentConversationId('temp-new-conversation')
-    setMessages([])
     setStreamingContent('')
+
+    // Add opening_statement as the first assistant message if available
+    const openingStatement = (agent?.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
+    if (openingStatement) {
+      const openingMessage: Message = {
+        id: 'opening-statement',
+        conversationId: 'temp-new-conversation',
+        role: 'assistant',
+        content: openingStatement,
+        createdAt: new Date().toISOString(),
+      }
+      setMessages([openingMessage])
+    } else {
+      setMessages([])
+    }
   }
 
   // Handle export conversation
@@ -428,12 +488,42 @@ export default function AgentChatPage() {
             isStreaming={isStreaming}
             streamingContent={streamingContent}
             onRegenerate={handleRegenerate}
+            hasConversationSelected={currentConversationId !== null}
           />
         </div>
 
+        {/* Suggested questions - show above input when only opening statement exists */}
+        {(() => {
+          const suggestedQuestions = (agent.model_config as unknown as Record<string, unknown>)?.suggested_questions as string[] | undefined
+          const showSuggestions = currentConversationId !== null
+            && messages.length === 1
+            && messages[0]?.id === 'opening-statement'
+            && suggestedQuestions
+            && suggestedQuestions.length > 0
+            && !isStreaming
+
+          if (!showSuggestions) return null
+
+          return (
+            <div className="flex-shrink-0 px-4 py-3 bg-gray-50 border-t">
+              <div className="flex flex-wrap gap-2 justify-center">
+                {suggestedQuestions!.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSend(question, [])}
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-full text-sm text-gray-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Input Area - Fixed at bottom */}
         <div className="flex-shrink-0 border-t bg-white">
-          <MessageInput onSend={handleSend} disabled={isStreaming} />
+          <MessageInput onSend={handleSend} disabled={isStreaming || currentConversationId === null} />
         </div>
       </main>
 
@@ -458,7 +548,7 @@ export default function AgentChatPage() {
               </button>
             </div>
             <div className="p-4">
-              <AgentInfo agent={agent} showHeader={false} />
+              <AgentInfo agent={agent} showHeader={false} showPrompt={true} />
             </div>
           </div>
         </div>

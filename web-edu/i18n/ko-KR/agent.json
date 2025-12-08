@@ -240,6 +240,16 @@
     "promptTitle": "프롬프트",
     "modelTitle": "LLM 모델",
     "toolsTitle": "도구",
+    "knowledgeBaseTitle": "지식 베이스 (RAG)",
+    "noKnowledgeBaseSelected": "연결된 지식 베이스가 없습니다",
+    "topK": "Top K",
+    "scoreThreshold": "점수 임계값",
+    "reranking": "재정렬",
+    "retrievalModel": "검색 방식",
+    "enabled": "활성화",
+    "disabled": "비활성화",
+    "multipleDatasets": "다중",
+    "singleDataset": "단일",
     "testAgentTitle": "Agent 테스트",
     "testAgentDescription": "생성 전에 Agent를 미리 테스트할 수 있습니다",
     "startTestSession": "테스트 메시지를 보내 대화를 시작하세요",
@@ -251,6 +261,33 @@
     "creatingAgent": "Agent 생성 중...",
     "noToolsSelectedWarning": "선택된 도구가 없습니다",
     "editStep": "편집"
+  },
+  "ragSettings": {
+    "title": "지식 베이스 (RAG)",
+    "description": "지식 베이스를 연결하여 도메인별 정보로 Agent를 강화하세요."
+  },
+  "datasetSelector": {
+    "selected": "선택됨",
+    "noDatasets": "사용 가능한 지식 베이스가 없습니다",
+    "createFirst": "Agent에 연결하려면 먼저 지식 베이스를 만드세요.",
+    "createLink": "지식 베이스 만들기",
+    "searchPlaceholder": "지식 베이스 검색...",
+    "noResults": "검색 결과가 없습니다",
+    "docCount": "{{count}}개 문서",
+    "wordCount": "{{count}}개 단어",
+    "viewDetails": "상세 보기",
+    "remove": "제거",
+    "retry": "재시도"
+  },
+  "retrievalSettings": {
+    "title": "검색 설정",
+    "topK": "상위 결과",
+    "topKTooltip": "검색할 상위 청크 개수입니다. 값이 클수록 더 많은 결과를 반환합니다.",
+    "scoreThreshold": "유사도 기준",
+    "scoreThresholdTooltip": "최소 유사도 점수입니다. 이 값보다 낮은 결과는 제외됩니다.",
+    "reranking": "리랭킹",
+    "rerankingTooltip": "AI 모델을 사용해 검색 결과의 순위를 재평가합니다.",
+    "rerankingNotConfigured": "리랭킹 모델이 설정되지 않음"
   },
   "validation": {
     "nameRequired": "Agent 이름을 입력하세요",

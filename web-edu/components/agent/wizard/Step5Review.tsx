@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
+import { CircleStackIcon } from '@heroicons/react/24/solid'
 import { useAgentWizard } from '@/context/AgentWizardContext'
 import { AgentWizardStep } from '@/types/agent'
 
@@ -12,6 +13,7 @@ import { AgentWizardStep } from '@/types/agent'
  * Features:
  * - Agent summary (all steps data with edit buttons)
  * - Create Agent button (with loading state)
+ * - Knowledge Base (RAG) summary (Story 3.5)
  */
 export default function Step5Review() {
   const { t, i18n } = useTranslation('agent')
@@ -21,6 +23,7 @@ export default function Step5Review() {
     promptSettings,
     modelConfig,
     toolsConfig,
+    datasetConfig,  // NEW: Story 3.5
     goToStep,
     createAgent,
     isLoading,
@@ -207,6 +210,70 @@ export default function Step5Review() {
                     {getLocalizedText(tool.tool_label, tool.tool_name)}
                   </span>
                 ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Knowledge Base (RAG) - Story 3.5 */}
+        <div className="border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600">
+          <div className="px-4 py-3 border-b border-gray-300 dark:border-gray-600">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                {t('reviewSettings.knowledgeBaseTitle', 'Knowledge Base (RAG)')}
+              </h4>
+              <button
+                type="button"
+                onClick={() => goToStep(AgentWizardStep.TOOLS)}
+                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                {t('reviewSettings.editStep')}
+              </button>
+            </div>
+          </div>
+          <div className="px-4 py-4">
+            {!datasetConfig || !datasetConfig.datasets?.datasets?.length ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {t('reviewSettings.noKnowledgeBaseSelected', 'No knowledge base connected')}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Selected Datasets */}
+                <div className="flex flex-wrap gap-2">
+                  {datasetConfig.datasets.datasets.map(item => (
+                    <span
+                      key={item.dataset.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-md dark:bg-blue-900/20 dark:text-blue-300"
+                    >
+                      <CircleStackIcon className="h-4 w-4" />
+                      {item.dataset.name || item.dataset.id.substring(0, 8) + '...'}
+                    </span>
+                  ))}
+                </div>
+                {/* Retrieval Settings Summary */}
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
+                  <div>
+                    {t('reviewSettings.topK', 'Top K')}: {datasetConfig.top_k ?? 4}
+                  </div>
+                  <div>
+                    {t('reviewSettings.scoreThreshold', 'Score Threshold')}:{' '}
+                    {datasetConfig.score_threshold_enabled
+                      ? (datasetConfig.score_threshold ?? 0.5).toFixed(1)
+                      : t('reviewSettings.disabled', 'Disabled')}
+                  </div>
+                  <div>
+                    {t('reviewSettings.reranking', 'Reranking')}:{' '}
+                    {datasetConfig.reranking_enabled
+                      ? t('reviewSettings.enabled', 'Enabled')
+                      : t('reviewSettings.disabled', 'Disabled')}
+                  </div>
+                  <div>
+                    {t('reviewSettings.retrievalModel', 'Retrieval')}:{' '}
+                    {datasetConfig.retrieval_model === 'multiple'
+                      ? t('reviewSettings.multipleDatasets', 'Multiple')
+                      : t('reviewSettings.singleDataset', 'Single')}
+                  </div>
+                </div>
               </div>
             )}
           </div>

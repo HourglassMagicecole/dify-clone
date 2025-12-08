@@ -68,9 +68,15 @@ export default function DatasetsPage() {
   }, [currentSession])
 
   useEffect(() => {
-    if (!sessionLoading && currentSession && user) {
-      loadDatasets()
+    if (sessionLoading) return
+
+    if (!currentSession || !user) {
+      // No session or user, stop loading
+      setIsLoading(false)
+      return
     }
+
+    loadDatasets()
   }, [currentSession, sessionLoading, loadDatasets, user])
 
   const handleCreateDataset = () => {

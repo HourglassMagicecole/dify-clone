@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import select
 
 from events.app_event import app_model_config_was_updated
@@ -42,6 +44,11 @@ def handle(sender, **kwargs):
 
 
 def get_dataset_ids_from_model_config(app_model_config: AppModelConfig) -> set[str]:
+    """
+    Extract dataset IDs from AppModelConfig.
+    NOTE: We directly parse the stored JSON instead of using dataset_configs_dict property
+    to avoid circular reference (dataset_configs_dict now queries AppDatasetJoin).
+    """
     dataset_ids: set[str] = set()
     if not app_model_config:
         return dataset_ids
@@ -58,13 +65,14 @@ def get_dataset_ids_from_model_config(app_model_config: AppModelConfig) -> set[s
         if tool_type == "dataset":
             dataset_ids.add(tool_config.get("id"))
 
-    # get dataset from dataset_configs
-    dataset_configs = app_model_config.dataset_configs_dict
-    datasets = dataset_configs.get("datasets", {}) or {}
-    for dataset in datasets.get("datasets", []) or []:
-        keys = list(dataset.keys())
-        if len(keys) == 1 and keys[0] == "dataset":
-            if dataset["dataset"].get("id"):
-                dataset_ids.add(dataset["dataset"].get("id"))
+    # Get dataset from dataset_configs - parse JSON directly to avoid circular reference
+    if app_model_config.dataset_configs:
+        dataset_configs: dict = json.loads(app_model_config.dataset_configs)
+        datasets = dataset_configs.get("datasets", {}) or {}
+        for dataset in datasets.get("datasets", []) or []:
+            keys = list(dataset.keys())
+            if len(keys) == 1 and keys[0] == "dataset":
+                if dataset["dataset"].get("id"):
+                    dataset_ids.add(dataset["dataset"].get("id"))
 
     return dataset_ids

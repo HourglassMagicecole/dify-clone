@@ -41,6 +41,16 @@ export function AgentInfo({ agent, showHeader = true, showPrompt = false }: Agen
   // Extract system prompt for completion mode
   const prePrompt = modelConfigData?.pre_prompt as string | undefined
 
+  // Extract dataset/RAG information from model_config.dataset_configs
+  const datasetConfigs = modelConfigData?.dataset_configs as {
+    datasets?: {
+      datasets?: Array<{ dataset: { id: string; name?: string; enabled?: boolean } }>
+    }
+  } | undefined
+  const datasets = datasetConfigs?.datasets?.datasets
+    ?.filter(d => d.dataset?.enabled !== false)
+    ?.map(d => d.dataset) ?? []
+
   return (
     <div
       className="flex-shrink-0 bg-gray-50 overflow-y-auto"
@@ -98,6 +108,21 @@ export function AgentInfo({ agent, showHeader = true, showPrompt = false }: Agen
           <div className="bg-white rounded-lg p-3 shadow-sm border">
             <h4 className="font-semibold text-sm text-gray-700 mb-2">{t('enabledTools')}</h4>
             <p className="text-sm text-gray-500">{t('noToolsEnabled')}</p>
+          </div>
+        )}
+
+        {/* Knowledge Base (RAG) Section */}
+        {datasets.length > 0 && (
+          <div className="bg-white rounded-lg p-3 shadow-sm border">
+            <h4 className="font-semibold text-sm text-gray-700 mb-2">{t('knowledgeBase')}</h4>
+            <div className="space-y-1">
+              {datasets.map((dataset, index) => (
+                <div key={dataset.id || index} className="text-sm text-gray-700 flex items-center gap-2">
+                  <span className="text-green-500">•</span>
+                  <span>{dataset.name || dataset.id}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

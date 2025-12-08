@@ -70,9 +70,15 @@ export default function AgentsPage() {
   }, [currentSession])
 
   useEffect(() => {
-    if (!sessionLoading && currentSession && user) {
-      loadAgents()
+    if (sessionLoading) return
+
+    if (!currentSession || !user) {
+      // No session or user, stop loading
+      setIsLoading(false)
+      return
     }
+
+    loadAgents()
   }, [currentSession, sessionLoading, loadAgents, user])
 
   const handleCreateAgent = () => {

@@ -14,10 +14,13 @@ import {
 } from '@heroicons/react/24/outline'
 import { toolsConfigSchema, type ToolsConfigFormData } from '@/schemas/agent-schema'
 import { useAgentWizard } from '@/context/AgentWizardContext'
+import { useAuth } from '@/hooks/useAuth'
 import { listTools, getToolDetail } from '@/service/tool-api'
 import ToolConfigModal from './ToolConfigModal'
+import { DatasetSelector } from './DatasetSelector'
+import { DatasetRetrievalSettings, DEFAULT_RETRIEVAL_SETTINGS } from './DatasetRetrievalSettings'
 import type { Tool, ToolProvider } from '@/types/tool'
-import type { SelectedTool } from '@/types/agent'
+import type { SelectedTool, AgentDatasetConfig, DatasetRetrievalConfig } from '@/types/agent'
 
 /**
  * Step 4: Tools Configuration Component
@@ -89,10 +92,28 @@ const DEFAULT_TOOL_ICON = '🛠️'
 
 export default function Step4ToolsConfig() {
   const { t, i18n } = useTranslation('agent')
-  const { basicSettings, toolsConfig, setToolsConfig, promptSettings, setPromptSettings, nextStep, previousStep, isEditMode } = useAgentWizard()
+  const {
+    basicSettings,
+    toolsConfig,
+    setToolsConfig,
+    promptSettings,
+    setPromptSettings,
+    datasetConfig,
+    setDatasetConfig,
+    agentOwnerId: editModeAgentOwnerId,
+    nextStep,
+    previousStep,
+    isEditMode,
+  } = useAgentWizard()
+  const { user } = useAuth()
 
   // 현재 언어 설정 ('ko-KR' → 'ko_KR' 변환)
   const currentLang = (i18n.language || 'en-US').replace('-', '_')
+
+  // Agent 소유자 ID 결정
+  // - Create 모드: 현재 사용자 ID
+  // - Edit 모드: Agent의 created_by (Context에서 로드됨)
+  const agentOwnerId = isEditMode ? editModeAgentOwnerId : user?.id
 
   const [toolProviders, setToolProviders] = useState<ToolProvider[]>([])
   const [isLoadingTools, setIsLoadingTools] = useState(true)
@@ -102,6 +123,29 @@ export default function Step4ToolsConfig() {
   const [configTool, setConfigTool] = useState<Tool | null>(null)
   const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set())
   const hasRestoredRef = useRef(false)
+
+  // RAG 관련 상태 (Story 3.5)
+  const [ragEnabled, setRagEnabled] = useState(
+    (datasetConfig?.datasets?.datasets?.length ?? 0) > 0
+  )
+  const [selectedDatasetIds, setSelectedDatasetIds] = useState<string[]>(
+    datasetConfig?.datasets?.datasets?.map(d => d.dataset.id) ?? []
+  )
+  const [selectedDatasetNames, setSelectedDatasetNames] = useState<Record<string, string>>(
+    datasetConfig?.datasets?.datasets?.reduce((acc, d) => {
+      if (d.dataset.name) acc[d.dataset.id] = d.dataset.name
+      return acc
+    }, {} as Record<string, string>) ?? {}
+  )
+  const [retrievalSettings, setRetrievalSettings] = useState<DatasetRetrievalConfig>(
+    datasetConfig ? {
+      search_method: 'semantic_search',
+      reranking_enable: datasetConfig.reranking_enabled ?? false,
+      top_k: datasetConfig.top_k ?? 4,
+      score_threshold_enabled: datasetConfig.score_threshold_enabled ?? false,
+      score_threshold: datasetConfig.score_threshold,
+    } : DEFAULT_RETRIEVAL_SETTINGS
+  )
 
   const {
     handleSubmit,
@@ -193,6 +237,41 @@ export default function Step4ToolsConfig() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolProviders, basicSettings, toolsConfig, selectedTools])
+
+  // Update datasetConfig in context when RAG settings change (Story 3.5)
+  useEffect(() => {
+    if (!ragEnabled || selectedDatasetIds.length === 0) {
+      // RAG 비활성화 또는 Dataset 미선택 시 null로 설정
+      if (datasetConfig !== null) {
+        setDatasetConfig(null)
+      }
+      return
+    }
+
+    const newDatasetConfig: AgentDatasetConfig = {
+      datasets: {
+        strategy: selectedDatasetIds.length > 1 ? 'router' : 'single',
+        datasets: selectedDatasetIds.map(id => ({
+          dataset: {
+            enabled: true,
+            id,
+            name: selectedDatasetNames[id],  // Include name for UI display
+          },
+        })),
+      },
+      retrieval_model: selectedDatasetIds.length > 1 ? 'multiple' : 'single',
+      top_k: retrievalSettings.top_k,
+      score_threshold_enabled: retrievalSettings.score_threshold_enabled,
+      score_threshold: retrievalSettings.score_threshold,
+      reranking_enabled: retrievalSettings.reranking_enable,
+      reranking_model: retrievalSettings.reranking_model,
+    }
+
+    // Only update if different to avoid infinite loops
+    if (JSON.stringify(datasetConfig) !== JSON.stringify(newDatasetConfig)) {
+      setDatasetConfig(newDatasetConfig)
+    }
+  }, [ragEnabled, selectedDatasetIds, selectedDatasetNames, retrievalSettings, datasetConfig, setDatasetConfig])
 
   // Helper: i18n 객체에서 현재 언어에 맞는 텍스트 가져오기
   const getLocalizedText = (i18nObj: string | Record<string, string> | undefined, fallback = ''): string => {
@@ -383,59 +462,103 @@ export default function Step4ToolsConfig() {
   }
 
   /**
-   * Generate tools section preview for prompt
+   * Generate prompt sections preview (tools + RAG)
    */
-  const generateToolsSectionPreview = (): string => {
-    if (selectedTools.length === 0) return ''
+  const generatePromptSectionsPreview = (): string => {
+    let preview = ''
 
+    // Tools section
     const enabledTools = selectedTools.filter(tool => tool.enabled !== false)
-    if (enabledTools.length === 0) return ''
+    if (enabledTools.length > 0) {
+      preview += '## 사용 가능한 도구\n'
+      enabledTools.forEach(tool => {
+        const toolName = tool.tool_label || tool.tool_name
+        preview += `- ${toolName}\n`
+      })
+    }
 
-    let toolsSection = '## 사용 가능한 도구\n'
-    enabledTools.forEach(tool => {
-      const toolName = tool.tool_label || tool.tool_name
-      toolsSection += `- ${toolName}\n`
-    })
+    // RAG section
+    if (ragEnabled && selectedDatasetIds.length > 0) {
+      const datasetNames = selectedDatasetIds
+        .map(id => selectedDatasetNames[id] || id.substring(0, 8))
+        .join(', ')
 
-    return toolsSection
+      if (preview) preview += '\n'
+      preview += '## 지식 베이스 활용 지침\n'
+      preview += '사용자의 질문에 답변하기 전에 반드시 연결된 지식 베이스를 검색하세요.\n'
+      preview += `- 연결된 지식 베이스: ${datasetNames}\n`
+      preview += '- 지식 베이스를 먼저 검색하고, 결과가 없거나 부족하면 다른 도구(위키백과 등)를 사용하세요\n'
+      preview += '- 검색 결과가 있으면 그 내용을 바탕으로 답변하세요\n'
+      preview += '- 검색 결과가 없거나 관련 없으면 일반 지식으로 답변하되, "지식 베이스에서 관련 정보를 찾지 못했습니다"라고 먼저 언급하세요\n'
+      preview += '- 지식 베이스의 정보와 일반 지식이 충돌하면 지식 베이스 정보를 우선시하세요\n'
+    }
+
+    return preview
+  }
+
+  /**
+   * Remove a section from prompt by header name
+   */
+  const removeSectionFromPrompt = (prompt: string, sectionHeader: string): string => {
+    const sectionIndex = prompt.indexOf(sectionHeader)
+    if (sectionIndex === -1) return prompt
+
+    const afterSection = prompt.substring(sectionIndex + sectionHeader.length)
+    const nextSectionMatch = afterSection.match(/\n##\s/)
+
+    if (nextSectionMatch && nextSectionMatch.index !== undefined) {
+      // There's another section after - preserve it
+      const nextSectionStart = sectionIndex + sectionHeader.length + nextSectionMatch.index
+      const beforeSection = prompt.substring(0, sectionIndex).trim()
+      const afterSectionContent = prompt.substring(nextSectionStart).trim()
+      return beforeSection + (afterSectionContent ? '\n\n' + afterSectionContent : '')
+    }
+    else {
+      // No section after - just remove it
+      return prompt.substring(0, sectionIndex).trim()
+    }
   }
 
   const handleNext = () => {
     setToolsConfig({ tools: selectedTools })
 
-    // Update pre_prompt with tools section
-    if (promptSettings && selectedTools.length > 0) {
+    // Update pre_prompt with tools and RAG sections
+    if (promptSettings) {
+      let basePrompt = promptSettings.pre_prompt || ''
+
+      // Remove existing sections first
+      basePrompt = removeSectionFromPrompt(basePrompt, '## 사용 가능한 도구')
+      basePrompt = removeSectionFromPrompt(basePrompt, '## 지식 베이스 활용 지침')
+
+      let updatedPrompt = basePrompt
+
+      // Add tools section if tools are selected
       const enabledTools = selectedTools.filter(tool => tool.enabled !== false)
       if (enabledTools.length > 0) {
-        // Remove existing tools section (only the tools section, preserve other sections)
-        let basePrompt = promptSettings.pre_prompt || ''
-        const toolsSectionIndex = basePrompt.indexOf('## 사용 가능한 도구')
-
-        if (toolsSectionIndex !== -1) {
-          // Find the start of the next section after tools section
-          const afterToolsSection = basePrompt.substring(toolsSectionIndex + '## 사용 가능한 도구'.length)
-          const nextSectionMatch = afterToolsSection.match(/\n##\s/)
-
-          if (nextSectionMatch && nextSectionMatch.index !== undefined) {
-            // There's another section after tools section - preserve it
-            const nextSectionStart = toolsSectionIndex + '## 사용 가능한 도구'.length + nextSectionMatch.index
-            const beforeTools = basePrompt.substring(0, toolsSectionIndex).trim()
-            const afterTools = basePrompt.substring(nextSectionStart).trim()
-            basePrompt = beforeTools + (afterTools ? '\n\n' + afterTools : '')
-          }
-          else {
-            // No section after tools section - just remove it
-            basePrompt = basePrompt.substring(0, toolsSectionIndex).trim()
-          }
-        }
-
-        // Add new tools section
-        let updatedPrompt = basePrompt + '\n\n## 사용 가능한 도구\n'
+        updatedPrompt += '\n\n## 사용 가능한 도구\n'
         enabledTools.forEach(tool => {
           const toolName = tool.tool_label || tool.tool_name
           updatedPrompt += `- ${toolName}\n`
         })
+      }
 
+      // Add RAG section if datasets are selected (Story 3.5)
+      if (ragEnabled && selectedDatasetIds.length > 0) {
+        const datasetNames = selectedDatasetIds
+          .map(id => selectedDatasetNames[id] || id.substring(0, 8))
+          .join(', ')
+
+        updatedPrompt += '\n\n## 지식 베이스 활용 지침\n'
+        updatedPrompt += '사용자의 질문에 답변하기 전에 반드시 연결된 지식 베이스를 검색하세요.\n'
+        updatedPrompt += `- 연결된 지식 베이스: ${datasetNames}\n`
+        updatedPrompt += '- 지식 베이스를 먼저 검색하고, 결과가 없거나 부족하면 다른 도구(위키백과 등)를 사용하세요\n'
+        updatedPrompt += '- 검색 결과가 있으면 그 내용을 바탕으로 답변하세요\n'
+        updatedPrompt += '- 검색 결과가 없거나 관련 없으면 일반 지식으로 답변하되, "지식 베이스에서 관련 정보를 찾지 못했습니다"라고 먼저 언급하세요\n'
+        updatedPrompt += '- 지식 베이스의 정보와 일반 지식이 충돌하면 지식 베이스 정보를 우선시하세요\n'
+      }
+
+      // Only update if prompt changed
+      if (updatedPrompt !== promptSettings.pre_prompt) {
         setPromptSettings({
           ...promptSettings,
           pre_prompt: updatedPrompt,
@@ -514,7 +637,7 @@ export default function Step4ToolsConfig() {
       )}
 
       {/* Prompt Preview Section */}
-      {selectedTools.length > 0 && (
+      {(selectedTools.length > 0 || (ragEnabled && selectedDatasetIds.length > 0)) && (
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-gray-900 dark:text-white">
             {t('toolsSettings.promptPreviewTitle')}
@@ -524,11 +647,72 @@ export default function Step4ToolsConfig() {
           </p>
           <div className="relative">
             <pre className="p-4 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre-wrap font-mono">
-{generateToolsSectionPreview()}
+{generatePromptSectionsPreview()}
             </pre>
           </div>
         </div>
       )}
+
+      {/* RAG (Knowledge Base) Section - Story 3.5 */}
+      <div className="space-y-4 p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              {t('ragSettings.title', 'Knowledge Base (RAG)')}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {t('ragSettings.description', 'Connect knowledge bases to enhance your agent with domain-specific information.')}
+            </p>
+          </div>
+          {/* RAG Enable Toggle */}
+          <button
+            type="button"
+            onClick={() => setRagEnabled(!ragEnabled)}
+            className={`
+              relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              ${ragEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}
+            `}
+            role="switch"
+            aria-checked={ragEnabled}
+          >
+            <span
+              className={`
+                inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
+                ${ragEnabled ? 'translate-x-6' : 'translate-x-1'}
+              `}
+            />
+          </button>
+        </div>
+
+        {/* RAG Settings (shown when enabled) */}
+        {ragEnabled && agentOwnerId && (
+          <div className="space-y-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            {/* Dataset Selector */}
+            <DatasetSelector
+              selectedDatasetIds={selectedDatasetIds}
+              onSelectionChange={(ids, datasets) => {
+                setSelectedDatasetIds(ids)
+                setSelectedDatasetNames(
+                  datasets.reduce((acc, d) => {
+                    acc[d.id] = d.name
+                    return acc
+                  }, {} as Record<string, string>)
+                )
+              }}
+              agentOwnerId={agentOwnerId}
+            />
+
+            {/* Retrieval Settings (shown when datasets selected) */}
+            {selectedDatasetIds.length > 0 && (
+              <DatasetRetrievalSettings
+                settings={retrievalSettings}
+                onSettingsChange={setRetrievalSettings}
+              />
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Available Tools Section */}
       <div className="space-y-3">

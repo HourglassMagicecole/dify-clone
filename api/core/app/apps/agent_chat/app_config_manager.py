@@ -64,6 +64,23 @@ class AgentChatAppConfigManager(BaseAppConfigManager):
             config_dict = override_config_dict or {}
 
         app_mode = AppMode.value_of(app_model.mode)
+
+        # Get prompt_template first
+        prompt_template = PromptTemplateConfigManager.convert(config=config_dict)
+
+        # Get opening_statement to add context to prompt
+        opening_statement, _ = OpeningStatementConfigManager.convert(config=config_dict)
+
+        # If opening_statement exists, prepend it to the prompt as context
+        # This helps LLM understand the conversation started with this greeting
+        if opening_statement and prompt_template.simple_prompt_template:
+            opening_context = f'[대화 시작 시 당신은 다음과 같이 인사했습니다: "{opening_statement}"]\n\n'
+            prompt_template.simple_prompt_template = opening_context + prompt_template.simple_prompt_template
+        elif opening_statement and not prompt_template.simple_prompt_template:
+            prompt_template.simple_prompt_template = (
+                f'[대화 시작 시 당신은 다음과 같이 인사했습니다: "{opening_statement}"]'
+            )
+
         app_config = AgentChatAppConfig(
             tenant_id=app_model.tenant_id,
             app_id=app_model.id,
@@ -72,7 +89,7 @@ class AgentChatAppConfigManager(BaseAppConfigManager):
             app_model_config_id=app_model_config.id,
             app_model_config_dict=config_dict,
             model=ModelConfigManager.convert(config=config_dict),
-            prompt_template=PromptTemplateConfigManager.convert(config=config_dict),
+            prompt_template=prompt_template,
             sensitive_word_avoidance=SensitiveWordAvoidanceConfigManager.convert(config=config_dict),
             dataset=DatasetConfigManager.convert(config=config_dict),
             agent=AgentConfigManager.convert(config=config_dict),

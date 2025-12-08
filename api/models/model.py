@@ -430,15 +430,44 @@ class AppModelConfig(Base):
 
     @property
     def dataset_configs_dict(self) -> dict[str, Any]:
+        # Import here to avoid circular import
+        from models.dataset import AppDatasetJoin, Dataset
+
+        # Start with base config from stored JSON or defaults
         if self.dataset_configs:
             dataset_configs: dict[str, Any] = json.loads(self.dataset_configs)
             if "retrieval_model" not in dataset_configs:
-                return {"retrieval_model": "single"}
-            else:
-                return dataset_configs
-        return {
-            "retrieval_model": "multiple",
-        }
+                dataset_configs["retrieval_model"] = "single"
+        else:
+            dataset_configs = {"retrieval_model": "multiple"}
+
+        # Query connected datasets from AppDatasetJoin table
+        app_dataset_joins = db.session.query(AppDatasetJoin).filter(AppDatasetJoin.app_id == self.app_id).all()
+
+        if app_dataset_joins:
+            dataset_ids = [join.dataset_id for join in app_dataset_joins]
+            # Fetch dataset names for UI display
+            datasets = db.session.query(Dataset.id, Dataset.name).filter(Dataset.id.in_(dataset_ids)).all()
+            dataset_name_map = {str(d.id): d.name for d in datasets}
+
+            # Build datasets.datasets array
+            datasets_list = [
+                {
+                    "dataset": {
+                        "enabled": True,
+                        "id": str(join.dataset_id),
+                        "name": dataset_name_map.get(str(join.dataset_id), ""),
+                    }
+                }
+                for join in app_dataset_joins
+            ]
+
+            dataset_configs["datasets"] = {
+                "strategy": "router",
+                "datasets": datasets_list,
+            }
+
+        return dataset_configs
 
     @property
     def file_upload_dict(self) -> dict[str, Any]:

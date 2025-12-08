@@ -137,7 +137,7 @@ prepare-api:
 	@awk -v key="$$(cd api && uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" '/^API_KEY_ENCRYPTION_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env
 	@cd api && uv run flask db upgrade
 	@echo "👤 Creating initial tenant (development default)..."
-	@cd api && uv run flask init-tenant --email owner@test.com --password Test1234! --name "Admin" 2>/dev/null || echo "ℹ️  Tenant already exists (skipped)"
+	@cd api && uv run flask init-tenant --email owner@test.com --password Test1234! --name "Owner" 2>/dev/null || echo "ℹ️  Tenant already exists (skipped)"
 	@echo "🔌 Installing model provider plugins..."
 	@cd api && uv run flask provider install-plugins || echo "⚠️  Plugin installation failed (will retry on API Key creation)"
 	@echo "✅ API environment prepared (not started)"
