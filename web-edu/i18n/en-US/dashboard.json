@@ -3,7 +3,6 @@
   "subtitle": "View your learning progress and resources",
   "resourceSummary": {
     "agents": "Agents",
-    "workflows": "Workflows",
     "datasets": "Datasets"
   },
   "recentActivity": {
@@ -27,14 +26,12 @@
     "title": "Quick Start",
     "createAgent": "Create Agent",
     "createAgentDesc": "Build conversational AI Agent",
-    "createWorkflow": "Create Workflow",
-    "createWorkflowDesc": "Configure AI workflows",
     "createDataset": "Create Dataset",
     "createDatasetDesc": "Build RAG knowledge base"
   },
   "empty": {
     "title": "No resources created yet",
-    "description": "Start creating Agents, Workflows, and Datasets to begin your AI learning",
+    "description": "Start creating Agents and Datasets to begin your AI learning",
     "button": "Get Started"
   },
   "error": {
@@ -67,17 +64,12 @@
     "title": "Learning Progress",
     "checklist": {
       "agent": "Create Agent",
-      "workflow": "Create Workflow",
       "dataset": "Create Dataset"
     },
     "steps": {
       "createAgent": {
         "title": "Create an Agent",
         "description": "Build an AI Agent to create a conversational assistant"
-      },
-      "createWorkflow": {
-        "title": "Create a Workflow",
-        "description": "Build a Workflow to automate complex tasks"
       },
       "createDataset": {
         "title": "Create a RAG Knowledge Base",

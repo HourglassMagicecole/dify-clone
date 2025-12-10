@@ -60,16 +60,16 @@ describe('RecentActivityTimeline', () => {
       },
       {
         id: '2',
-        type: 'workflow' as const,
-        resourceName: 'Workflow 1',
+        type: 'dataset' as const,
+        resourceName: 'Dataset 1',
         action: 'updated' as const,
         timestamp: new Date().toISOString(),
         status: 'success' as const,
       },
       {
         id: '3',
-        type: 'dataset' as const,
-        resourceName: 'Dataset 1',
+        type: 'agent' as const,
+        resourceName: 'Agent 2',
         action: 'executed' as const,
         timestamp: new Date().toISOString(),
         status: 'failed' as const,
@@ -79,8 +79,8 @@ describe('RecentActivityTimeline', () => {
     render(<RecentActivityTimeline activities={mockActivities} />)
 
     expect(screen.getByText('Agent 1')).toBeInTheDocument()
-    expect(screen.getByText('Workflow 1')).toBeInTheDocument()
     expect(screen.getByText('Dataset 1')).toBeInTheDocument()
+    expect(screen.getByText('Agent 2')).toBeInTheDocument()
     expect(screen.getByText('생성됨')).toBeInTheDocument()
     expect(screen.getByText('수정됨')).toBeInTheDocument()
     expect(screen.getByText('실행됨')).toBeInTheDocument()

@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'EduAI Studio - AI Education Platform',
-  description: 'Educational AI Platform for Learning Agent, RAG, and Workflow',
+  description: 'Educational AI Platform for Learning Agent and RAG',
 }
 
 export default function RootLayout({

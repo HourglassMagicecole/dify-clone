@@ -112,7 +112,7 @@ export default function UnifiedDashboard() {
         {/* 전체 리소스 요약 */}
         <section className="mb-8">
           <ResourceSummaryCard
-            summary={data?.resourceSummary || { agents: 0, workflows: 0, datasets: 0, total: 0 }}
+            summary={data?.resourceSummary || { agents: 0, datasets: 0, total: 0 }}
             scope="system"
             sessionName={currentSession?.session_name}
             isLoading={showLoading}
@@ -194,7 +194,7 @@ export default function UnifiedDashboard() {
         {/* 내 리소스 (세션별) */}
         <section className="mb-8">
           <ResourceSummaryCard
-            summary={data?.resourceSummary || { agents: 0, workflows: 0, datasets: 0, total: 0 }}
+            summary={data?.resourceSummary || { agents: 0, datasets: 0, total: 0 }}
             scope="my_resources"
             sessionName={currentSession.session_name}
             isLoading={showLoading}
@@ -241,12 +241,12 @@ export default function UnifiedDashboard() {
             </Link>
 
             <Link
-              href="/workflows/create"
+              href="/datasets/create"
               className="bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg p-6 transition-colors"
             >
-              <div className="text-2xl mb-2">🔄</div>
-              <h3 className="font-semibold text-orange-900">Workflow 생성</h3>
-              <p className="text-sm text-orange-700">새로운 Workflow 만들기</p>
+              <div className="text-2xl mb-2">📚</div>
+              <h3 className="font-semibold text-orange-900">RAG 생성</h3>
+              <p className="text-sm text-orange-700">새로운 Dataset 만들기</p>
             </Link>
           </div>
         </section>
@@ -285,7 +285,7 @@ export default function UnifiedDashboard() {
       <div className="mb-8">
         {showLoading ? (
           <ResourceSummaryCard
-            summary={{ agents: 0, workflows: 0, datasets: 0, total: 0 }}
+            summary={{ agents: 0, datasets: 0, total: 0 }}
             scope="my_resources"
             sessionName={currentSession?.session_name}
             isLoading

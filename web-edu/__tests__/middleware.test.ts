@@ -76,7 +76,7 @@ describe('middleware', () => {
   })
 
   describe('protected paths', () => {
-    const protectedPaths = ['/dashboard', '/agents', '/workflows', '/datasets', '/admin']
+    const protectedPaths = ['/dashboard', '/agents', '/datasets', '/admin']
 
     protectedPaths.forEach((path) => {
       it(`should redirect to /signin when accessing ${path} without token`, () => {

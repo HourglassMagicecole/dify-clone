@@ -4,7 +4,6 @@
   "welcome_message": "AI 교육 플랫폼에 오신 것을 환영합니다",
   "dashboard": "대시보드",
   "agents": "Agents",
-  "workflows": "Workflows",
   "datasets": "Datasets",
   "signin": "로그인",
   "signout": "로그아웃",
@@ -27,7 +26,6 @@
   "nav": {
     "dashboard": "대시보드",
     "agents": "에이전트",
-    "workflows": "워크플로우",
     "datasets": "데이터셋",
     "my_session": "나의 세션",
     "my_sessions": "나의 세션들",

@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next'
 interface SuggestedNextStepsProps {
   resourceSummary: {
     agents: number
-    workflows: number
     datasets: number
   }
 }
@@ -23,7 +22,7 @@ interface NextStep {
 export const SuggestedNextSteps: FC<SuggestedNextStepsProps> = ({ resourceSummary }) => {
   const { t } = useTranslation('dashboard')
 
-  const getNextStep = (summary: { agents: number; workflows: number; datasets: number }): NextStep => {
+  const getNextStep = (summary: { agents: number; datasets: number }): NextStep => {
     if (summary.agents === 0) {
       return {
         step: 'create-agent',
@@ -42,15 +41,6 @@ export const SuggestedNextSteps: FC<SuggestedNextStepsProps> = ({ resourceSummar
         icon: '📚',
       }
     }
-    if (summary.workflows === 0) {
-      return {
-        step: 'create-workflow',
-        title: t('suggestedNextSteps.steps.createWorkflow.title'),
-        description: t('suggestedNextSteps.steps.createWorkflow.description'),
-        linkUrl: '/workflows/create',
-        icon: '🔄',
-      }
-    }
     return {
       step: 'connect-all',
       title: t('suggestedNextSteps.steps.connectAll.title'),
@@ -65,7 +55,6 @@ export const SuggestedNextSteps: FC<SuggestedNextStepsProps> = ({ resourceSummar
   const steps = [
     { key: 'agent', label: t('suggestedNextSteps.checklist.agent'), completed: resourceSummary.agents > 0 },
     { key: 'dataset', label: t('suggestedNextSteps.checklist.dataset'), completed: resourceSummary.datasets > 0 },
-    { key: 'workflow', label: t('suggestedNextSteps.checklist.workflow'), completed: resourceSummary.workflows > 0 },
   ]
 
   return (

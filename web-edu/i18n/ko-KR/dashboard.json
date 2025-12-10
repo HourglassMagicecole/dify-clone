@@ -3,7 +3,6 @@
   "subtitle": "내 학습 현황과 리소스를 확인하세요",
   "resourceSummary": {
     "agents": "Agents",
-    "workflows": "Workflows",
     "datasets": "Datasets"
   },
   "recentActivity": {
@@ -27,14 +26,12 @@
     "title": "빠른 시작",
     "createAgent": "Agent 생성",
     "createAgentDesc": "대화형 AI Agent 만들기",
-    "createWorkflow": "Workflow 생성",
-    "createWorkflowDesc": "AI 워크플로우 구성하기",
     "createDataset": "Dataset 생성",
     "createDatasetDesc": "RAG 지식베이스 만들기"
   },
   "empty": {
     "title": "아직 생성한 리소스가 없습니다",
-    "description": "Agent, Workflow, Dataset을 생성하여 AI 학습을 시작하세요",
+    "description": "Agent, Dataset을 생성하여 AI 학습을 시작하세요",
     "button": "시작하기"
   },
   "error": {
@@ -67,17 +64,12 @@
     "title": "학습 진행 상황",
     "checklist": {
       "agent": "Agent 생성",
-      "workflow": "Workflow 생성",
       "dataset": "Dataset 생성"
     },
     "steps": {
       "createAgent": {
         "title": "Agent 만들기",
         "description": "AI Agent를 생성하여 대화형 도우미를 만들어보세요"
-      },
-      "createWorkflow": {
-        "title": "Workflow 만들기",
-        "description": "Workflow를 생성하여 복잡한 작업을 자동화하세요"
       },
       "createDataset": {
         "title": "RAG 지식베이스 만들기",

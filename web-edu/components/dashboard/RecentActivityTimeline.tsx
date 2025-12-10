@@ -52,8 +52,6 @@ export function RecentActivityTimeline({ activities, isLoading = false }: Recent
     switch (type) {
       case 'agent':
         return { icon: '🤖', color: 'text-blue-600', bgColor: 'bg-blue-100' }
-      case 'workflow':
-        return { icon: '🔄', color: 'text-green-600', bgColor: 'bg-green-100' }
       case 'dataset':
         return { icon: '📚', color: 'text-purple-600', bgColor: 'bg-purple-100' }
       default:

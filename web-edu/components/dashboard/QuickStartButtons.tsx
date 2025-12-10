@@ -6,7 +6,7 @@ import Link from 'next/link'
 
 /**
  * 빠른 시작 버튼 컴포넌트
- * Agent, Workflow, Dataset 생성 페이지로 빠르게 이동
+ * Agent, Dataset 생성 페이지로 빠르게 이동
  */
 export function QuickStartButtons() {
   const { t } = useTranslation('dashboard')
@@ -25,20 +25,13 @@ export function QuickStartButtons() {
       icon: '📚',
       href: '/datasets/create',
       color: 'bg-purple-600 hover:bg-purple-700'
-    },
-    {
-      label: t('quickStart.createWorkflow'),
-      description: t('quickStart.createWorkflowDesc'),
-      icon: '🔄',
-      href: '/workflows/create',
-      color: 'bg-green-600 hover:bg-green-700'
     }
   ]
 
   return (
     <div className="bg-white rounded-lg shadow p-6" data-testid="quick-start-buttons">
       <h3 className="text-lg font-semibold mb-4">{t('quickStart.title')}</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {quickActions.map((action) => (
           <Link
             key={action.label}

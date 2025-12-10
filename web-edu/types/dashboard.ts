@@ -8,7 +8,6 @@
  */
 export interface ResourceSummary {
   agents: number;      // Agent 개수
-  workflows: number;   // Workflow 개수
   datasets: number;    // Dataset(RAG) 개수
   total: number;       // 전체 리소스 개수
 }
@@ -18,7 +17,7 @@ export interface ResourceSummary {
  */
 export interface RecentActivity {
   id: string;
-  type: 'agent' | 'workflow' | 'dataset';  // 리소스 타입
+  type: 'agent' | 'dataset';  // 리소스 타입
   resourceName: string;                     // 리소스 이름
   action: 'created' | 'updated' | 'executed' | 'deleted';  // 액션
   timestamp: string;                        // ISO 8601 형식

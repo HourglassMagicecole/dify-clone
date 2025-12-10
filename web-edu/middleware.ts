@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // 보호된 경로 목록
-const PROTECTED_PATHS = ['/dashboard', '/agents', '/workflows', '/datasets', '/admin']
+const PROTECTED_PATHS = ['/dashboard', '/agents', '/datasets', '/admin']
 
 // 인증이 필요 없는 공개 경로
 const PUBLIC_PATHS = ['/signin', '/signup']

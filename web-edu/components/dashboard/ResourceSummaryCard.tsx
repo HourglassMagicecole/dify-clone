@@ -13,7 +13,7 @@ interface ResourceSummaryCardProps {
 
 /**
  * 리소스 요약 카드 컴포넌트
- * Agent, Workflow, Dataset 개수를 카드 형태로 표시
+ * Agent, Dataset 개수를 카드 형태로 표시
  */
 export function ResourceSummaryCard({
   summary,
@@ -27,8 +27,8 @@ export function ResourceSummaryCard({
   const scopeLabel = scope === 'system' ? t('scope.system') : t('scope.my')
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[1, 2].map((i) => (
           <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
             <div className="h-8 bg-gray-200 rounded w-12"></div>
@@ -52,13 +52,6 @@ export function ResourceSummaryCard({
       icon: '📚',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
-    },
-    {
-      label: t('resourceSummary.workflows'),
-      count: summary.workflows,
-      icon: '🔄',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
     }
   ]
 
@@ -77,7 +70,7 @@ export function ResourceSummaryCard({
       </div>
 
       {/* 리소스 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {resources.map((resource) => (
           <div
             key={resource.label}

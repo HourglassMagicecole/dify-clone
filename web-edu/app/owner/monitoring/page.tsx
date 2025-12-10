@@ -35,7 +35,7 @@ export default function OwnerMonitoring() {
       <section className="mb-8">
         <h2 className="text-2xl font-bold mb-4">📊 시스템 전체 현황</h2>
         <ResourceSummaryCard
-          summary={data?.resourceSummary || { agents: 0, workflows: 0, datasets: 0, total: 0 }}
+          summary={data?.resourceSummary || { agents: 0, datasets: 0, total: 0 }}
           scope="system"
           isLoading={isLoading}
         />
