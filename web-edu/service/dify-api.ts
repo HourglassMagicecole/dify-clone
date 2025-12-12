@@ -12,6 +12,44 @@ export interface App {
 }
 
 export class DifyAPI {
+  // Cache for provider full paths (short name -> full path)
+  private providerPathCache: Map<string, string> = new Map()
+
+  /**
+   * Helper to match provider name (API returns paths like 'langgenius/openai/openai')
+   */
+  private matchProvider(apiProvider: string, targetProvider: string): boolean {
+    return apiProvider === targetProvider
+      || apiProvider.endsWith(`/${targetProvider}`)
+      || apiProvider.includes(`/${targetProvider}/`)
+  }
+
+  /**
+   * Get full provider path from short name
+   * @param shortName - Short provider name (e.g., 'openai')
+   * @returns Full provider path (e.g., 'langgenius/openai/openai')
+   */
+  async getFullProviderPath(shortName: string): Promise<string> {
+    // Check cache first
+    if (this.providerPathCache.has(shortName)) {
+      return this.providerPathCache.get(shortName)!
+    }
+
+    // Fetch provider list to find full path
+    const response = await this.getModelProviders()
+    const providers = Array.isArray(response.data) ? response.data : []
+
+    for (const p of providers) {
+      if (this.matchProvider(p.provider, shortName)) {
+        this.providerPathCache.set(shortName, p.provider)
+        return p.provider
+      }
+    }
+
+    // Fallback to short name if not found
+    return shortName
+  }
+
   // App (Agent) 관련 API
   async getApps(sessionId?: string): Promise<ApiResponse<App[]>> {
     const params = sessionId ? `?session_id=${sessionId}` : ''
@@ -54,12 +92,14 @@ export class DifyAPI {
 
   // Get models list for a specific provider
   async getProviderModels(provider: string): Promise<ApiResponse<ModelProvider>> {
-    return apiClient.getDifyNative(`/console/api/workspaces/current/model-providers/${provider}/models`)
+    const fullPath = await this.getFullProviderPath(provider)
+    return apiClient.getDifyNative(`/console/api/workspaces/current/model-providers/${fullPath}/models`)
   }
 
   // Get parameter rules for a specific model
   async getModelParameterRules(provider: string, model: string): Promise<ApiResponse<unknown>> {
-    return apiClient.getDifyNative(`/console/api/workspaces/current/model-providers/${provider}/models/parameter-rules?model=${encodeURIComponent(model)}`)
+    const fullPath = await this.getFullProviderPath(provider)
+    return apiClient.getDifyNative(`/console/api/workspaces/current/model-providers/${fullPath}/models/parameter-rules?model=${encodeURIComponent(model)}`)
   }
 
   // 추후 Dataset, Workflow API 추가 예정

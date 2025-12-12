@@ -77,7 +77,9 @@
     "documents": "{{count}} documents",
     "words": "{{count}} words",
     "ready": "Ready",
-    "processing": "Processing"
+    "processing": "Processing",
+    "modelDisabled": "Model Disabled",
+    "modelDisabledTooltip": "Embedding model may be disabled. Check model settings."
   },
   "table": {
     "name": "Name",

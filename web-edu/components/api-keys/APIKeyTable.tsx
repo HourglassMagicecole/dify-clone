@@ -16,7 +16,7 @@ interface APIKeyTableProps {
   isLoading: boolean
   onEdit: (apiKey: APIKeyConfig) => void
   onDelete: (apiKey: APIKeyConfig) => void
-  onTest: (apiKey: APIKeyConfig) => void
+  onModelManage: (apiKey: APIKeyConfig) => void
 }
 
 export function APIKeyTable({
@@ -24,7 +24,7 @@ export function APIKeyTable({
   isLoading,
   onEdit,
   onDelete,
-  onTest,
+  onModelManage,
 }: APIKeyTableProps) {
   const { t } = useTranslation('api-keys')
 
@@ -120,7 +120,7 @@ export function APIKeyTable({
                 apiKey={apiKey}
                 onEdit={onEdit}
                 onDelete={onDelete}
-                onTest={onTest}
+                onModelManage={onModelManage}
               />
             ))}
           </tbody>

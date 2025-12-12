@@ -85,7 +85,7 @@ export default function OwnerMonitoring() {
             className="bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg p-6 transition-colors"
           >
             <div className="text-2xl mb-2">🔑</div>
-            <h3 className="font-semibold text-purple-900">API Key 관리</h3>
+            <h3 className="font-semibold text-purple-900">프로바이더 관리</h3>
             <p className="text-sm text-purple-700">API 키 생성 및 설정</p>
           </Link>
 

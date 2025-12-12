@@ -209,9 +209,28 @@ export function DatasetSelector({
                   />
                   <CircleStackIcon className={`h-5 w-5 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {dataset.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {dataset.name}
+                      </p>
+                      {/* Status badge */}
+                      {dataset.embedding_available ? (
+                        <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                          {t('datasetSelector.ready', 'Ready')}
+                        </span>
+                      ) : dataset.embedding_model ? (
+                        <span
+                          className="px-1.5 py-0.5 text-xs font-medium rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 cursor-help"
+                          title={t('datasetSelector.modelDisabledTooltip', 'Embedding model may be disabled')}
+                        >
+                          {t('datasetSelector.modelDisabled', 'Model Issue')}
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                          {t('datasetSelector.processing', 'Processing')}
+                        </span>
+                      )}
+                    </div>
                     {dataset.description && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {dataset.description}

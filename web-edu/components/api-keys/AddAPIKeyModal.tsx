@@ -9,7 +9,7 @@
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import type { CreateAPIKeyRequest, ProviderType, TestAPIKeyResponse } from '@/types/api-key'
+import type { CreateAPIKeyRequest, TestAPIKeyResponse } from '@/types/api-key'
 import { PROVIDER_METADATA, SUPPORTED_PROVIDERS } from '@/types/api-key'
 import { Modal } from '@/components/common/Modal'
 import { Button } from '@/components/common/Button'
@@ -34,7 +34,6 @@ export function AddAPIKeyModal({
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
     reset,
   } = useForm<CreateAPIKeyRequest>({
@@ -43,9 +42,6 @@ export function AddAPIKeyModal({
       priority: 'primary',
     },
   })
-
-  const selectedProvider = watch('provider') as ProviderType
-  const providerMetadata = selectedProvider ? PROVIDER_METADATA[selectedProvider] : null
 
   const onSubmit = async (data: CreateAPIKeyRequest) => {
     try {
@@ -115,37 +111,6 @@ export function AddAPIKeyModal({
             <p className="mt-1 text-sm text-red-600">{errors.provider.message}</p>
           )}
         </div>
-
-        {/* 획득 가이드 링크 (동적) */}
-        {providerMetadata && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <p className="text-sm text-blue-800 mb-2">
-              {t('addModal.guideInfo', { provider: providerMetadata.name })}
-            </p>
-            <div className="flex gap-2">
-              <a
-                href={providerMetadata.guide_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:text-blue-800 underline"
-              >
-                {t('addModal.links.apiKeyGuide')}
-              </a>
-              <span className="text-gray-400">|</span>
-              <a
-                href={providerMetadata.pricing_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:text-blue-800 underline"
-              >
-                {t('addModal.links.pricing')}
-              </a>
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              {t('addModal.freeTier')}: {providerMetadata.free_tier}
-            </p>
-          </div>
-        )}
 
         {/* Key 이름 */}
         <div>

@@ -277,7 +277,11 @@
     "wordCount": "{{count}} words",
     "viewDetails": "View details",
     "remove": "Remove",
-    "retry": "Retry"
+    "retry": "Retry",
+    "ready": "Ready",
+    "processing": "Processing",
+    "modelDisabled": "Model Issue",
+    "modelDisabledTooltip": "Embedding model may be disabled"
   },
   "retrievalSettings": {
     "title": "Retrieval Settings",
@@ -467,7 +471,9 @@
     "orUploadAudioFile": "Or Upload Audio File:",
     "selected": "Selected:",
     "convertToText": "Convert to Text",
-    "converting": "Converting..."
+    "converting": "Converting...",
+    "modelDisabled": "Disabled",
+    "selectedModelDisabledWarning": "Selected model is disabled. Please enable it in Model Management or select another model."
   },
   "roleSamples": {
     "learningMentor": {

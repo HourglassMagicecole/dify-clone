@@ -277,7 +277,11 @@
     "wordCount": "{{count}}개 단어",
     "viewDetails": "상세 보기",
     "remove": "제거",
-    "retry": "재시도"
+    "retry": "재시도",
+    "ready": "사용 가능",
+    "processing": "처리 중",
+    "modelDisabled": "모델 문제",
+    "modelDisabledTooltip": "Embedding 모델이 비활성화되었을 수 있습니다"
   },
   "retrievalSettings": {
     "title": "검색 설정",
@@ -467,7 +471,9 @@
     "orUploadAudioFile": "또는 오디오 파일 업로드:",
     "selected": "선택됨:",
     "convertToText": "텍스트로 변환",
-    "converting": "변환 중..."
+    "converting": "변환 중...",
+    "modelDisabled": "비활성화",
+    "selectedModelDisabledWarning": "선택한 모델이 비활성화되어 있습니다. 모델 관리에서 활성화하거나 다른 모델을 선택하세요."
   },
   "roleSamples": {
     "learningMentor": {

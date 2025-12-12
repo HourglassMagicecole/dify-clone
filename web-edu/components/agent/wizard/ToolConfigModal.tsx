@@ -15,7 +15,16 @@ import {
   type ToolTestResult,
   type UserToolConfig,
 } from '@/service/tool-api'
+import { modelAPI } from '@/service/model-api'
 import type { Tool, ToolParameter } from '@/types/tool'
+import type { ModelStatusValue } from '@/types/model'
+
+// TTS/STT Model status info
+interface ModelStatusInfo {
+  model: string
+  label: string
+  status: ModelStatusValue
+}
 
 // Dynamically import ReactECharts to avoid SSR issues
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
@@ -50,6 +59,11 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
   const [savingApiKey, setSavingApiKey] = useState(false)
   const [apiKeyMessage, setApiKeyMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
+  // TTS/STT model status states
+  const [ttsModels, setTtsModels] = useState<ModelStatusInfo[]>([])
+  const [sttModels, setSttModels] = useState<ModelStatusInfo[]>([])
+  const [modelsLoading, setModelsLoading] = useState(false)
+
   // Initialize test parameters with default values when tool changes
   useEffect(() => {
     if (!tool || !tool.parameters)
@@ -67,6 +81,49 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
     // Reset test results when switching tools
     setTestResult(null)
     setAudioUrl(null)
+  }, [tool])
+
+  // Load TTS/STT model status when tool is tts or asr
+  useEffect(() => {
+    const loadModelStatus = async () => {
+      if (!tool || (tool.name !== 'tts' && tool.name !== 'asr'))
+        return
+
+      setModelsLoading(true)
+      try {
+        // Get OpenAI provider models
+        const response = await modelAPI.getProviderModels('openai')
+        if (response.result === 'success' && response.data) {
+          // Filter TTS models
+          const tts = response.data
+            .filter(m => m.model_type === 'tts')
+            .map(m => ({
+              model: `openai#${m.model}`,
+              label: m.label.en_US,
+              status: m.status as ModelStatusValue,
+            }))
+          setTtsModels(tts)
+
+          // Filter STT models (speech2text)
+          const stt = response.data
+            .filter(m => m.model_type === 'speech2text')
+            .map(m => ({
+              model: `openai#${m.model}`,
+              label: m.label.en_US,
+              status: m.status as ModelStatusValue,
+            }))
+          setSttModels(stt)
+        }
+      }
+      catch (error) {
+        console.error('Failed to load model status:', error)
+      }
+      finally {
+        setModelsLoading(false)
+      }
+    }
+
+    loadModelStatus()
   }, [tool])
 
   // Load user API key configuration on tool change
@@ -389,23 +446,59 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
     }
   }
 
+  // Helper: Get model status info
+  const getModelStatus = (modelId: string, modelList: ModelStatusInfo[]): ModelStatusInfo | undefined => {
+    return modelList.find(m => m.model === modelId)
+  }
+
   // Render TTS-specific UI
-  const renderTTSUI = () => (
-    <div className="space-y-4">
-      {/* Model Selection */}
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          {t('tools.ttsModel')} <span className="text-red-500">*</span>
-        </label>
-        <select
-          value={String(testParams.model || 'openai#tts-1')}
-          onChange={e => handleParamChange('model', e.target.value)}
-          className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="openai#tts-1">OpenAI TTS-1 (Fast)</option>
-          <option value="openai#tts-1-hd">OpenAI TTS-1-HD (High Quality)</option>
-        </select>
-      </div>
+  const renderTTSUI = () => {
+    const selectedModel = String(testParams.model || 'openai#tts-1')
+    const selectedModelStatus = getModelStatus(selectedModel, ttsModels)
+    const isSelectedModelActive = selectedModelStatus?.status === 'active'
+
+    // Fallback models if API hasn't loaded yet
+    const displayModels = ttsModels.length > 0 ? ttsModels : [
+      { model: 'openai#tts-1', label: 'TTS-1', status: 'active' as ModelStatusValue },
+      { model: 'openai#tts-1-hd', label: 'TTS-1-HD', status: 'active' as ModelStatusValue },
+    ]
+
+    return (
+      <div className="space-y-4">
+        {/* Model Selection */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t('tools.ttsModel')} <span className="text-red-500">*</span>
+          </label>
+          {modelsLoading ? (
+            <div className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50 text-gray-500">
+              {t('common:loading')}...
+            </div>
+          ) : (
+            <select
+              value={selectedModel}
+              onChange={e => handleParamChange('model', e.target.value)}
+              className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                !isSelectedModelActive && ttsModels.length > 0
+                  ? 'border-orange-300 bg-orange-50'
+                  : 'border-gray-300'
+              }`}
+            >
+              {displayModels.map(m => (
+                <option key={m.model} value={m.model}>
+                  {m.label} {m.status !== 'active' ? `⚠️ (${t('tools.modelDisabled')})` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+          {/* Warning for disabled model */}
+          {!isSelectedModelActive && ttsModels.length > 0 && (
+            <p className="mt-1 text-sm text-orange-600 flex items-center gap-1">
+              <span>⚠️</span>
+              {t('tools.selectedModelDisabledWarning')}
+            </p>
+          )}
+        </div>
 
       {/* Text Input */}
       <div>
@@ -450,36 +543,68 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
           </a>
         </div>
       )}
-    </div>
-  )
+      </div>
+    )
+  }
 
   // Render STT-specific UI
-  const renderSTTUI = () => (
-    <div className="space-y-4">
-      {/* Model Selection */}
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          {t('tools.sttModel')} <span className="text-red-500">*</span>
-        </label>
-        <select
-          value={String(testParams.model || 'openai#whisper-1')}
-          onChange={e => handleParamChange('model', e.target.value)}
-          className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="openai#whisper-1">OpenAI Whisper-1</option>
-        </select>
-      </div>
+  const renderSTTUI = () => {
+    const selectedModel = String(testParams.model || 'openai#whisper-1')
+    const selectedModelStatus = getModelStatus(selectedModel, sttModels)
+    const isSelectedModelActive = selectedModelStatus?.status === 'active'
+
+    // Fallback models if API hasn't loaded yet
+    const displayModels = sttModels.length > 0 ? sttModels : [
+      { model: 'openai#whisper-1', label: 'Whisper-1', status: 'active' as ModelStatusValue },
+    ]
+
+    return (
+      <div className="space-y-4">
+        {/* Model Selection */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t('tools.sttModel')} <span className="text-red-500">*</span>
+          </label>
+          {modelsLoading ? (
+            <div className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50 text-gray-500">
+              {t('common:loading')}...
+            </div>
+          ) : (
+            <select
+              value={selectedModel}
+              onChange={e => handleParamChange('model', e.target.value)}
+              className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                !isSelectedModelActive && sttModels.length > 0
+                  ? 'border-orange-300 bg-orange-50'
+                  : 'border-gray-300'
+              }`}
+            >
+              {displayModels.map(m => (
+                <option key={m.model} value={m.model}>
+                  {m.label} {m.status !== 'active' ? `⚠️ (${t('tools.modelDisabled')})` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+          {/* Warning for disabled model */}
+          {!isSelectedModelActive && sttModels.length > 0 && (
+            <p className="mt-1 text-sm text-orange-600 flex items-center gap-1">
+              <span>⚠️</span>
+              {t('tools.selectedModelDisabledWarning')}
+            </p>
+          )}
+        </div>
 
       {/* Recording Controls */}
       <div className="space-y-2">
         <label className="block text-sm font-medium">{t('tools.recordAudio')}</label>
         <div className="flex gap-2">
           {!isRecording ? (
-            <Button onClick={startRecording} variant="default">
+            <Button type="button" onClick={startRecording} variant="default">
               🎤 {t('tools.startRecording')}
             </Button>
           ) : (
-            <Button onClick={stopRecording} variant="default">
+            <Button type="button" onClick={stopRecording} variant="default">
               ⏹️ {t('tools.stopRecording')}
             </Button>
           )}
@@ -524,10 +649,11 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
         disabled={testing || !audioFile}
         variant="default"
       >
-        {testing ? t('tools.converting') : t('tools.convertToText')}
-      </Button>
-    </div>
-  )
+          {testing ? t('tools.converting') : t('tools.convertToText')}
+        </Button>
+      </div>
+    )
+  }
 
   // Render API Key configuration UI (for TOOL_PROVIDER type only)
   const renderApiKeyUI = () => {

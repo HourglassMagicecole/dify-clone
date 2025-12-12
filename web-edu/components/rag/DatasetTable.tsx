@@ -148,15 +148,22 @@ export const DatasetTable: FC<DatasetTableProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      dataset.embedding_available
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                    }`}
-                  >
-                    {dataset.embedding_available ? t('card.ready') : t('card.processing')}
-                  </span>
+                  {dataset.embedding_available ? (
+                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      {t('card.ready')}
+                    </span>
+                  ) : dataset.embedding_model ? (
+                    <span
+                      className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 cursor-help"
+                      title={t('card.modelDisabledTooltip', 'Embedding model may be disabled. Check model settings.')}
+                    >
+                      {t('card.modelDisabled', 'Model Disabled')}
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                      {t('card.processing')}
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {new Date(dataset.created_at * 1000).toLocaleDateString()}

@@ -1,8 +1,11 @@
 {
-  "title": "API Key Management",
+  "title": "Provider Management",
+  "pageTitle": "Provider Management",
   "subtitle": "Centrally manage API Keys for LLM and external APIs",
-  "addButton": "Add API Key",
+  "addButton": "Add Provider",
   "helpButton": "Help",
+  "loading": "Loading...",
+  "retryButton": "Retry",
 
   "tabs": {
     "all": "All",
@@ -39,7 +42,7 @@
   },
 
   "addModal": {
-    "title": "Add API Key",
+    "title": "Add Provider",
     "fields": {
       "provider": "Provider",
       "keyName": "Key Name",
@@ -144,7 +147,7 @@
   },
 
   "helpModal": {
-    "title": "API Key Management Guide",
+    "title": "Provider Management Guide",
     "sections": {
       "providers": "Supported Providers",
       "recommended": "Recommended Provider Combination",
@@ -192,8 +195,7 @@
   "actions": {
     "edit": "Edit",
     "delete": "Delete",
-    "test": "Test",
-    "testing": "Testing",
+    "models": "Models",
     "show": "Show",
     "hide": "Hide",
     "copy": "Copy"
@@ -216,5 +218,54 @@
     "testError": "API Key is invalid. Error: {error}",
     "testRunning": "Testing API Key...",
     "validationError": "Please check your input"
+  },
+
+  "error": {
+    "loadFailed": "Failed to load data"
+  },
+
+  "models": {
+    "modal": {
+      "title": "{{provider}} Model Management"
+    },
+    "description": "Enable or disable LLM and Embedding models for your educational environment",
+    "loading": "Loading models...",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "noProviders": "No model providers available",
+    "filter": {
+      "all": "All",
+      "llm": "LLM",
+      "embedding": "Embedding",
+      "rerank": "Rerank",
+      "speech2text": "Speech to Text",
+      "tts": "Text to Speech",
+      "status": "Status",
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "provider": {
+      "modelCount": "{{enabled}} / {{total}} models enabled",
+      "enableAll": "Enable All",
+      "disableAll": "Disable All",
+      "partialEnabled": "Some models are disabled",
+      "confirmEnable": {
+        "title": "Enable All Models",
+        "message": "Are you sure you want to enable all {{count}} models for {{provider}}?"
+      },
+      "confirmDisable": {
+        "title": "Disable All Models",
+        "message": "Are you sure you want to disable {{count}} enabled models for {{provider}}? Disabled models will not be available for Agent creation."
+      }
+    },
+    "toggle": {
+      "success": "Updated",
+      "error": "Failed",
+      "ariaLabel": "Toggle {{model}} model"
+    },
+    "help": {
+      "title": "About Model Management",
+      "description": "Disabled models will not appear in the model selection when creating Agents. Existing Agents using disabled models will show a warning."
+    }
   }
 }

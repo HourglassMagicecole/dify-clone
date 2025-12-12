@@ -189,6 +189,9 @@ export interface ModelInfo {
     mode: string
   }
   parameter_rules: ParameterRule[]    // Parameter rules
+  // Model activation status (Story 3.7)
+  // API uses 'status' field: 'active' | 'disabled' | 'no-configure' etc.
+  status?: 'active' | 'disabled' | 'no-configure' | 'quota-exceeded' | 'no-permission' | 'credential-removed'
 }
 
 /**

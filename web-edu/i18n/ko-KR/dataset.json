@@ -77,7 +77,9 @@
     "documents": "{{count}}개 문서",
     "words": "{{count}}개 단어",
     "ready": "사용 가능",
-    "processing": "처리 중"
+    "processing": "처리 중",
+    "modelDisabled": "모델 비활성화",
+    "modelDisabledTooltip": "Embedding 모델이 비활성화되었을 수 있습니다. 모델 설정을 확인하세요."
   },
   "table": {
     "name": "이름",

@@ -216,11 +216,18 @@ export default function Step3ModelConfig() {
 
             if (modelsResponse.result === 'success' && modelsResponse.data) {
               if (Array.isArray(modelsResponse.data)) {
-                models = modelsResponse.data.filter((m: ModelInfo) => m.model_type === 'llm')
+                // Filter by LLM type and exclude disabled models (Story 3.7 AC:6)
+                // API uses 'status' field: 'active' | 'disabled' | 'no-configure' etc.
+                models = modelsResponse.data
+                  .filter((m: ModelInfo) => m.model_type === 'llm')
+                  .filter((m: ModelInfo) => m.status === 'active')
               }
               else if (typeof modelsResponse.data === 'object' && 'data' in modelsResponse.data) {
                 const nestedData = (modelsResponse.data as { data?: ModelInfo[] }).data
-                models = nestedData?.filter((m: ModelInfo) => m.model_type === 'llm') || []
+                // Filter by LLM type and exclude disabled models (Story 3.7 AC:6)
+                models = nestedData
+                  ?.filter((m: ModelInfo) => m.model_type === 'llm')
+                  .filter((m: ModelInfo) => m.status === 'active') || []
               }
             }
 
@@ -369,11 +376,18 @@ export default function Step3ModelConfig() {
 
               if (modelsResponse.result === 'success' && modelsResponse.data) {
                 if (Array.isArray(modelsResponse.data)) {
-                  models = modelsResponse.data.filter((m: ModelInfo) => m.model_type === 'llm')
+                  // Filter by LLM type and exclude disabled models (Story 3.7 AC:6)
+                  // API uses 'status' field: 'active' | 'disabled' | 'no-configure' etc.
+                  models = modelsResponse.data
+                    .filter((m: ModelInfo) => m.model_type === 'llm')
+                    .filter((m: ModelInfo) => m.status === 'active')
                 }
                 else if (typeof modelsResponse.data === 'object' && 'data' in modelsResponse.data) {
                   const nestedData = (modelsResponse.data as { data?: ModelInfo[] }).data
-                  models = nestedData?.filter((m: ModelInfo) => m.model_type === 'llm') || []
+                  // Filter by LLM type and exclude disabled models (Story 3.7 AC:6)
+                  models = nestedData
+                    ?.filter((m: ModelInfo) => m.model_type === 'llm')
+                    .filter((m: ModelInfo) => m.status === 'active') || []
                 }
               }
 
@@ -458,11 +472,18 @@ export default function Step3ModelConfig() {
         if (modelsResponse.result === 'success' && modelsResponse.data) {
           // API returned models - use them
           if (Array.isArray(modelsResponse.data)) {
-            models = modelsResponse.data.filter((m: ModelInfo) => m.model_type === 'llm')
+            // Filter by LLM type and exclude disabled models (Story 3.7 AC:6)
+            // API uses 'status' field: 'active' | 'disabled' | 'no-configure' etc.
+            models = modelsResponse.data
+              .filter((m: ModelInfo) => m.model_type === 'llm')
+              .filter((m: ModelInfo) => m.status === 'active')
           }
           else if (typeof modelsResponse.data === 'object' && 'data' in modelsResponse.data) {
             const nestedData = (modelsResponse.data as { data?: ModelInfo[] }).data
-            models = nestedData?.filter((m: ModelInfo) => m.model_type === 'llm') || []
+            // Filter by LLM type and exclude disabled models (Story 3.7 AC:6)
+            models = nestedData
+              ?.filter((m: ModelInfo) => m.model_type === 'llm')
+              .filter((m: ModelInfo) => m.status === 'active') || []
           }
         }
 

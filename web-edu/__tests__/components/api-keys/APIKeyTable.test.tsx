@@ -21,7 +21,7 @@ jest.mock('@/components/api-keys/APIKeyRow', () => ({
 describe('APIKeyTable', () => {
   const mockOnEdit = jest.fn();
   const mockOnDelete = jest.fn();
-  const mockOnTest = jest.fn();
+  const mockOnModelManage = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,7 +34,7 @@ describe('APIKeyTable', () => {
         isLoading={true}
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
-        onTest={mockOnTest}
+        onModelManage={mockOnModelManage}
       />
     );
 
@@ -48,7 +48,7 @@ describe('APIKeyTable', () => {
         isLoading={false}
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
-        onTest={mockOnTest}
+        onModelManage={mockOnModelManage}
       />
     );
 
@@ -86,7 +86,7 @@ describe('APIKeyTable', () => {
         isLoading={false}
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
-        onTest={mockOnTest}
+        onModelManage={mockOnModelManage}
       />
     );
 

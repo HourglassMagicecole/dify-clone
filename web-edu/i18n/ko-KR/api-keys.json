@@ -1,8 +1,11 @@
 {
-  "title": "API Key 관리",
+  "title": "프로바이더 관리",
+  "pageTitle": "프로바이더 관리",
   "subtitle": "LLM 및 외부 API의 API Key를 중앙에서 관리합니다",
-  "addButton": "API Key 추가",
+  "addButton": "프로바이더 추가",
   "helpButton": "도움말",
+  "loading": "로딩 중...",
+  "retryButton": "다시 시도",
 
   "tabs": {
     "all": "전체",
@@ -39,7 +42,7 @@
   },
 
   "addModal": {
-    "title": "API Key 추가",
+    "title": "프로바이더 추가",
     "fields": {
       "provider": "Provider",
       "keyName": "Key 이름",
@@ -144,7 +147,7 @@
   },
 
   "helpModal": {
-    "title": "API Key 관리 가이드",
+    "title": "프로바이더 관리 가이드",
     "sections": {
       "providers": "지원되는 Provider",
       "recommended": "권장 Provider 조합",
@@ -192,8 +195,7 @@
   "actions": {
     "edit": "편집",
     "delete": "삭제",
-    "test": "테스트",
-    "testing": "테스트 중",
+    "models": "모델",
     "show": "표시",
     "hide": "숨기기",
     "copy": "복사"
@@ -216,5 +218,54 @@
     "testError": "API Key가 유효하지 않습니다. 오류: {error}",
     "testRunning": "API Key를 테스트하는 중...",
     "validationError": "입력값을 확인해주세요"
+  },
+
+  "error": {
+    "loadFailed": "데이터 로드 실패"
+  },
+
+  "models": {
+    "modal": {
+      "title": "{{provider}} 모델 관리"
+    },
+    "description": "교육 환경에서 사용할 LLM 및 Embedding 모델을 활성화하거나 비활성화합니다",
+    "loading": "모델 로딩 중...",
+    "retry": "다시 시도",
+    "refresh": "새로고침",
+    "noProviders": "사용 가능한 모델 프로바이더가 없습니다",
+    "filter": {
+      "all": "전체",
+      "llm": "LLM",
+      "embedding": "Embedding",
+      "rerank": "Rerank",
+      "speech2text": "음성 인식",
+      "tts": "음성 합성",
+      "status": "상태",
+      "active": "활성화",
+      "disabled": "비활성화"
+    },
+    "provider": {
+      "modelCount": "{{enabled}} / {{total}} 모델 활성화됨",
+      "enableAll": "전체 활성화",
+      "disableAll": "전체 비활성화",
+      "partialEnabled": "일부 모델이 비활성화되어 있습니다",
+      "confirmEnable": {
+        "title": "모든 모델 활성화",
+        "message": "{{provider}}의 모든 {{count}}개 모델을 활성화하시겠습니까?"
+      },
+      "confirmDisable": {
+        "title": "모든 모델 비활성화",
+        "message": "{{provider}}의 활성화된 {{count}}개 모델을 비활성화하시겠습니까? 비활성화된 모델은 Agent 생성 시 선택할 수 없습니다."
+      }
+    },
+    "toggle": {
+      "success": "변경됨",
+      "error": "실패",
+      "ariaLabel": "{{model}} 모델 토글"
+    },
+    "help": {
+      "title": "모델 관리 안내",
+      "description": "비활성화된 모델은 Agent 생성 시 모델 선택 목록에 표시되지 않습니다. 비활성화된 모델을 사용하는 기존 Agent는 경고가 표시됩니다."
+    }
   }
 }

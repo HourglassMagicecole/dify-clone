@@ -6,7 +6,7 @@
 
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import type { APIKeyConfig } from '@/types/api-key'
 import { PROVIDER_METADATA } from '@/types/api-key'
@@ -17,29 +17,18 @@ interface APIKeyRowProps {
   apiKey: APIKeyConfig
   onEdit: (apiKey: APIKeyConfig) => void
   onDelete: (apiKey: APIKeyConfig) => void
-  onTest: (apiKey: APIKeyConfig) => void
+  onModelManage: (apiKey: APIKeyConfig) => void
 }
 
 export function APIKeyRow({
   apiKey,
   onEdit,
   onDelete,
-  onTest,
+  onModelManage,
 }: APIKeyRowProps) {
   const { t } = useTranslation('api-keys')
-  const [isTesting, setIsTesting] = useState(false)
 
   const providerMetadata = PROVIDER_METADATA[apiKey.provider]
-
-  const handleTest = async () => {
-    setIsTesting(true)
-    try {
-      await onTest(apiKey)
-    }
-    finally {
-      setIsTesting(false)
-    }
-  }
 
   return (
     <tr className="hover:bg-gray-50 transition-colors">
@@ -91,10 +80,9 @@ export function APIKeyRow({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleTest}
-            disabled={isTesting}
+            onClick={() => onModelManage(apiKey)}
           >
-            {isTesting ? t('actions.testing') : t('actions.test')}
+            {t('actions.models')}
           </Button>
           <Button
             variant="ghost"
