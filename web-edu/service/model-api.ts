@@ -1,20 +1,12 @@
 import type { ApiResponse } from './base-api'
 import { apiClient } from './base-api'
-import type { ModelToggleRequest, ModelType, ProviderWithModels } from '@/types/model'
+import type { ModelToggleRequest, ProviderModel, ProviderWithModels } from '@/types/model'
 
 /**
  * Model item from provider models API
+ * Uses ProviderModel type from @/types/model for consistency
  */
-interface ProviderModelItem {
-  model: string
-  label: { en_US: string, zh_Hans?: string }
-  model_type: ModelType
-  features?: string[]
-  fetch_from: string
-  model_properties: Record<string, unknown>
-  deprecated: boolean
-  status: string
-}
+type ProviderModelItem = ProviderModel
 
 /**
  * Model Management API for EduAI Studio (Story 3.7)
