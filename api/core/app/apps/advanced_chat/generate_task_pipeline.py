@@ -70,10 +70,11 @@ from core.workflow.system_variable import SystemVariable
 from core.workflow.workflow_cycle_manager import CycleManagerWorkflowInfo, WorkflowCycleManager
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
-from models import Conversation, EndUser, Message, MessageFile
+from models import App, Conversation, EndUser, Message, MessageFile
 from models.account import Account
 from models.enums import CreatorUserRole
 from models.workflow import Workflow
+from services.llm_usage_service import record_llm_usage
 
 logger = logging.getLogger(__name__)
 
@@ -876,6 +877,13 @@ class AdvancedChatAppGenerateTaskPipeline:
             message.total_price = usage.total_price
             message.currency = usage.currency
             self._task_state.metadata.usage = usage
+
+            # Record LLM usage to persistent log table
+            app_id = self._application_generate_entity.app_config.app_id
+            app_stmt = select(App).where(App.id == app_id)
+            app = session.scalar(app_stmt)
+            if app:
+                record_llm_usage(session=session, message=message, app=app)
         else:
             self._task_state.metadata.usage = LLMUsage.empty_usage()
 

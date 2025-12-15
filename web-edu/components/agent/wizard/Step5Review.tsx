@@ -132,14 +132,18 @@ export default function Step5Review() {
             </pre>
             {promptSettings?.opening_statement && (
               <div>
-                <span className="text-gray-500 dark:text-gray-400">Opening: </span>
+                <span className="text-gray-500 dark:text-gray-400">{t('reviewSettings.openingStatement')}: </span>
                 <span className="text-gray-900 dark:text-white">{promptSettings.opening_statement}</span>
               </div>
             )}
             {promptSettings?.suggested_questions && promptSettings.suggested_questions.length > 0 && (
               <div>
-                <span className="text-gray-500 dark:text-gray-400">Suggested Questions: </span>
-                <span className="text-gray-900 dark:text-white">{promptSettings.suggested_questions.length}</span>
+                <span className="text-gray-500 dark:text-gray-400">{t('reviewSettings.suggestedQuestions')}:</span>
+                <ul className="mt-1 ml-4 list-disc text-gray-900 dark:text-white">
+                  {promptSettings.suggested_questions.map((question, idx) => (
+                    <li key={idx}>{question}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

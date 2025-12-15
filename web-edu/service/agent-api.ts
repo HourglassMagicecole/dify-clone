@@ -304,6 +304,7 @@ export class AgentAPIService {
     message: string,
     files: File[],
     conversationId: string | null,
+    parentMessageId: string | null,
     onChunk: (chunk: CompletionChunk) => void,
     onComplete: (result: CompletionResult) => void,
     onError: (error: Error) => void
@@ -346,13 +347,18 @@ export class AgentAPIService {
           transfer_method: 'remote_url',
           url: f.url,
         })),
-        model_config: {}, // Use Agent's default config
+        model_config: {},
         response_mode: 'streaming',
       }
 
       // Add conversation_id if continuing an existing conversation
       if (conversationId) {
         requestBody.conversation_id = conversationId
+      }
+
+      // Add parent_message_id for conversation history chain
+      if (parentMessageId) {
+        requestBody.parent_message_id = parentMessageId
       }
 
       // Prepare headers with authentication

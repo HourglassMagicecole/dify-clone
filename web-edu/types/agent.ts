@@ -216,7 +216,7 @@ export interface AgentModelConfig {
   model: string                       // Model (e.g., "gpt-4", "claude-3-sonnet")
   mode: 'chat' | 'completion'         // Mode (auto-set by agent type)
   completion_params: {
-    temperature: number               // 0.0 - 2.0 (default: 1.0)
+    temperature: number               // 0.0 - 1.0 (default: 1.0)
     top_p: number                     // 0.0 - 1.0 (default: 1.0)
     presence_penalty: number          // -2.0 - 2.0 (default: 0.0)
     frequency_penalty: number         // -2.0 - 2.0 (default: 0.0)

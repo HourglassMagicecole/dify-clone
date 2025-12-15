@@ -52,6 +52,19 @@ export class ApiClient {
     console.warn('ApiClient.setAuthToken() is deprecated and has no effect. Tokens are now fetched automatically.')
   }
 
+  /**
+   * Extract error message from response body or fall back to status text
+   */
+  private async extractErrorMessage(response: Response): Promise<string> {
+    const fallbackMessage = `API Error: ${response.status} ${response.statusText}`
+    try {
+      const errorBody = await response.json()
+      return errorBody?.message || fallbackMessage
+    } catch {
+      return fallbackMessage
+    }
+  }
+
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'GET',
@@ -59,7 +72,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     return response.json()
@@ -73,7 +87,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     return response.json()
@@ -87,7 +102,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     return response.json()
@@ -100,7 +116,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     // 204 No Content는 body가 없으므로 빈 객체 반환
@@ -124,7 +141,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     const json = await response.json()
@@ -147,7 +165,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     const json = await response.json()
@@ -171,7 +190,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     const json = await response.json()
@@ -195,7 +215,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     const json = await response.json()
@@ -219,7 +240,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     const json = await response.json()
@@ -241,7 +263,8 @@ export class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      const message = await this.extractErrorMessage(response)
+      throw new Error(message)
     }
 
     // DELETE often returns empty body or 204

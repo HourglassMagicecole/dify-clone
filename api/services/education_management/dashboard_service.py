@@ -4,17 +4,21 @@ Dashboard Service
 """
 
 import logging
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from operator import itemgetter
 from typing import Any, Literal
 
-from sqlalchemy import func
+from sqlalchemy import Date, cast, func
 from sqlalchemy.exc import SQLAlchemyError
 
-from models.account import TenantAccountRole
+from models.account import Account, TenantAccountRole
 from models.dataset import Dataset
+from models.education import LlmUsageLog
 from models.education.resource_tag import SessionResourceTag
 from models.engine import db
 from models.model import App
+from services.education_management.types import ApiUsageSummary, DailyApiUsage
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +80,7 @@ class DashboardService:
             logger.debug("Recent activities count: %d", len(recent_activities))
 
             # 3. API 사용량 조회
-            api_usage = self._get_api_usage(account_id)
+            api_usage = self._get_api_usage(account_id, session_id=session_id)
 
             logger.info("Dashboard data fetched successfully for user: %s (scope: %s)", account_id, scope)
             return {
@@ -279,10 +283,11 @@ class DashboardService:
 
             if scope == "system":
                 if admin_id or session_id:
-                    # Owner: SessionResourceTag를 사용하여 필터링
+                    # Owner: SessionResourceTag를 사용하여 필터링 (Account JOIN으로 userName 포함)
                     recent_apps_query = (
-                        db.session.query(App, SessionResourceTag)
+                        db.session.query(App, SessionResourceTag, Account)
                         .join(SessionResourceTag, SessionResourceTag.resource_id == App.id)
+                        .join(Account, Account.id == SessionResourceTag.account_id)
                         .filter(
                             SessionResourceTag.resource_type == "app",
                         )
@@ -293,7 +298,7 @@ class DashboardService:
                         recent_apps_query = recent_apps_query.filter(SessionResourceTag.session_id == session_id)
                     recent_apps = recent_apps_query.order_by(SessionResourceTag.tagged_at.desc()).limit(limit).all()
 
-                    for app, tag in recent_apps:
+                    for app, tag, account in recent_apps:
                         resource_type = "workflow" if app.mode == "workflow" else "agent"
                         activities.append(
                             {
@@ -303,12 +308,14 @@ class DashboardService:
                                 "action": "created",
                                 "timestamp": tag.tagged_at.isoformat(),
                                 "status": "success",
+                                "userName": account.name,
                             }
                         )
 
                     recent_datasets_query = (
-                        db.session.query(Dataset, SessionResourceTag)
+                        db.session.query(Dataset, SessionResourceTag, Account)
                         .join(SessionResourceTag, SessionResourceTag.resource_id == Dataset.id)
+                        .join(Account, Account.id == SessionResourceTag.account_id)
                         .filter(
                             SessionResourceTag.resource_type == "dataset",
                         )
@@ -323,7 +330,7 @@ class DashboardService:
                         recent_datasets_query.order_by(SessionResourceTag.tagged_at.desc()).limit(limit).all()
                     )
 
-                    for dataset, tag in recent_datasets:
+                    for dataset, tag, account in recent_datasets:
                         activities.append(
                             {
                                 "id": dataset.id,
@@ -332,13 +339,20 @@ class DashboardService:
                                 "action": "created",
                                 "timestamp": tag.tagged_at.isoformat(),
                                 "status": "success",
+                                "userName": account.name,
                             }
                         )
                 else:
-                    # Owner: 전체 시스템 리소스 조회 (created_at 기준)
-                    recent_apps = db.session.query(App).order_by(App.created_at.desc()).limit(limit).all()
+                    # Owner: 전체 시스템 리소스 조회 (created_at 기준, Account JOIN으로 userName 포함)
+                    recent_apps = (
+                        db.session.query(App, Account)
+                        .outerjoin(Account, Account.id == App.created_by)
+                        .order_by(App.created_at.desc())
+                        .limit(limit)
+                        .all()
+                    )
 
-                    for app in recent_apps:
+                    for app, account in recent_apps:
                         resource_type = "workflow" if app.mode == "workflow" else "agent"
                         activities.append(
                             {
@@ -348,12 +362,19 @@ class DashboardService:
                                 "action": "created",
                                 "timestamp": app.created_at.isoformat(),
                                 "status": "success",
+                                "userName": account.name if account else None,
                             }
                         )
 
-                    recent_datasets = db.session.query(Dataset).order_by(Dataset.created_at.desc()).limit(limit).all()
+                    recent_datasets = (
+                        db.session.query(Dataset, Account)
+                        .outerjoin(Account, Account.id == Dataset.created_by)
+                        .order_by(Dataset.created_at.desc())
+                        .limit(limit)
+                        .all()
+                    )
 
-                    for dataset in recent_datasets:
+                    for dataset, account in recent_datasets:
                         activities.append(
                             {
                                 "id": dataset.id,
@@ -362,15 +383,17 @@ class DashboardService:
                                 "action": "created",
                                 "timestamp": dataset.created_at.isoformat(),
                                 "status": "success",
+                                "userName": account.name if account else None,
                             }
                         )
 
             else:
-                # Admin/Student: SessionResourceTag를 통해 태그된 리소스만 조회
+                # Admin/Student: SessionResourceTag를 통해 태그된 리소스만 조회 (Account JOIN으로 userName 포함)
                 # 최근 Agent 생성 이력 (SessionResourceTag와 JOIN)
                 agents_query = (
-                    db.session.query(App, SessionResourceTag)
+                    db.session.query(App, SessionResourceTag, Account)
                     .join(SessionResourceTag, SessionResourceTag.resource_id == App.id)
+                    .join(Account, Account.id == SessionResourceTag.account_id)
                     .filter(
                         SessionResourceTag.account_id == account_id,
                         SessionResourceTag.resource_type == "app",
@@ -380,7 +403,7 @@ class DashboardService:
                     agents_query = agents_query.filter(SessionResourceTag.session_id == session_id)
                 recent_agents = agents_query.order_by(SessionResourceTag.tagged_at.desc()).limit(limit).all()
 
-                for app, tag in recent_agents:
+                for app, tag, account in recent_agents:
                     # App.mode로 agent와 workflow 구분
                     resource_type = "workflow" if app.mode == "workflow" else "agent"
                     activities.append(
@@ -391,13 +414,15 @@ class DashboardService:
                             "action": "created",
                             "timestamp": tag.tagged_at.isoformat(),
                             "status": "success",
+                            "userName": account.name,
                         }
                     )
 
                 # 최근 Dataset 생성 이력 (SessionResourceTag와 JOIN)
                 datasets_query = (
-                    db.session.query(Dataset, SessionResourceTag)
+                    db.session.query(Dataset, SessionResourceTag, Account)
                     .join(SessionResourceTag, SessionResourceTag.resource_id == Dataset.id)
+                    .join(Account, Account.id == SessionResourceTag.account_id)
                     .filter(
                         SessionResourceTag.account_id == account_id,
                         SessionResourceTag.resource_type == "dataset",
@@ -407,7 +432,7 @@ class DashboardService:
                     datasets_query = datasets_query.filter(SessionResourceTag.session_id == session_id)
                 recent_datasets = datasets_query.order_by(SessionResourceTag.tagged_at.desc()).limit(limit).all()
 
-                for dataset, tag in recent_datasets:
+                for dataset, tag, account in recent_datasets:
                     activities.append(
                         {
                             "id": dataset.id,
@@ -416,6 +441,7 @@ class DashboardService:
                             "action": "created",
                             "timestamp": tag.tagged_at.isoformat(),
                             "status": "success",
+                            "userName": account.name,
                         }
                     )
 
@@ -429,17 +455,146 @@ class DashboardService:
             )
             raise
 
-    def _get_api_usage(self, account_id: str) -> dict[str, Any]:
+    def _get_api_usage(
+        self,
+        account_id: str,
+        session_id: str | None = None,
+        days: int = 7,
+    ) -> dict[str, Any]:
         """
-        API 사용량 조회 - 임시 구현
+        API 사용량 조회 - llm_usage_logs 테이블에서 실제 데이터 집계
 
-        참고: Phase 1.7 모니터링 시스템 구현 후 실제 데이터 연동 예정
-        현재는 더미 데이터 반환
+        llm_usage_logs 테이블은 Message/Conversation 삭제와 독립적으로 유지되므로
+        대화를 삭제해도 API 사용량 기록은 보존됨.
+
+        세션이 지정된 경우:
+        - SessionResourceTag를 통해 해당 세션에 태그된 App의 사용량만 집계
+
+        세션이 없는 경우 (Owner 전체 조회):
+        - 전체 사용량 집계
 
         Args:
             account_id: 사용자 ID
+            session_id: 세션 ID (None이면 전체 집계)
+            days: 조회 기간 (기본 7일)
 
         Returns:
-            API 사용량 딕셔너리
+            API 사용량 딕셔너리 (ApiUsageSummary.to_dict() 형식)
         """
-        return {"totalCalls": 0, "totalTokens": 0, "estimatedCost": 0.0, "dailyUsage": []}
+        try:
+            end_date = date.today()
+            start_date = end_date - timedelta(days=days - 1)
+            start_datetime = datetime.combine(start_date, datetime.min.time())
+
+            # 기본 쿼리: llm_usage_logs 테이블에서 일별 집계
+            if session_id:
+                # 세션별 필터링: LlmUsageLog.session_id로 직접 필터링 (App/SessionResourceTag 삭제되어도 유지)
+                daily_query = (
+                    db.session.query(
+                        cast(LlmUsageLog.created_at, Date).label("date"),
+                        func.count(LlmUsageLog.id).label("call_count"),
+                        func.coalesce(func.sum(LlmUsageLog.input_tokens), 0).label("input_tokens"),
+                        func.coalesce(func.sum(LlmUsageLog.output_tokens), 0).label("output_tokens"),
+                        func.coalesce(func.sum(LlmUsageLog.total_price), Decimal(0)).label("total_cost"),
+                    )
+                    .filter(
+                        LlmUsageLog.session_id == session_id,
+                        LlmUsageLog.created_at >= start_datetime,
+                    )
+                    .group_by(cast(LlmUsageLog.created_at, Date))
+                    .order_by(cast(LlmUsageLog.created_at, Date))
+                )
+            else:
+                # 전체 집계 (Owner 전체 조회)
+                daily_query = (
+                    db.session.query(
+                        cast(LlmUsageLog.created_at, Date).label("date"),
+                        func.count(LlmUsageLog.id).label("call_count"),
+                        func.coalesce(func.sum(LlmUsageLog.input_tokens), 0).label("input_tokens"),
+                        func.coalesce(func.sum(LlmUsageLog.output_tokens), 0).label("output_tokens"),
+                        func.coalesce(func.sum(LlmUsageLog.total_price), Decimal(0)).label("total_cost"),
+                    )
+                    .filter(LlmUsageLog.created_at >= start_datetime)
+                    .group_by(cast(LlmUsageLog.created_at, Date))
+                    .order_by(cast(LlmUsageLog.created_at, Date))
+                )
+
+            results = daily_query.all()
+
+            # 결과를 DailyApiUsage 객체로 변환
+            daily_usage: list[DailyApiUsage] = []
+            total_calls = 0
+            total_tokens = 0
+            total_cost = Decimal(0)
+
+            # 날짜별 데이터 맵 생성 (빈 날짜 채우기용)
+            date_map: dict[date, DailyApiUsage] = {}
+            for row in results:
+                row_date = row.date
+                input_tokens = int(row.input_tokens)
+                output_tokens = int(row.output_tokens)
+                call_count = int(row.call_count)
+                cost = Decimal(str(row.total_cost)) if row.total_cost else Decimal(0)
+
+                date_map[row_date] = DailyApiUsage(
+                    date=row_date,
+                    call_count=call_count,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    total_tokens=input_tokens + output_tokens,
+                    estimated_cost=cost,
+                )
+
+                total_calls += call_count
+                total_tokens += input_tokens + output_tokens
+                total_cost += cost
+
+            # 빈 날짜 채우기 (7일 전체)
+            current_date = start_date
+            while current_date <= end_date:
+                if current_date in date_map:
+                    daily_usage.append(date_map[current_date])
+                else:
+                    daily_usage.append(
+                        DailyApiUsage(
+                            date=current_date,
+                            call_count=0,
+                            input_tokens=0,
+                            output_tokens=0,
+                            total_tokens=0,
+                            estimated_cost=Decimal(0),
+                        )
+                    )
+                current_date += timedelta(days=1)
+
+            summary = ApiUsageSummary(
+                total_calls=total_calls,
+                total_tokens=total_tokens,
+                estimated_cost=total_cost,
+                daily_usage=daily_usage,
+            )
+
+            logger.info(
+                "API usage fetched for session=%s: calls=%d, tokens=%d, cost=%.4f",
+                session_id or "all",
+                total_calls,
+                total_tokens,
+                float(total_cost),
+            )
+
+            return summary.to_dict()
+
+        except SQLAlchemyError as e:
+            logger.error(
+                "Failed to fetch API usage for session %s: %s",
+                session_id or "all",
+                e,
+                exc_info=True,
+            )
+            # 에러 시 빈 데이터 반환 (대시보드 렌더링 실패 방지)
+            return ApiUsageSummary(
+                total_calls=0,
+                total_tokens=0,
+                estimated_cost=Decimal(0),
+                daily_usage=[],
+            ).to_dict()

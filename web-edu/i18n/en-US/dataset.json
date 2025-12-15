@@ -107,7 +107,10 @@
     "subtitle": "Follow the 4-step pipeline to create your own knowledge base",
     "embeddingModelWarning": "Embedding model not configured",
     "embeddingModelWarningDesc": "RAG knowledge base creation requires a text-embedding model.",
-    "cancelConfirm": "Changes may not be saved. Are you sure you want to cancel?"
+    "cancelConfirm": "Changes may not be saved. Are you sure you want to cancel?",
+    "sessionRequired": "Session Required",
+    "sessionRequiredDesc": "You must be part of an active education session to create a knowledge base. Please contact your administrator to be added to a session.",
+    "backToDashboard": "Back to Dashboard"
   },
   "pipeline": {
     "load": "Load",
@@ -233,7 +236,8 @@
     "retry": "Retry",
     "createRAG": "Create RAG",
     "creating": "Creating...",
-    "embeddingModelRequired": "Please select an embedding model first."
+    "embeddingModelRequired": "Please select an embedding model first.",
+    "sessionRequired": "An active education session is required."
   },
   "common": {
     "next": "Next",

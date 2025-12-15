@@ -53,7 +53,7 @@ export function ConversationHistory({
   return (
     <aside className="w-64 border-r bg-gray-50 flex flex-col h-full">
       {/* Header with New Conversation button - Sticky */}
-      <div className="p-4 border-b bg-white flex justify-between items-center sticky top-0 z-10 flex-shrink-0">
+      <div className="p-4 border-b bg-white flex justify-between items-center sticky top-0 z-10 flex-shrink-0 h-[85px]">
         <h3 className="font-bold text-gray-900">{t('conversationHistory')}</h3>
         <button
           onClick={onNewConversation}

@@ -324,10 +324,7 @@ class ProviderSyncService:
                     ProviderCredential.credential_name == credential_name,
                 )
 
-                logger.info("[DEBUG] Executing query to find ProviderCredential...")
                 credential = session.execute(stmt).scalar_one_or_none()
-
-                logger.info("[DEBUG] Query result: %s", credential)
 
                 if not credential:
                     logger.warning(

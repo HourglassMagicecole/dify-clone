@@ -30,6 +30,8 @@ export default function AgentChatPage() {
   const [streamingContent, setStreamingContent] = useState('')
   const currentAgentThoughtsRef = useRef<ProcessingStep[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const conversationIdRef = useRef<string>('') // For API calls (immediate update)
+  const parentMessageIdRef = useRef<string>('') // For conversation history chain
   const [showAgentInfo, setShowAgentInfo] = useState(false)
 
   // Load Agent data first
@@ -59,6 +61,8 @@ export default function AgentChatPage() {
   // Handle conversation selection
   const handleSelectConversation = async (conversationId: string) => {
     setCurrentConversationId(conversationId)
+    conversationIdRef.current = conversationId === 'temp-new-conversation' ? '' : conversationId
+    parentMessageIdRef.current = '' // Reset parent message ID when switching conversations
 
     // If selecting the temporary conversation, restore opening_statement
     if (conversationId === 'temp-new-conversation') {
@@ -81,6 +85,12 @@ export default function AgentChatPage() {
 
     try {
       const loadedMessages = await agentAPI.getConversationMessages(agentId, conversationId)
+
+      // Set parent_message_id to the last assistant message for conversation continuity
+      const lastAssistantMessage = [...loadedMessages].reverse().find(m => m.role === 'assistant' && !m.id.startsWith('opening-'))
+      if (lastAssistantMessage) {
+        parentMessageIdRef.current = lastAssistantMessage.id
+      }
 
       // Prepend opening_statement as first message if it exists and not already in messages
       const openingStatement = (agent?.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
@@ -145,6 +155,8 @@ export default function AgentChatPage() {
 
     // Select the temporary conversation
     setCurrentConversationId('temp-new-conversation')
+    conversationIdRef.current = '' // Reset ref for new conversation
+    parentMessageIdRef.current = '' // Reset parent message ID for new conversation
     setStreamingContent('')
 
     // Add opening_statement as the first assistant message if available
@@ -285,7 +297,8 @@ export default function AgentChatPage() {
         agent!.mode,
         message,
         files,
-        currentConversationId === 'temp-new-conversation' ? null : currentConversationId,
+        conversationIdRef.current || null, // Use ref for immediate value
+        parentMessageIdRef.current || null, // For conversation history chain
         // onChunk callback
         (chunk) => {
           // Handle both 'message' (completion) and 'agent_message' (agent-chat) events
@@ -324,20 +337,21 @@ export default function AgentChatPage() {
         (result) => {
           const responseTime = Date.now() - startTime
 
-          // If this was a temporary conversation, replace it with the real one
-          if (currentConversationId === 'temp-new-conversation' && result.conversationId) {
-            setCurrentConversationId(result.conversationId)
-            mutateConversations()
-          }
-          // Update current conversation ID if starting a new conversation
-          else if (result.conversationId && !currentConversationId) {
+          // Update conversation ID immediately via ref
+          if (result.conversationId && !conversationIdRef.current) {
+            conversationIdRef.current = result.conversationId
             setCurrentConversationId(result.conversationId)
             mutateConversations()
           }
 
+          // Update parent message ID for next message in conversation
+          if (result.messageId) {
+            parentMessageIdRef.current = result.messageId
+          }
+
           const assistantMessage: Message = {
             id: result.messageId || `assistant-${Date.now()}`,
-            conversationId: result.conversationId || currentConversationId || '',
+            conversationId: result.conversationId || conversationIdRef.current || '',
             role: 'assistant',
             content: fullContent,
             createdAt: new Date().toISOString(),
@@ -366,6 +380,8 @@ export default function AgentChatPage() {
           else if (error instanceof NotFoundError) {
             alert(t('error.conversationNotFound'))
             // Reset conversation state to start fresh
+            conversationIdRef.current = ''
+            parentMessageIdRef.current = ''
             setCurrentConversationId(null)
             setMessages([])
             mutateConversations() // Refresh conversation list
@@ -447,7 +463,7 @@ export default function AgentChatPage() {
       {/* Center: Message Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="border-b p-4 bg-white flex justify-between items-center flex-shrink-0">
+        <header className="border-b p-4 bg-white flex justify-between items-center flex-shrink-0 h-[85px]">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/agents')}

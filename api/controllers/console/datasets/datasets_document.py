@@ -9,7 +9,7 @@ from flask import request
 from flask_login import current_user
 from flask_restx import Resource, fields, marshal, marshal_with, reqparse
 from sqlalchemy import asc, desc, select
-from werkzeug.exceptions import Forbidden, NotFound
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 
 import services
 from controllers.console import api, console_ns
@@ -58,7 +58,6 @@ from models import Dataset, DatasetProcessRule, Document, DocumentSegment, Uploa
 from models.dataset import DocumentPipelineExecutionLog
 from services.dataset_service import DatasetService, DocumentService
 from services.edu.resource_tagging_service import ResourceTaggingService
-from services.edu.session_helper import get_user_active_session
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
 
 logger = logging.getLogger(__name__)
@@ -396,11 +395,37 @@ class DatasetInitApi(Resource):
         parser.add_argument("embedding_model_provider", type=str, required=False, nullable=True, location="json")
         parser.add_argument("name", type=str, required=False, nullable=True, location="json")
         parser.add_argument("description", type=str, required=False, nullable=True, location="json")
-        parser.add_argument("session_id", type=str, required=False, nullable=True, location="json")  # EduAI session
+        parser.add_argument(
+            "session_id", type=str, required=True, nullable=False, location="json"
+        )  # EduAI session (required)
         args = parser.parse_args()
 
         # Extract session_id before passing to KnowledgeConfig
         provided_session_id = args.pop("session_id", None)
+
+        # EduAI: Validate session and user membership (with date-based activation check)
+        if not provided_session_id:
+            raise BadRequest("session_id is required to create a knowledge base")
+
+        from models.education.session import EducationSession
+        from models.education.session_member import EducationSessionMember
+        from services.edu.session_helper import build_session_active_condition
+
+        stmt = (
+            select(EducationSession)
+            .join(EducationSessionMember, EducationSession.id == EducationSessionMember.session_id)
+            .where(
+                EducationSession.id == provided_session_id,
+                EducationSession.is_active == True,
+                build_session_active_condition(),
+                EducationSessionMember.account_id == current_user.id,
+                EducationSessionMember.status == "active",
+            )
+        )
+        active_session = db.session.scalar(stmt)
+
+        if not active_session:
+            raise BadRequest("Invalid session_id or session is not currently active")
 
         knowledge_config = KnowledgeConfig(**args)
         if knowledge_config.indexing_technique == "high_quality":
@@ -437,36 +462,28 @@ class DatasetInitApi(Resource):
 
         logger.info("Dataset created via /init: %s (ID: %s, User: %s)", dataset.name, dataset.id, current_user.id)
 
-        # Add session resource tag - use provided session_id or fall back to user's active session
-        target_session_id = provided_session_id
-        if not target_session_id:
-            active_session = get_user_active_session(current_user.id)
-            target_session_id = active_session.id if active_session else None
-
-        if target_session_id:
-            try:
-                resource_tagging_service = ResourceTaggingService()
-                resource_tagging_service.add_tag(
-                    session_id=target_session_id,
-                    resource_type="dataset",
-                    resource_id=dataset.id,
-                    account_id=current_user.id,
-                )
-                logger.info(
-                    "Added SessionResourceTag for dataset %s in session %s",
-                    dataset.id,
-                    target_session_id,
-                )
-            except Exception as e:
-                # Don't fail dataset creation if tagging fails
-                logger.error(
-                    "Failed to add SessionResourceTag for dataset %s: %s",
-                    dataset.id,
-                    e,
-                    exc_info=True,
-                )
-        else:
-            logger.warning("No session found for user %s during dataset init", current_user.id)
+        # Add session resource tag (session is validated above, so active_session is guaranteed)
+        try:
+            resource_tagging_service = ResourceTaggingService()
+            resource_tagging_service.add_tag(
+                session_id=active_session.id,
+                resource_type="dataset",
+                resource_id=dataset.id,
+                account_id=current_user.id,
+            )
+            logger.info(
+                "Added SessionResourceTag for dataset %s in session %s",
+                dataset.id,
+                active_session.id,
+            )
+        except Exception as e:
+            # Log error but don't fail dataset creation (tag can be added later)
+            logger.error(
+                "Failed to add SessionResourceTag for dataset %s: %s",
+                dataset.id,
+                e,
+                exc_info=True,
+            )
 
         response = {"dataset": dataset, "documents": documents, "batch": batch}
 

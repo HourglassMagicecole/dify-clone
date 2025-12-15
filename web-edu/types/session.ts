@@ -14,6 +14,8 @@ export interface Session {
   end_date?: string // ISO 8601
   max_students: number
   is_active: boolean
+  force_status: boolean | null // null=auto (date-based), true=force active, false=force inactive
+  is_currently_active: boolean // Calculated: actual active status based on force_status and dates
   description?: string
   created_at: string // ISO 8601
   updated_at: string // ISO 8601
@@ -42,6 +44,7 @@ export interface UpdateSessionRequest {
   end_date?: string // ISO 8601
   max_students?: number
   is_active?: boolean
+  force_status?: boolean | null // null=auto, true=force active, false=force inactive
   description?: string
 }
 

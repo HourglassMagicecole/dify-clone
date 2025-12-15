@@ -19,7 +19,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ session, onC
     start_date: session.start_date,
     end_date: session.end_date || '',
     max_students: session.max_students,
-    is_active: session.is_active,
+    force_status: session.force_status,
     description: session.description || '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,7 +51,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ session, onC
         start_date: startDateISO,
         end_date: endDateISO,
         max_students: formData.max_students,
-        is_active: formData.is_active,
+        force_status: formData.force_status,
         description: formData.description || undefined,
       }
 
@@ -67,11 +67,15 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ session, onC
     }
   }
 
-  // Convert ISO 8601 to date format (YYYY-MM-DD)
+  // Convert ISO 8601 to date format (YYYY-MM-DD) in local timezone
   const toDateOnly = (isoString?: string) => {
     if (!isoString)
       return ''
-    return new Date(isoString).toISOString().slice(0, 10)
+    const date = new Date(isoString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   return (
@@ -136,15 +140,23 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ session, onC
           </div>
 
           <div className="mb-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
-                className="mr-2"
-              />
-              <span className="text-sm font-medium">{t('active')}</span>
-            </label>
+            <label className="block text-sm font-medium mb-1">{t('activation_status')}</label>
+            <select
+              value={formData.force_status === null ? 'auto' : formData.force_status ? 'force_active' : 'force_inactive'}
+              onChange={(e) => {
+                const value = e.target.value
+                setFormData({
+                  ...formData,
+                  force_status: value === 'auto' ? null : value === 'force_active',
+                })
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="auto">{t('auto_by_date')}</option>
+              <option value="force_active">{t('force_active')}</option>
+              <option value="force_inactive">{t('force_inactive')}</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">{t('activation_hint')}</p>
           </div>
 
           <div className="mb-4">

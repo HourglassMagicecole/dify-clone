@@ -86,7 +86,7 @@ export const modelConfigSchema = z.object({
   model: z.string().min(1, 'validation.modelRequired'),
   mode: z.enum(['chat', 'completion']),
   completion_params: z.object({
-    temperature: z.number().min(0).max(2).default(1.0),
+    temperature: z.number().min(0).max(1).default(1.0),
     top_p: z.number().min(0).max(1).default(1.0),
     presence_penalty: z.number().min(-2).max(2).default(0.0),
     frequency_penalty: z.number().min(-2).max(2).default(0.0),

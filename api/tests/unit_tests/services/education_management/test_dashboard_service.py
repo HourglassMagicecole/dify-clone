@@ -30,9 +30,14 @@ class TestDashboardService:
         assert service is not None
         assert isinstance(service, DashboardService)
 
-    # 1.5-UNIT-015: API 사용량 임시 구현
-    def test_get_api_usage_returns_default_structure(self, service, mock_user_id):
+    # 1.5-UNIT-015: API 사용량 구조 테스트
+    @patch("services.education_management.dashboard_service.db")
+    def test_get_api_usage_returns_default_structure(self, mock_db, service, mock_user_id):
         """API 사용량 조회가 올바른 구조를 반환하는지 테스트 (1.5-UNIT-015)"""
+        # Arrange - Mock empty query result
+        mock_query = mock_db.session.query.return_value
+        mock_query.filter.return_value.group_by.return_value.order_by.return_value.all.return_value = []
+
         # Act
         result = service._get_api_usage(mock_user_id)
 
@@ -42,7 +47,7 @@ class TestDashboardService:
         assert "estimatedCost" in result
         assert "dailyUsage" in result
         assert isinstance(result["dailyUsage"], list)
-        # 임시 구현이므로 0 값 반환
+        assert len(result["dailyUsage"]) == 7  # 기본 7일
         assert result["totalCalls"] == 0
         assert result["totalTokens"] == 0
         assert result["estimatedCost"] == 0.0
@@ -170,7 +175,7 @@ class TestRecentActivities:
     @patch("services.education_management.dashboard_service.db")
     def test_get_recent_activities_respects_limit(self, mock_db, service, mock_user_id):
         """최근 10개 활동만 반환 (limit 준수) (1.5-UNIT-008)"""
-        # Arrange - Create 15 mock activities
+        # Arrange - Create 15 mock activities with Account (3-tuple)
         now = datetime.now(UTC)
         mock_apps = []
         for i in range(15):
@@ -182,13 +187,16 @@ class TestRecentActivities:
             mock_tag = MagicMock()
             mock_tag.tagged_at = now - timedelta(minutes=i)
 
-            mock_apps.append((mock_app, mock_tag))
+            mock_account = MagicMock()
+            mock_account.name = f"User {i}"
+
+            mock_apps.append((mock_app, mock_tag, mock_account))
 
         mock_query = MagicMock()
         # First query (agents): return 10 items
         # Second query (datasets): return empty
         mock_query.all.side_effect = [mock_apps[:10], []]
-        mock_chain = mock_db.session.query.return_value.join.return_value.filter.return_value
+        mock_chain = mock_db.session.query.return_value.join.return_value.join.return_value.filter.return_value
         mock_chain.order_by.return_value.limit.return_value = mock_query
 
         # Act
@@ -201,7 +209,7 @@ class TestRecentActivities:
     @patch("services.education_management.dashboard_service.db")
     def test_get_recent_activities_sorted_by_time(self, mock_db, service, mock_user_id):
         """여러 리소스 타입(agent, dataset)을 시간순으로 정렬 (1.5-UNIT-009)"""
-        # Arrange - Create mock activities with different timestamps
+        # Arrange - Create mock activities with different timestamps (3-tuple with Account)
         now = datetime.now(UTC)
 
         # Agent created 5 minutes ago
@@ -211,6 +219,8 @@ class TestRecentActivities:
         mock_app.mode = "agent-chat"
         mock_app_tag = MagicMock()
         mock_app_tag.tagged_at = now - timedelta(minutes=5)
+        mock_app_account = MagicMock()
+        mock_app_account.name = "User A"
 
         # Dataset created 3 minutes ago (more recent)
         mock_dataset = MagicMock()
@@ -218,11 +228,16 @@ class TestRecentActivities:
         mock_dataset.name = "Test Dataset"
         mock_dataset_tag = MagicMock()
         mock_dataset_tag.tagged_at = now - timedelta(minutes=3)
+        mock_dataset_account = MagicMock()
+        mock_dataset_account.name = "User B"
 
         mock_query = MagicMock()
-        # First query: agents, Second query: datasets
-        mock_query.all.side_effect = [[(mock_app, mock_app_tag)], [(mock_dataset, mock_dataset_tag)]]
-        mock_chain = mock_db.session.query.return_value.join.return_value.filter.return_value
+        # First query: agents (3-tuple), Second query: datasets (3-tuple)
+        mock_query.all.side_effect = [
+            [(mock_app, mock_app_tag, mock_app_account)],
+            [(mock_dataset, mock_dataset_tag, mock_dataset_account)],
+        ]
+        mock_chain = mock_db.session.query.return_value.join.return_value.join.return_value.filter.return_value
         mock_chain.order_by.return_value.limit.return_value = mock_query
 
         # Act
@@ -239,7 +254,7 @@ class TestRecentActivities:
     @patch("services.education_management.dashboard_service.db")
     def test_get_recent_activities_response_format(self, mock_db, service, mock_user_id):
         """각 활동에 type, resourceName, action, timestamp 포함 (1.5-UNIT-010)"""
-        # Arrange
+        # Arrange (3-tuple with Account)
         now = datetime.now(UTC)
         mock_app = MagicMock()
         mock_app.id = "app-1"
@@ -247,10 +262,12 @@ class TestRecentActivities:
         mock_app.mode = "agent-chat"
         mock_tag = MagicMock()
         mock_tag.tagged_at = now
+        mock_account = MagicMock()
+        mock_account.name = "Test User"
 
         mock_query = MagicMock()
-        mock_query.all.side_effect = [[(mock_app, mock_tag)], []]
-        mock_chain = mock_db.session.query.return_value.join.return_value.filter.return_value
+        mock_query.all.side_effect = [[(mock_app, mock_tag, mock_account)], []]
+        mock_chain = mock_db.session.query.return_value.join.return_value.join.return_value.filter.return_value
         mock_chain.order_by.return_value.limit.return_value = mock_query
 
         # Act
@@ -314,3 +331,95 @@ class TestErrorHandling:
         # Act & Assert
         with pytest.raises(SQLAlchemyError):
             service.get_user_dashboard(mock_user_id)
+
+
+class TestGetApiUsage:
+    """_get_api_usage() 메서드 테스트 (Story 3.8)"""
+
+    @pytest.fixture
+    def service(self):
+        """테스트용 서비스 인스턴스 생성"""
+        return DashboardService()
+
+    @pytest.fixture
+    def mock_user_id(self):
+        """테스트용 사용자 ID"""
+        return "test-user-001"
+
+    @pytest.fixture
+    def mock_session_id(self):
+        """테스트용 세션 ID"""
+        return "test-session-001"
+
+    # 3.8-UNIT-001: 빈 데이터 테스트
+    @patch("services.education_management.dashboard_service.db")
+    def test_get_api_usage_empty_data(self, mock_db, service, mock_user_id):
+        """데이터가 없을 때 빈 결과 반환 (3.8-UNIT-001)"""
+        # Arrange - Mock empty query result
+        mock_query = mock_db.session.query.return_value
+        mock_query.filter.return_value.group_by.return_value.order_by.return_value.all.return_value = []
+
+        # Act
+        result = service._get_api_usage(mock_user_id)
+
+        # Assert
+        assert result["totalCalls"] == 0
+        assert result["totalTokens"] == 0
+        assert result["estimatedCost"] == 0.0
+        assert isinstance(result["dailyUsage"], list)
+        assert len(result["dailyUsage"]) == 7  # 기본 7일
+
+    # 3.8-UNIT-002: 세션 필터링 테스트
+    @patch("services.education_management.dashboard_service.db")
+    def test_get_api_usage_with_session_filter(self, mock_db, service, mock_user_id, mock_session_id):
+        """세션 필터링이 적용되는지 확인 (3.8-UNIT-002)"""
+        # Arrange - Mock query chain for session filtering (no JOIN, direct filter on session_id)
+        mock_query_chain = MagicMock()
+        mock_query_chain.all.return_value = []
+        mock_query = mock_db.session.query.return_value
+        mock_query.filter.return_value.group_by.return_value.order_by.return_value = mock_query_chain
+
+        # Act
+        result = service._get_api_usage(mock_user_id, session_id=mock_session_id)
+
+        # Assert
+        assert "totalCalls" in result
+        assert "dailyUsage" in result
+        # filter가 호출되었는지 확인 (LlmUsageLog.session_id로 직접 필터링)
+        assert mock_db.session.query.return_value.filter.called
+
+    # 3.8-UNIT-003: 일별 데이터 구조 확인
+    @patch("services.education_management.dashboard_service.db")
+    def test_get_api_usage_daily_structure(self, mock_db, service, mock_user_id):
+        """일별 데이터가 올바른 구조를 가지는지 확인 (3.8-UNIT-003)"""
+        # Arrange
+        mock_query = mock_db.session.query.return_value
+        mock_query.filter.return_value.group_by.return_value.order_by.return_value.all.return_value = []
+
+        # Act
+        result = service._get_api_usage(mock_user_id)
+
+        # Assert - 각 일별 데이터의 구조 확인
+        for daily in result["dailyUsage"]:
+            assert "date" in daily
+            assert "callCount" in daily
+            assert "inputTokens" in daily
+            assert "outputTokens" in daily
+            assert "totalTokens" in daily
+            assert "estimatedCost" in daily
+
+    # 3.8-UNIT-004: 에러 시 빈 데이터 반환
+    @patch("services.education_management.dashboard_service.db")
+    def test_get_api_usage_handles_error_gracefully(self, mock_db, service, mock_user_id):
+        """에러 발생 시 빈 데이터 반환 (대시보드 렌더링 실패 방지) (3.8-UNIT-004)"""
+        # Arrange
+        mock_db.session.query.side_effect = SQLAlchemyError("Database error")
+
+        # Act - 에러가 발생해도 예외를 던지지 않고 빈 데이터 반환
+        result = service._get_api_usage(mock_user_id)
+
+        # Assert
+        assert result["totalCalls"] == 0
+        assert result["totalTokens"] == 0
+        assert result["estimatedCost"] == 0.0
+        assert result["dailyUsage"] == []

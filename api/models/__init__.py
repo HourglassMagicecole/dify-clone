@@ -31,6 +31,7 @@ from .education import (
     EducationSession,
     EducationSessionMember,
     EduUserRole,
+    LlmUsageLog,
     SessionMonitoring,
     SessionResourceTag,
 )
@@ -148,6 +149,7 @@ __all__ = [
     "IconType",
     "InstalledApp",
     "InvitationCode",
+    "LlmUsageLog",
     "LoadBalancingModelConfig",
     "Message",
     "MessageAgentThought",

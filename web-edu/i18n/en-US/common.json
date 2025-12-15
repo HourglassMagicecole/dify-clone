@@ -26,12 +26,13 @@
   "nav": {
     "dashboard": "Dashboard",
     "agents": "Agents",
-    "datasets": "Datasets",
+    "datasets": "Knowledge Base",
     "my_session": "My Session",
     "my_sessions": "My Sessions",
     "sessions": "Sessions",
     "users": "User Management",
     "api_keys": "API Keys",
-    "monitoring": "Monitoring"
+    "monitoring": "Monitoring",
+    "admin": "Admin"
   }
 }

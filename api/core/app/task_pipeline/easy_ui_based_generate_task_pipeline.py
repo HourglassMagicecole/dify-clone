@@ -58,7 +58,8 @@ from core.prompt.utils.prompt_template_parser import PromptTemplateParser
 from events.message_event import message_was_created
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
-from models.model import AppMode, Conversation, Message, MessageAgentThought
+from models.model import App, AppMode, Conversation, Message, MessageAgentThought
+from services.llm_usage_service import record_llm_usage
 
 logger = logging.getLogger(__name__)
 
@@ -407,6 +408,13 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                 )
             )
 
+        # Record LLM usage to persistent log table
+        app_id = self._application_generate_entity.app_config.app_id
+        app_stmt = select(App).where(App.id == app_id)
+        app = session.scalar(app_stmt)
+        if app:
+            record_llm_usage(session=session, message=message, app=app)
+
         message_was_created.send(
             message,
             application_generate_entity=self._application_generate_entity,
@@ -483,11 +491,8 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                 from core.tools.tool_file_manager import ToolFileManager
                 from models.model import MessageFile, UploadFile
 
-                logger.info("[DEBUG] agent_thought.files: %s", agent_thought.files)
-
                 # Query MessageFile objects by IDs
                 message_files = session.query(MessageFile).where(MessageFile.id.in_(agent_thought.files)).all()
-                logger.info("[DEBUG] Found %d MessageFile objects", len(message_files))
 
                 for msg_file in message_files:
                     # Get filename, mime_type, size, extension from UploadFile
@@ -498,11 +503,6 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
 
                     if msg_file.upload_file_id:
                         upload_file = session.query(UploadFile).where(UploadFile.id == msg_file.upload_file_id).first()
-                        logger.info(
-                            "[DEBUG] UploadFile query for %s: %s",
-                            msg_file.upload_file_id,
-                            "Found" if upload_file else "NOT FOUND",
-                        )
 
                         if upload_file:
                             filename = upload_file.name
@@ -519,7 +519,6 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
 
                         # Generate signed URL for tool files (works even without UploadFile)
                         signed_url = ToolFileManager.sign_file(msg_file.upload_file_id, extension)
-                        logger.info("[DEBUG] Generated signed URL: %s", signed_url)
                     else:
                         # No upload_file_id, try to extract tool_file_id from URL and sign it
                         import re
@@ -540,13 +539,6 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                                     extension = ".bin"
                                 # Sign the file URL
                                 signed_url = sign_tool_file(tool_file_id, extension)
-                                logger.info("[DEBUG] Signed URL from path: %s", signed_url)
-                            else:
-                                logger.warning("[DEBUG] Could not extract tool_file_id from URL: %s", msg_file.url)
-                        else:
-                            logger.info(
-                                "[DEBUG] No upload_file_id and not a tool file, using original URL: %s", signed_url
-                            )
 
                     file_data: dict[str, object] = {
                         "id": msg_file.id,
@@ -560,24 +552,9 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                         "upload_file_id": msg_file.upload_file_id,
                     }
 
-                    logger.info("[DEBUG] MessageFile data: %s", file_data)
                     message_files_data.append(file_data)
 
-                logger.info("[DEBUG] Total message_files_data: %d", len(message_files_data))
-
         if agent_thought:
-            logger.info("[AgentThoughtStream] Creating AgentThoughtStreamResponse")
-            logger.info("[AgentThoughtStream] Agent thought ID: %s", agent_thought.id)
-            logger.info(
-                "[AgentThoughtStream] Thought: %s", agent_thought.thought[:100] if agent_thought.thought else None
-            )
-            logger.info("[AgentThoughtStream] Tool: %s", agent_thought.tool)
-            logger.info("[AgentThoughtStream] Observation type: %s", type(agent_thought.observation))
-            logger.info(
-                "[AgentThoughtStream] Observation value: %s",
-                str(agent_thought.observation)[:500] if agent_thought.observation else None,
-            )
-
             return AgentThoughtStreamResponse(
                 task_id=self._application_generate_entity.task_id,
                 id=agent_thought.id,

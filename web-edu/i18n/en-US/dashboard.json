@@ -16,11 +16,21 @@
     }
   },
   "apiUsage": {
-    "title": "API Usage",
+    "title": "LLM Usage (Last 7 Days)",
     "totalCalls": "Total Calls",
     "totalTokens": "Total Tokens",
     "estimatedCost": "Estimated Cost",
-    "empty": "No API usage data yet"
+    "empty": "No LLM usage data yet",
+    "summary": {
+      "calls": "Total Calls",
+      "tokens": "Total Tokens",
+      "cost": "Estimated Cost"
+    },
+    "chart": {
+      "calls": "LLM Calls",
+      "tokens": "Tokens",
+      "cost": "Cost"
+    }
   },
   "quickStart": {
     "title": "Quick Start",
@@ -40,16 +50,20 @@
   },
   "contextBanner": {
     "owner": {
-      "title": "Owner Dashboard",
-      "description": "Manage all system resources"
+      "title": "Session: {{sessionName}}",
+      "description": "Manage all resources"
     },
     "admin": {
-      "title": "Administrator Dashboard",
-      "description": "Session: {{sessionName}} - Manage my created resources"
+      "title": "Session: {{sessionName}}",
+      "description": "Manage all resources"
     },
     "student": {
-      "title": "Learning Dashboard",
-      "description": "Session: {{sessionName}} - View my learning activities"
+      "title": "Session: {{sessionName}}",
+      "description": "My resources"
+    },
+    "noSession": {
+      "title": "No Active Session",
+      "description": "No active sessions available to participate in"
     }
   },
   "scope": {

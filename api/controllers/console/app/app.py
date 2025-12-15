@@ -200,11 +200,12 @@ class AppListApi(Resource):
         if not session_id:
             raise BadRequest("session_id is required to create an agent")
 
-        # Validate session and user membership
+        # Validate session and user membership (with date-based activation check)
         from sqlalchemy import select
 
         from models.education.session import EducationSession
         from models.education.session_member import EducationSessionMember
+        from services.edu.session_helper import build_session_active_condition
 
         stmt = (
             select(EducationSession)
@@ -212,6 +213,7 @@ class AppListApi(Resource):
             .where(
                 EducationSession.id == session_id,
                 EducationSession.is_active == True,
+                build_session_active_condition(),
                 EducationSessionMember.account_id == current_user.id,
                 EducationSessionMember.status == "active",
             )
@@ -219,7 +221,7 @@ class AppListApi(Resource):
         active_session = db.session.scalar(stmt)
 
         if not active_session:
-            raise BadRequest("Invalid session_id or you are not a member of this session")
+            raise BadRequest("Invalid session_id or session is not currently active")
 
         app_service = AppService()
         if not isinstance(current_user, Account):

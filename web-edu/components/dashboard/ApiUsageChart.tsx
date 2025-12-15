@@ -1,133 +1,129 @@
 'use client'
 
-import React from 'react'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
-  Filler
+  type TooltipItem,
 } from 'chart.js'
-import { Line } from 'react-chartjs-2'
-import type { ApiUsage } from '../../types/dashboard'
+import { Bar } from 'react-chartjs-2'
+import type { ApiUsageSummary } from '@/types/dashboard'
 
 // Chart.js 등록
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-)
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 interface ApiUsageChartProps {
-  usage: ApiUsage
+  data: ApiUsageSummary
   isLoading?: boolean
 }
 
 /**
  * API 사용량 차트 컴포넌트
- * 일별 API 호출 수와 토큰 사용량을 라인 차트로 표시
+ * AC: 1, 3 - 일별 호출 수, 토큰 사용량, 추정 비용 표시
  */
-export function ApiUsageChart({ usage, isLoading = false }: ApiUsageChartProps) {
+export function ApiUsageChart({ data, isLoading }: ApiUsageChartProps) {
+  const { t } = useTranslation('dashboard')
+
+  const chartData = useMemo(() => {
+    const labels = data.dailyUsage.map((d) => {
+      const date = new Date(d.date)
+      return `${date.getMonth() + 1}/${date.getDate()}`
+    })
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: t('apiUsage.chart.calls'),
+          data: data.dailyUsage.map((d) => d.callCount),
+          backgroundColor: 'rgba(59, 130, 246, 0.8)',
+          borderRadius: 4,
+        },
+      ],
+    }
+  }, [data.dailyUsage, t])
+
+  const options = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          callbacks: {
+            afterBody: (context: TooltipItem<'bar'>[]) => {
+              if (!context[0]) return []
+              const index = context[0].dataIndex
+              const usage = data.dailyUsage[index]
+              if (!usage) return []
+              return [
+                `${t('apiUsage.chart.tokens')}: ${usage.totalTokens.toLocaleString()}`,
+                `${t('apiUsage.chart.cost')}: $${usage.estimatedCost.toFixed(4)}`,
+              ]
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+          },
+        },
+      },
+    }),
+    [data.dailyUsage, t]
+  )
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">API 사용량</h3>
-        <div className="h-64 bg-gray-100 rounded animate-pulse"></div>
-      </div>
-    )
-  }
-
-  // 빈 상태 처리
-  if (usage.dailyUsage.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">API 사용량</h3>
-        <div className="text-center py-12">
-          <div className="text-4xl mb-2">📊</div>
-          <p className="text-gray-600">아직 API 사용 데이터가 없습니다</p>
-          <p className="text-sm text-gray-500 mt-2">
-            Agent를 실행하면 사용량이 표시됩니다
-          </p>
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="h-48 bg-gray-200 rounded" />
         </div>
       </div>
     )
-  }
-
-  // 차트 데이터 준비
-  const chartData = {
-    labels: usage.dailyUsage.map(day => {
-      const date = new Date(day.date)
-      return `${date.getMonth() + 1}/${date.getDate()}`
-    }),
-    datasets: [
-      {
-        label: 'API 호출 수',
-        data: usage.dailyUsage.map(day => day.calls),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.4
-      },
-      {
-        label: '토큰 사용량 (1K 단위)',
-        data: usage.dailyUsage.map(day => day.tokens / 1000),
-        borderColor: 'rgb(168, 85, 247)',
-        backgroundColor: 'rgba(168, 85, 247, 0.1)',
-        fill: true,
-        tension: 0.4
-      }
-    ]
-  }
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: false,
-      },
-      tooltip: {
-        mode: 'index' as const,
-        intersect: false,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
   }
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">API 사용량</h3>
-        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-          <div>
-            <span className="font-medium">총 호출:</span> {usage.totalCalls.toLocaleString()}
+      <h3 className="text-lg font-semibold mb-4">{t('apiUsage.title')}</h3>
+
+      {/* 요약 통계 */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="text-center p-3 bg-blue-50 rounded-lg">
+          <div className="text-2xl font-bold text-blue-600">
+            {data.totalCalls.toLocaleString()}
           </div>
-          <div>
-            <span className="font-medium">총 토큰:</span> {usage.totalTokens.toLocaleString()}
+          <div className="text-sm text-gray-600">{t('apiUsage.summary.calls')}</div>
+        </div>
+        <div className="text-center p-3 bg-green-50 rounded-lg">
+          <div className="text-2xl font-bold text-green-600">
+            {data.totalTokens.toLocaleString()}
           </div>
-          <div>
-            <span className="font-medium">추정 비용:</span> ${usage.estimatedCost.toFixed(2)}
+          <div className="text-sm text-gray-600">{t('apiUsage.summary.tokens')}</div>
+        </div>
+        <div className="text-center p-3 bg-purple-50 rounded-lg">
+          <div className="text-2xl font-bold text-purple-600">
+            ${data.estimatedCost.toFixed(2)}
           </div>
+          <div className="text-sm text-gray-600">{t('apiUsage.summary.cost')}</div>
         </div>
       </div>
-      <div className="h-64">
-        <Line data={chartData} options={options} />
+
+      {/* 차트 */}
+      <div className="h-48">
+        <Bar data={chartData} options={options} />
       </div>
     </div>
   )

@@ -63,7 +63,17 @@ export function AddAPIKeyModal({
       }, 1500)
     }
     catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('addModal.errors.createFailed')
+      let message = t('addModal.errors.createFailed')
+      if (error instanceof Error) {
+        // 우선순위 관련 에러를 사용자 친화적 메시지로 변환
+        if (error.message.includes('already exists')) {
+          message = t('addModal.errors.priorityDuplicate')
+        } else if (error.message.includes('Cannot set') && error.message.includes('without')) {
+          message = t('addModal.errors.priorityOrderInvalid')
+        } else {
+          message = error.message
+        }
+      }
       setTestResult({
         success: false,
         message,

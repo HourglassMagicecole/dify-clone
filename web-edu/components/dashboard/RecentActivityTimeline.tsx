@@ -7,12 +7,13 @@ import type { RecentActivity } from '../../types/dashboard'
 interface RecentActivityTimelineProps {
   activities: RecentActivity[]
   isLoading?: boolean
+  showUserName?: boolean // Owner/Admin 대시보드에서 사용자 이름 표시
 }
 
 /**
  * 최근 활동 타임라인 컴포넌트
  */
-export function RecentActivityTimeline({ activities, isLoading = false }: RecentActivityTimelineProps) {
+export function RecentActivityTimeline({ activities, isLoading = false, showUserName = false }: RecentActivityTimelineProps) {
   const { t } = useTranslation('dashboard')
 
   if (isLoading) {
@@ -98,6 +99,10 @@ export function RecentActivityTimeline({ activities, isLoading = false }: Recent
                   {activity.resourceName}
                 </p>
                 <p className={`text-xs ${style.color}`}>
+                  {showUserName && activity.userName && (
+                    <span className="text-gray-700 font-medium">{activity.userName}</span>
+                  )}
+                  {showUserName && activity.userName && ' · '}
                   {getActionText(activity.action)}
                   {activity.status && (
                     <span className={`ml-2 ${activity.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>

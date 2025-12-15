@@ -94,9 +94,21 @@ class FunctionCallAgentRunner(BaseAgentRunner):
             # Log prompt messages summary
             logger.info("[LLM Invocation] Prompt messages count: %s", len(prompt_messages))
             for i, msg in enumerate(prompt_messages):
-                if hasattr(msg, "content"):
-                    content_preview = str(msg.content)[:200] if msg.content else "(empty)"
-                    logger.info("[LLM Invocation] Message %s [%s]: %s...", i, msg.__class__.__name__, content_preview)
+                msg_type = msg.__class__.__name__
+                content_preview = str(msg.content)[:200] if hasattr(msg, "content") and msg.content else "(empty)"
+
+                # For AssistantPromptMessage, also show tool_calls info
+                if isinstance(msg, AssistantPromptMessage) and hasattr(msg, "tool_calls") and msg.tool_calls:
+                    tool_names = [tc.function.name for tc in msg.tool_calls if hasattr(tc, "function")]
+                    logger.info(
+                        "[LLM Invocation] Message %s [%s]: content=%s, tool_calls=%s",
+                        i,
+                        msg_type,
+                        content_preview[:50] if content_preview != "(empty)" else "(empty)",
+                        tool_names,
+                    )
+                else:
+                    logger.info("[LLM Invocation] Message %s [%s]: %s...", i, msg_type, content_preview)
 
             # Log tool information before invoking LLM
             logger.info("[LLM Invocation] Invoking LLM with %s tools", len(prompt_messages_tools))
@@ -360,11 +372,6 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                     tool_response["tool_call_name"]: tool_response["tool_response"] for tool_response in tool_responses
                 }
 
-                logger.info("[Tool Execution] Saving agent thought after tool execution")
-                logger.info("[Tool Execution] Agent thought ID: %s", agent_thought_id)
-                logger.info("[Tool Execution] Tool responses count: %s", len(tool_responses))
-                logger.info("[Tool Execution] Observation preview: %s", str(observation_dict)[:500])
-
                 # save agent thought
                 self.save_agent_thought(
                     agent_thought_id=agent_thought_id,
@@ -379,11 +386,9 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                     messages_ids=message_file_ids,
                 )
 
-                logger.info("[Tool Execution] Publishing QueueAgentThoughtEvent with observation")
                 self.queue_manager.publish(
                     QueueAgentThoughtEvent(agent_thought_id=agent_thought_id), PublishFrom.APPLICATION_MANAGER
                 )
-                logger.info("[Tool Execution] QueueAgentThoughtEvent published successfully")
 
             # update prompt tool
             for prompt_tool in prompt_messages_tools:
@@ -471,8 +476,29 @@ class FunctionCallAgentRunner(BaseAgentRunner):
         """
         Initialize system message
         """
-        # If prompt_messages already has a SystemPromptMessage, use it (for completion mode with variable substitution)
+        # Built-in chat guidelines to ensure proper conversation flow
+        BUILTIN_CHAT_GUIDELINES = """
+
+## Chat Guidelines
+- Answer the user's current question
+- Refer to previous conversation context when necessary
+- Do not use tools or knowledge bases that are not relevant to the question
+"""
+        # Append built-in guidelines to the prompt template
+        if prompt_template:
+            prompt_template = prompt_template + BUILTIN_CHAT_GUIDELINES
+
+        # If prompt_messages already has a SystemPromptMessage, append guidelines to it
         if prompt_messages and isinstance(prompt_messages[0], SystemPromptMessage):
+            existing_content = prompt_messages[0].content
+            if isinstance(existing_content, str):
+                new_content = existing_content + BUILTIN_CHAT_GUIDELINES
+            elif existing_content is None:
+                new_content = BUILTIN_CHAT_GUIDELINES
+            else:
+                # list type - keep as is (system messages rarely use list content)
+                return prompt_messages
+            prompt_messages[0] = SystemPromptMessage(content=new_content)
             return prompt_messages
 
         if not prompt_messages and prompt_template:
@@ -543,11 +569,16 @@ class FunctionCallAgentRunner(BaseAgentRunner):
 
     def _organize_prompt_messages(self):
         # For completion mode with variable substitution, use history_prompt_messages directly
-        # Completion mode passes UserPromptMessage with variable-substituted content
-        if self.history_prompt_messages and any(
-            isinstance(msg, UserPromptMessage) for msg in self.history_prompt_messages
+        # Completion mode is identified by: conversation=None (stateless)
+        if (
+            self.conversation is None
+            and self.history_prompt_messages
+            and any(isinstance(msg, UserPromptMessage) for msg in self.history_prompt_messages)
         ):
             # Completion mode: history_prompt_messages already contains variable-substituted content
+            # Still apply BUILTIN_CHAT_GUIDELINES to system message
+            prompt_template = self.app_config.prompt_template.simple_prompt_template or ""
+            self.history_prompt_messages = self._init_system_message(prompt_template, self.history_prompt_messages)
             # Just add current thoughts for iterations
             prompt_messages = [*self.history_prompt_messages, *self._current_thoughts]
             if len(self._current_thoughts) != 0:

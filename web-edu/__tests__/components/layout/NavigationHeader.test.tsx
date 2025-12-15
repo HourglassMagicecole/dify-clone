@@ -95,8 +95,7 @@ describe('NavigationHeader', () => {
     const userMenu = screen.getByText('Test User');
     fireEvent.click(userMenu);
 
-    expect(screen.getByText('프로필')).toBeInTheDocument();
-    expect(screen.getByText('설정')).toBeInTheDocument();
+    // Story 3.8: 프로필, 설정 제거 - 로그아웃만 표시
     expect(screen.getByText('로그아웃')).toBeInTheDocument();
   });
 

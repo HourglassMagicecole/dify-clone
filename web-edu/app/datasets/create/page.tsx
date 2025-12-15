@@ -9,7 +9,9 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
+import { ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import { RAGWizardProvider, useRAGWizard } from '@/context/RAGWizardContext'
+import { useSession } from '@/context/SessionContext'
 import { DraftRestorePrompt } from '@/components/rag/DraftRestorePrompt'
 import { RAGPipelineVisualization } from '@/components/rag/RAGPipelineVisualization'
 import { Step1Load } from '@/components/rag/wizard/Step1Load'
@@ -28,6 +30,7 @@ const TOTAL_STEPS = 4
 function RAGWizardContent(): React.ReactElement {
   const { t } = useTranslation('dataset')
   const router = useRouter()
+  const { currentSession, isLoading: sessionLoading } = useSession()
   const {
     currentStep,
     goToStep,
@@ -90,6 +93,45 @@ function RAGWizardContent(): React.ReactElement {
       default:
         return null
     }
+  }
+
+  // Show loading state while session is loading
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show warning if no active session
+  if (!currentSession) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow p-8">
+            <div className="text-center">
+              <ExclamationCircleIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {t('create.sessionRequired')}
+              </h2>
+              <p className="text-gray-600 mb-6">
+                {t('create.sessionRequiredDesc')}
+              </p>
+              <Button
+                variant="default"
+                onClick={() => router.push('/dashboard')}
+              >
+                {t('create.backToDashboard')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

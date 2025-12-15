@@ -149,11 +149,16 @@ export default function SessionDetailPage() {
             <div>
               <span
                 className={`rounded px-2 py-1 text-sm ${
-                  session.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  session.is_currently_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                 }`}
               >
-                {session.is_active ? t('active') : t('inactive')}
+                {session.is_currently_active ? t('active') : t('inactive')}
               </span>
+              {session.force_status !== null && (
+                <span className="ml-2 text-xs text-gray-500">
+                  ({session.force_status ? t('force_active') : t('force_inactive')})
+                </span>
+              )}
             </div>
           </div>
           <div>

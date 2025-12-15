@@ -187,6 +187,11 @@ export function Step4Store(): React.ReactElement {
    * Create RAG knowledge base
    */
   const handleCreateRAG = async () => {
+    if (!currentSession) {
+      setError(t('step4.sessionRequired'))
+      return
+    }
+
     if (!selectedEmbeddingModel || !selectedEmbeddingProvider) {
       setError(t('step4.embeddingModelRequired'))
       return
@@ -203,7 +208,7 @@ export function Step4Store(): React.ReactElement {
         name: datasetName || undefined,
         description: datasetDescription || undefined,
         indexing_technique: 'high_quality',
-        session_id: currentSession?.id,
+        session_id: currentSession.id,
         data_source: {
           info_list: {
             data_source_type: 'upload_file',

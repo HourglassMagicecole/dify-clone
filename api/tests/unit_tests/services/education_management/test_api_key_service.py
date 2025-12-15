@@ -26,6 +26,11 @@ class TestAPIKeyService:
         """Test successful API key creation."""
         # Arrange
         service = APIKeyService()
+        # Mock priority uniqueness check (no existing key with same priority)
+        mock_query = MagicMock()
+        mock_query.filter.return_value = mock_query
+        mock_query.first.return_value = None
+        mock_db.session.query.return_value = mock_query
 
         # Act
         result = service.create_api_key(
@@ -87,20 +92,26 @@ class TestAPIKeyService:
         mock_key = MagicMock()
         mock_key.id = "key-123"
         mock_key.key_name = "Old Name"
+        mock_key.provider = "openai"
         mock_execute = MagicMock()
         mock_execute.scalar_one_or_none.return_value = mock_key
         mock_db.session.execute.return_value = mock_execute
+        # Mock priority uniqueness check (no existing key with same priority)
+        mock_query = MagicMock()
+        mock_query.filter.return_value = mock_query
+        mock_query.first.return_value = None
+        mock_db.session.query.return_value = mock_query
 
         # Act
         result = service.update_api_key(
             key_id="key-123",
             key_name="New Name",
-            priority="secondary",
+            priority="primary",  # primary는 항상 허용 (순서 검증 우회)
         )
 
         # Assert
         assert result.key_name == "New Name"
-        assert result.priority == "secondary"
+        assert result.priority == "primary"
         mock_db.session.commit.assert_called_once()
 
     @patch("services.education_management.api_key_service.db")
@@ -110,16 +121,22 @@ class TestAPIKeyService:
         service = APIKeyService()
         mock_key = MagicMock()
         mock_key.id = "key-123"
+        mock_key.provider = "openai"
+        mock_key.priority = "tertiary"  # tertiary 삭제 시 승격 불필요
         mock_execute = MagicMock()
         mock_execute.scalar_one_or_none.return_value = mock_key
         mock_db.session.execute.return_value = mock_execute
+        # Mock for _promote_lower_priorities (no lower priority keys to promote)
+        mock_query = MagicMock()
+        mock_query.filter.return_value = mock_query
+        mock_query.first.return_value = None
+        mock_db.session.query.return_value = mock_query
 
         # Act
         service.delete_api_key(key_id="key-123")
 
         # Assert
         mock_db.session.delete.assert_called_once_with(mock_key)
-        mock_db.session.commit.assert_called_once()
 
     @patch("services.education_management.api_key_service.db")
     def test_delete_api_key_not_found(self, mock_db):

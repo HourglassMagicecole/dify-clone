@@ -78,6 +78,8 @@
       "apiKeyRequired": "API Key를 입력하세요",
       "apiKeyTooShort": "API Key가 너무 짧습니다",
       "priorityRequired": "우선순위를 선택하세요",
+      "priorityDuplicate": "이 프로바이더에 이미 동일한 우선순위가 등록되어 있습니다",
+      "priorityOrderInvalid": "상위 우선순위가 먼저 등록되어야 합니다 (Primary → Secondary → Tertiary)",
       "createFailed": "API Key 생성 실패",
       "networkError": "네트워크 오류가 발생했습니다"
     },
@@ -115,7 +117,9 @@
       "updateFailed": "API Key 수정 실패",
       "keyNameRequired": "Key 이름을 입력하세요",
       "keyNameTooShort": "Key 이름은 최소 3자 이상이어야 합니다",
-      "priorityRequired": "우선순위를 선택하세요"
+      "priorityRequired": "우선순위를 선택하세요",
+      "priorityDuplicate": "이 프로바이더에 이미 동일한 우선순위가 등록되어 있습니다",
+      "priorityOrderInvalid": "상위 우선순위가 먼저 등록되어야 합니다 (Primary → Secondary → Tertiary)"
     }
   },
 

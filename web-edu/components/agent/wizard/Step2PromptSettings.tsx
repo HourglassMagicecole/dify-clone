@@ -172,9 +172,6 @@ export default function Step2PromptSettings() {
       output_format: isCompletionMode ? outputFormat : undefined,
     } as AgentPromptSettings
 
-    // eslint-disable-next-line no-console
-    console.log('[Step2] Saving prompt settings:', fullData)
-
     setPromptSettings(fullData)
     nextStep()
   }

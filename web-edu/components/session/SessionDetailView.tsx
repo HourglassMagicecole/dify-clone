@@ -61,10 +61,10 @@ export const SessionDetailView: React.FC<SessionDetailViewProps> = ({
             <div>
               <span
                 className={`rounded px-2 py-1 text-sm ${
-                  session.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  session.is_currently_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                 }`}
               >
-                {session.is_active ? t('active') : t('inactive')}
+                {session.is_currently_active ? t('active') : t('inactive')}
               </span>
             </div>
           </div>

@@ -19,7 +19,7 @@ export default function MySessionPage() {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await sessionAPI.listSessions()
+      const data = await sessionAPI.listSessions(true) // 활성 세션만
       setSessions(data.sessions || [])
 
       // Auto-select first session

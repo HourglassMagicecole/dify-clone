@@ -26,12 +26,13 @@
   "nav": {
     "dashboard": "대시보드",
     "agents": "에이전트",
-    "datasets": "데이터셋",
+    "datasets": "지식베이스",
     "my_session": "나의 세션",
     "my_sessions": "나의 세션들",
     "sessions": "세션 관리",
     "users": "사용자 관리",
     "api_keys": "프로바이더 관리",
-    "monitoring": "모니터링"
+    "monitoring": "모니터링",
+    "admin": "관리"
   }
 }

@@ -83,5 +83,10 @@
   "filter_by_creator": "Filter by Creator",
   "filter_all": "All",
   "noSessionsStudent": "No sessions enrolled. Please contact your administrator.",
-  "noSessionsAdmin": "No sessions available. Create a session."
+  "noSessionsAdmin": "No active sessions available",
+  "force_active": "Force Active",
+  "force_inactive": "Force Inactive",
+  "activation_status": "Activation Status",
+  "auto_by_date": "Auto (based on start/end dates)",
+  "activation_hint": "Auto: Session is active only within the start and end dates"
 }

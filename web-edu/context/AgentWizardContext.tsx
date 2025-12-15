@@ -308,9 +308,6 @@ export function AgentWizardProvider({
           }).filter(Boolean) as UserInputForm[]
 
           // Extract dataset_configs for RAG connection (Story 3.5)
-          // Debug logging (TODO: remove after debugging)
-          console.warn('[AgentWizardContext] Full modelConfig:', JSON.stringify(modelConfig, null, 2))
-
           // Dify stores datasets in modelConfig.dataset_configs.datasets (array of {dataset: {id, enabled}})
           // and retrieval settings in modelConfig.dataset_configs
           const rawDatasetConfigs = modelConfig.dataset_configs || {}
@@ -706,9 +703,6 @@ export function AgentWizardProvider({
           createAppPayload.file_upload = fileUploadConfigCreate
         }
 
-        // eslint-disable-next-line no-console
-        console.log('[AgentWizard] Creating agent with payload:', JSON.stringify(createAppPayload, null, 2))
-
         // Add agent_mode for agent-chat type (required for agent-chat mode to work)
         // For agent-chat mode, agent_mode.enabled must be true even without tools
         const isAgentChatMode = createAppPayload.mode === 'agent-chat'
@@ -745,9 +739,6 @@ export function AgentWizardProvider({
             }
           }
         }
-
-        // Debug logging (TODO: remove after debugging)
-        console.warn('[AgentWizardContext] Creating app with payload:', JSON.stringify(createAppPayload, null, 2))
 
         const response = await difyAPI.createAppWithConfig(createAppPayload)
 
@@ -814,8 +805,6 @@ export function AgentWizardProvider({
             modelConfigPayload.file_upload = fileUploadConfigCreate
           }
 
-          // eslint-disable-next-line no-console
-          console.log('[AgentWizard] Updating model config with payload:', JSON.stringify(modelConfigPayload, null, 2))
           await agentAPI.updateModelConfig(agentId, modelConfigPayload)
         }
 
@@ -823,24 +812,12 @@ export function AgentWizardProvider({
 
         // Create API Token for new agent (required for execution)
         try {
-          // eslint-disable-next-line no-console
-          console.log('[AgentWizard] Creating API Token for agent:', agentId)
-
           const apiKeys = await agentAPI.getAppApiKeys(agentId)
-
-          // eslint-disable-next-line no-console
-          console.log('[AgentWizard] Current API keys:', apiKeys)
 
           // Only create if no API keys exist
           if (!apiKeys || apiKeys.length === 0) {
             // Create API Token using agentAPI's new method
-            const createdKey = await agentAPI.createAppApiKey(agentId)
-
-            // eslint-disable-next-line no-console
-            console.log('[AgentWizard] API Token created successfully:', createdKey.id)
-          } else {
-            // eslint-disable-next-line no-console
-            console.log('[AgentWizard] API Token already exists')
+            await agentAPI.createAppApiKey(agentId)
           }
         } catch (apiKeyError) {
           console.error('[AgentWizard] Failed to create API Token:', apiKeyError)

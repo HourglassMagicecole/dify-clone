@@ -107,7 +107,10 @@
     "subtitle": "4단계 파이프라인을 따라 나만의 지식베이스를 만들어보세요",
     "embeddingModelWarning": "Embedding 모델이 설정되지 않음",
     "embeddingModelWarningDesc": "RAG 지식베이스 생성에는 text-embedding 모델이 필요합니다.",
-    "cancelConfirm": "변경사항이 저장되지 않을 수 있습니다. 정말 취소하시겠습니까?"
+    "cancelConfirm": "변경사항이 저장되지 않을 수 있습니다. 정말 취소하시겠습니까?",
+    "sessionRequired": "세션이 필요합니다",
+    "sessionRequiredDesc": "지식베이스를 생성하려면 먼저 활성화된 교육 세션에 속해있어야 합니다. 관리자에게 문의하여 세션에 등록해주세요.",
+    "backToDashboard": "대시보드로 돌아가기"
   },
   "pipeline": {
     "load": "Load",
@@ -233,7 +236,8 @@
     "retry": "다시 시도",
     "createRAG": "RAG 생성",
     "creating": "생성 중...",
-    "embeddingModelRequired": "먼저 임베딩 모델을 선택해주세요."
+    "embeddingModelRequired": "먼저 임베딩 모델을 선택해주세요.",
+    "sessionRequired": "활성화된 교육 세션이 필요합니다."
   },
   "common": {
     "next": "다음",

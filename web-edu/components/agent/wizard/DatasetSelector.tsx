@@ -51,10 +51,7 @@ export function DatasetSelector({
 
   // Load datasets - Only agent owner's datasets
   const loadDatasets = useCallback(async () => {
-    console.warn('[DatasetSelector] loadDatasets called, agentOwnerId:', agentOwnerId, 'sessionId:', currentSession?.id)
-
     if (!agentOwnerId) {
-      console.warn('[DatasetSelector] agentOwnerId is empty, skipping load')
       setIsLoading(false)
       return
     }
@@ -64,15 +61,12 @@ export function DatasetSelector({
       setError(null)
 
       // agentOwnerId를 전달하여 Agent 소유자의 RAG만 조회
-      console.warn('[DatasetSelector] calling getAvailableDatasets...')
       const response = await datasetAPI.getAvailableDatasets(
         currentSession?.id,
         agentOwnerId
       )
-      console.warn('[DatasetSelector] response:', response)
 
       if (response.result === 'success' && response.data) {
-        console.warn('[DatasetSelector] setting datasets, count:', response.data.length)
         setDatasets(response.data)
       } else {
         throw new Error(response.message || 'Failed to load datasets')

@@ -14,6 +14,7 @@ import { datasetAPI } from '@/service/dataset-api'
 import type { Dataset, DatasetSortField } from '@/types/dataset'
 import { useSession } from '@/context/SessionContext'
 import { useAuth } from '@/hooks/useAuth'
+import { ContextBanner } from '@/components/dashboard/ContextBanner'
 import { Button } from '@/components/common/Button'
 import { DatasetCard } from '@/components/rag/DatasetCard'
 import { DatasetTable } from '@/components/rag/DatasetTable'
@@ -190,6 +191,15 @@ export default function DatasetsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Context Banner */}
+        {currentSession && user && (
+          <ContextBanner
+            role={user.actualRole}
+            scope={user.actualRole === 'student' ? 'my_resources' : 'session'}
+            sessionName={currentSession.session_name}
+          />
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">

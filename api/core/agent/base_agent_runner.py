@@ -117,7 +117,6 @@ class BaseAgentRunner(AppRunner):
         # LLM doesn't need to process files directly - tools handle the actual processing
         # LLM just needs to see files exist to decide which tools to call
         self.files = application_generate_entity.files
-        logger.info("[DEBUG] Model features: %s, Files count: %d", features, len(self.files))
         self.query: str | None = ""
         self._current_thoughts: list[PromptMessage] = []
 
@@ -224,17 +223,12 @@ class BaseAgentRunner(AppRunner):
         prompt_messages_tools = []
 
         agent_tools = self.app_config.agent.tools or [] if self.app_config.agent else []
-        logger.info("[Agent Tools] Initializing tools from app_config.agent.tools: %s tools", len(agent_tools))
-        if agent_tools:
-            logger.info("[Agent Tools] Agent tool names: %s", [t.tool_name for t in agent_tools])
 
         for tool in agent_tools:
             try:
                 prompt_tool, tool_entity = self._convert_tool_to_prompt_message_tool(tool)
-                logger.info("[Agent Tools] Converted tool: %s", tool.tool_name)
             except Exception:
                 # api tool may be deleted
-                logger.warning("[Agent Tools] Failed to convert tool: %s", tool.tool_name)
                 continue
             # save tool entity
             tool_instances[tool.tool_name] = tool_entity
@@ -242,17 +236,12 @@ class BaseAgentRunner(AppRunner):
             prompt_messages_tools.append(prompt_tool)
 
         # convert dataset tools into ModelRuntime Tool format
-        logger.info("[Agent Tools] Dataset tools count: %s", len(self.dataset_tools))
         for dataset_tool in self.dataset_tools:
             prompt_tool = self._convert_dataset_retriever_tool_to_prompt_message_tool(dataset_tool)
             # save prompt tool
             prompt_messages_tools.append(prompt_tool)
             # save tool entity
             tool_instances[dataset_tool.entity.identity.name] = dataset_tool
-
-        logger.info("[Agent Tools] Total prompt_messages_tools initialized: %s", len(prompt_messages_tools))
-        if prompt_messages_tools:
-            logger.info("[Agent Tools] Prompt tool names: %s", [t.name for t in prompt_messages_tools])
 
         return tool_instances, prompt_messages_tools
 
@@ -428,22 +417,14 @@ class BaseAgentRunner(AppRunner):
         """
         Organize agent history
         """
-        logger.info("[Agent History] Received %s prompt_messages", len(prompt_messages))
-        for i, msg in enumerate(prompt_messages):
-            if hasattr(msg, "content"):
-                content_preview = str(msg.content)[:200] if msg.content else "(empty)"
-                logger.info("[Agent History] Input message %s [%s]: %s...", i, msg.__class__.__name__, content_preview)
-
         result: list[PromptMessage] = []
-        # check if there is a system message in the beginning of the conversation
-        # For completion mode, prompt_messages may contain UserPromptMessage with variable substitution
+        # Extract system message from prompt_messages
+        # For completion mode (no conversation), also extract UserPromptMessage
         for prompt_message in prompt_messages:
-            if isinstance(prompt_message, (SystemPromptMessage, UserPromptMessage)):
+            is_system = isinstance(prompt_message, SystemPromptMessage)
+            is_completion_user = self.conversation is None and isinstance(prompt_message, UserPromptMessage)
+            if is_system or is_completion_user:
                 result.append(prompt_message)
-                msg_type = (
-                    "SystemPromptMessage" if isinstance(prompt_message, SystemPromptMessage) else "UserPromptMessage"
-                )
-                logger.info("[Agent History] Kept %s: %s...", msg_type, str(prompt_message.content)[:200])
 
         messages = (
             (
@@ -565,12 +546,8 @@ class BaseAgentRunner(AppRunner):
         # Get tool's runtime parameters
         runtime_parameters = tool.get_runtime_parameters()
 
-        logger.info("[DEBUG] Injecting files for tool %s, files count: %d", tool.entity.identity.name, len(self.files))
-        logger.info("[DEBUG] Tool parameters before injection: %s", tool_parameters)
-
         # Find system-files or files type parameters
         for param in runtime_parameters:
-            logger.info("[DEBUG] Checking parameter %s, type: %s", param.name, param.type)
             if param.type in {
                 ToolParameter.ToolParameterType.SYSTEM_FILES,
                 ToolParameter.ToolParameterType.FILES,
@@ -597,19 +574,6 @@ class BaseAgentRunner(AppRunner):
                         filtered_files = self.files
 
                     if filtered_files:
-                        logger.info(
-                            "[DEBUG] Injecting %d files into parameter %s (filtered from %d total files)",
-                            len(filtered_files),
-                            param.name,
-                            len(self.files),
-                        )
                         tool_parameters[param.name] = filtered_files
-                    else:
-                        logger.info(
-                            "[DEBUG] No matching files for parameter %s (uploaded: %d files)",
-                            param.name,
-                            len(self.files),
-                        )
 
-        logger.info("[DEBUG] Tool parameters after injection: %s", tool_parameters)
         return tool_parameters

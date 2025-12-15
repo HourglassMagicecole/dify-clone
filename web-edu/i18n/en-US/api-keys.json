@@ -78,6 +78,8 @@
       "apiKeyRequired": "Please enter an API key",
       "apiKeyTooShort": "API key is too short",
       "priorityRequired": "Please select a priority",
+      "priorityDuplicate": "This priority already exists for this provider",
+      "priorityOrderInvalid": "Higher priority must be registered first (Primary → Secondary → Tertiary)",
       "createFailed": "Failed to create API key",
       "networkError": "A network error occurred"
     },
@@ -115,7 +117,9 @@
       "updateFailed": "Failed to update API key",
       "keyNameRequired": "Please enter a key name",
       "keyNameTooShort": "Key name must be at least 3 characters",
-      "priorityRequired": "Please select a priority"
+      "priorityRequired": "Please select a priority",
+      "priorityDuplicate": "This priority already exists for this provider",
+      "priorityOrderInvalid": "Higher priority must be registered first (Primary → Secondary → Tertiary)"
     }
   },
 

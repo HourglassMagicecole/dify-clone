@@ -59,7 +59,7 @@ export function ResourceSummaryCard({
     <div>
       {/* scope 라벨 및 세션명 표시 */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-600">
+        <h3 className="text-base font-semibold text-gray-800">
           {scopeLabel} 리소스
         </h3>
         {sessionName && (

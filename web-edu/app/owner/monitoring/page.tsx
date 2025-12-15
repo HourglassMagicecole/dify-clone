@@ -35,7 +35,7 @@ export default function OwnerMonitoring() {
       <section className="mb-8">
         <h2 className="text-2xl font-bold mb-4">📊 시스템 전체 현황</h2>
         <ResourceSummaryCard
-          summary={data?.resourceSummary || { agents: 0, datasets: 0, total: 0 }}
+          summary={data?.resourceSummary || { agents: 0, workflows: 0, datasets: 0, total: 0 }}
           scope="system"
           isLoading={isLoading}
         />
@@ -53,7 +53,7 @@ export default function OwnerMonitoring() {
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">API 사용량</h2>
         <ApiUsageChart
-          usage={data?.apiUsage || { totalCalls: 0, totalTokens: 0, estimatedCost: 0, dailyUsage: [] }}
+          data={data?.apiUsage || { totalCalls: 0, totalTokens: 0, estimatedCost: 0, dailyUsage: [] }}
           isLoading={isLoading}
         />
       </section>

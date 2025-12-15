@@ -9,6 +9,7 @@ import { DropdownItem } from '@/components/common/DropdownItem';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
 import { SessionSelector } from '@/components/session/SessionSelector';
 import { AdminSelector } from '@/components/admin/AdminSelector';
+import { AdminDropdown } from '@/components/layout/AdminDropdown';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/context/SessionContext';
 
@@ -68,14 +69,6 @@ export function NavigationHeader() {
     signOut();
   };
 
-  const handleProfileClick = () => {
-    // TODO: Implement profile navigation
-  };
-
-  const handleSettingsClick = () => {
-    // TODO: Implement settings navigation
-  };
-
   // 모든 역할이 공용 /dashboard로 이동 (Story 2.2B - Task 10.2, 통합 완료)
   const getDashboardUrl = () => {
     return '/dashboard'
@@ -115,7 +108,7 @@ export function NavigationHeader() {
             {/* Language selector (AC: 4) */}
             <LanguageSelector />
 
-            {/* User menu (AC: 1, 2) */}
+            {/* User menu (AC: 8, 9 - Story 3.8: 로그아웃만 유지) */}
             <Dropdown
               trigger={
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -125,15 +118,6 @@ export function NavigationHeader() {
               }
               align="right"
             >
-              <DropdownItem
-                label={t('header.userMenu.profile')}
-                onClick={handleProfileClick}
-              />
-              <DropdownItem
-                label={t('header.userMenu.settings')}
-                onClick={handleSettingsClick}
-                divider
-              />
               <DropdownItem
                 label={t('header.userMenu.signOut')}
                 onClick={handleSignOut}
@@ -175,39 +159,9 @@ export function NavigationHeader() {
                 {t('common:nav.my_session')}
               </Link>
             )}
-            {/* Admin-only navigation (owner and admin roles both map to 'admin' in AuthContext) */}
+            {/* Admin/Owner 관리 드롭다운 (AC: 5, 6, 7 - Story 3.8) */}
             {user.role === 'admin' && (
-              <>
-                <Link
-                  href="/admin/sessions"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  {t('common:nav.sessions')}
-                </Link>
-                <Link
-                  href="/admin/users"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  {t('common:nav.users')}
-                </Link>
-              </>
-            )}
-            {/* Owner-only navigation (API Keys management) */}
-            {user.actualRole === 'owner' && (
-              <>
-                <Link
-                  href="/admin/api-keys"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  {t('common:nav.api_keys')}
-                </Link>
-                <Link
-                  href="/owner/monitoring"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  {t('common:nav.monitoring')}
-                </Link>
-              </>
+              <AdminDropdown isOwner={user.actualRole === 'owner'} />
             )}
           </div>
         </div>

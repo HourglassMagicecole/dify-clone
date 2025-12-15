@@ -10,6 +10,7 @@ from controllers.console.edu.auth_decorators import (
     jwt_required,
     owner_or_creator_required,
 )
+from services.edu.session_helper import is_session_currently_active
 from services.edu.session_service import EduSessionService
 
 bp = Blueprint("edu_sessions", __name__, url_prefix="/console/api/edu/sessions")
@@ -42,6 +43,10 @@ class UpdateSessionRequest(BaseModel):
     end_date: str | None = Field(None, description="ISO 8601 format")
     max_students: int | None = Field(None, ge=1, le=1000)
     is_active: bool | None = None
+    force_status: bool | None = Field(
+        default=None,
+        description="Override date-based activation: null=auto, true=force active, false=force inactive",
+    )
     description: str | None = Field(None, max_length=1000)
 
 
@@ -111,6 +116,8 @@ def create_session():
                         "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                         "max_students": session.max_students,
                         "is_active": session.is_active,
+                        "force_status": session.force_status,
+                        "is_currently_active": is_session_currently_active(session),
                         "description": session.description,
                         "created_at": session.created_at.replace(tzinfo=UTC).isoformat(),
                     },
@@ -177,6 +184,8 @@ def list_sessions():
                     "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                     "max_students": session.max_students,
                     "is_active": session.is_active,
+                    "force_status": session.force_status,
+                    "is_currently_active": is_session_currently_active(session),
                     "description": session.description,
                     "created_at": session.created_at.replace(tzinfo=UTC).isoformat(),
                 }
@@ -234,6 +243,8 @@ def get_session(session_id: str):
                     "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                     "max_students": session.max_students,
                     "is_active": session.is_active,
+                    "force_status": session.force_status,
+                    "is_currently_active": is_session_currently_active(session),
                     "description": session.description,
                     "created_at": session.created_at.replace(tzinfo=UTC).isoformat(),
                     "updated_at": session.updated_at.replace(tzinfo=UTC).isoformat(),
@@ -293,6 +304,14 @@ def update_session(session_id: str):
         if data.end_date:
             end_date = datetime.fromisoformat(data.end_date)
 
+        # Determine if force_status was explicitly provided in request
+        # Check the raw request.json to see if the key was present
+        from services.edu.session_service import UNSET
+
+        force_status_value = UNSET
+        if request.json and "force_status" in request.json:
+            force_status_value = data.force_status
+
         # Update session
         session = service.update_session(
             session_id=session_id,
@@ -301,6 +320,7 @@ def update_session(session_id: str):
             end_date=end_date,
             max_students=data.max_students,
             is_active=data.is_active,
+            force_status=force_status_value,
             description=data.description,
         )
 
@@ -315,6 +335,8 @@ def update_session(session_id: str):
                     "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                     "max_students": session.max_students,
                     "is_active": session.is_active,
+                    "force_status": session.force_status,
+                    "is_currently_active": is_session_currently_active(session),
                     "description": session.description,
                     "updated_at": session.updated_at.replace(tzinfo=UTC).isoformat(),
                 },

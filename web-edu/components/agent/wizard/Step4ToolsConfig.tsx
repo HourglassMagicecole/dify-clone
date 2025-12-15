@@ -485,11 +485,11 @@ export default function Step4ToolsConfig() {
 
       if (preview) preview += '\n'
       preview += '## 지식 베이스 활용 지침\n'
-      preview += '사용자의 질문에 답변하기 전에 반드시 연결된 지식 베이스를 검색하세요.\n'
+      preview += '사용자의 질문이 지식 베이스 주제와 관련될 때 검색하세요.\n'
       preview += `- 연결된 지식 베이스: ${datasetNames}\n`
-      preview += '- 지식 베이스를 먼저 검색하고, 결과가 없거나 부족하면 다른 도구(위키백과 등)를 사용하세요\n'
+      preview += '- 관련 질문일 경우 지식 베이스를 먼저 검색하고, 결과가 없거나 부족하면 다른 도구를 사용하세요\n'
       preview += '- 검색 결과가 있으면 그 내용을 바탕으로 답변하세요\n'
-      preview += '- 검색 결과가 없거나 관련 없으면 일반 지식으로 답변하되, "지식 베이스에서 관련 정보를 찾지 못했습니다"라고 먼저 언급하세요\n'
+      preview += '- 일반 대화(인사, 이전 대화 내용 질문 등)에는 지식 베이스 검색이 필요 없습니다\n'
       preview += '- 지식 베이스의 정보와 일반 지식이 충돌하면 지식 베이스 정보를 우선시하세요\n'
     }
 
@@ -549,11 +549,11 @@ export default function Step4ToolsConfig() {
           .join(', ')
 
         updatedPrompt += '\n\n## 지식 베이스 활용 지침\n'
-        updatedPrompt += '사용자의 질문에 답변하기 전에 반드시 연결된 지식 베이스를 검색하세요.\n'
+        updatedPrompt += '사용자의 질문이 지식 베이스 주제와 관련될 때 검색하세요.\n'
         updatedPrompt += `- 연결된 지식 베이스: ${datasetNames}\n`
-        updatedPrompt += '- 지식 베이스를 먼저 검색하고, 결과가 없거나 부족하면 다른 도구(위키백과 등)를 사용하세요\n'
+        updatedPrompt += '- 관련 질문일 경우 지식 베이스를 먼저 검색하고, 결과가 없거나 부족하면 다른 도구를 사용하세요\n'
         updatedPrompt += '- 검색 결과가 있으면 그 내용을 바탕으로 답변하세요\n'
-        updatedPrompt += '- 검색 결과가 없거나 관련 없으면 일반 지식으로 답변하되, "지식 베이스에서 관련 정보를 찾지 못했습니다"라고 먼저 언급하세요\n'
+        updatedPrompt += '- 일반 대화(인사, 이전 대화 내용 질문 등)에는 지식 베이스 검색이 필요 없습니다\n'
         updatedPrompt += '- 지식 베이스의 정보와 일반 지식이 충돌하면 지식 베이스 정보를 우선시하세요\n'
       }
 

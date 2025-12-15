@@ -146,10 +146,10 @@ export default function SessionsPage() {
                     <h3 className="font-bold text-lg">{session.session_name}</h3>
                     <span
                       className={`px-2 py-1 text-xs rounded ${
-                        session.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        session.is_currently_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {session.is_active ? t('active') : t('inactive')}
+                      {session.is_currently_active ? t('active') : t('inactive')}
                     </span>
                   </div>
 

@@ -50,28 +50,32 @@ export function ContextBanner({ role, scope: _scope, sessionName }: ContextBanne
   const { t } = useTranslation('dashboard')
   const { bgColor, borderColor, textColor, icon } = getRoleStyle(role)
 
-  // 역할별 메시지 생성
+  // 역할별 메시지 생성 (모든 역할에서 세션명 표시)
   const getMessage = () => {
+    // 세션이 없을 때는 별도의 메시지 표시
+    if (!sessionName) {
+      return {
+        title: t('contextBanner.noSession.title'),
+        description: t('contextBanner.noSession.description'),
+      }
+    }
+
     if (role === 'owner') {
       return {
-        title: t('contextBanner.owner.title'),
+        title: t('contextBanner.owner.title', { sessionName }),
         description: t('contextBanner.owner.description'),
       }
     }
     if (role === 'admin') {
       return {
-        title: t('contextBanner.admin.title'),
-        description: t('contextBanner.admin.description', {
-          sessionName: sessionName || 'N/A',
-        }),
+        title: t('contextBanner.admin.title', { sessionName }),
+        description: t('contextBanner.admin.description'),
       }
     }
     // Student
     return {
-      title: t('contextBanner.student.title'),
-      description: t('contextBanner.student.description', {
-        sessionName: sessionName || 'N/A',
-      }),
+      title: t('contextBanner.student.title', { sessionName }),
+      description: t('contextBanner.student.description'),
     }
   }
 

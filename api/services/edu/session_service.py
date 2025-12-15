@@ -1,7 +1,7 @@
 """Education session service for managing sessions."""
 
 from datetime import UTC, datetime
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import select
 
@@ -9,6 +9,10 @@ from extensions.ext_database import db
 from models.account import Account, TenantAccountJoin, TenantAccountRole
 from models.education.session import EducationSession
 from models.education.session_member import MemberStatus
+
+# Sentinel value to distinguish "not provided" from "provided as None"
+# Exported for use in API layer
+UNSET: Any = object()
 
 
 class EduSessionService:
@@ -156,8 +160,13 @@ class EduSessionService:
             # Owner는 모든 세션 조회 (필터 없음)
 
         # Filter by is_active if specified
+        # When is_active=True, also apply date-based activation check
         if is_active is not None:
             query = query.where(EducationSession.is_active == is_active)
+            if is_active:
+                from services.edu.session_helper import build_session_active_condition
+
+                query = query.where(build_session_active_condition())
 
         # Filter by instructor_account_id if specified
         # (Owner가 특정 관리자의 세션만 보고 싶을 때 사용)
@@ -221,8 +230,13 @@ class EduSessionService:
         )
 
         # Filter by is_active if specified
+        # When is_active=True, also apply date-based activation check
         if is_active is not None:
             query = query.where(EducationSession.is_active == is_active)
+            if is_active:
+                from services.edu.session_helper import build_session_active_condition
+
+                query = query.where(build_session_active_condition())
 
         # Order by created_at descending
         query = query.order_by(EducationSession.created_at.desc())
@@ -252,6 +266,7 @@ class EduSessionService:
         end_date: Optional[datetime] = None,
         max_students: Optional[int] = None,
         is_active: Optional[bool] = None,
+        force_status: Optional[bool] = UNSET,  # Use UNSET to distinguish None from not-provided
         description: Optional[str] = None,
     ) -> EducationSession:
         """
@@ -264,6 +279,11 @@ class EduSessionService:
             end_date: New end date (optional)
             max_students: New max students (optional)
             is_active: New active status (optional)
+            force_status: Override date-based activation (optional)
+                - None: auto (date-based)
+                - True: force active
+                - False: force inactive
+                - UNSET: not provided, don't update
             description: New description (optional)
 
         Returns:
@@ -285,6 +305,9 @@ class EduSessionService:
             session.max_students = max_students
         if is_active is not None:
             session.is_active = is_active
+        # Default session must always be active (force_status=True cannot be changed)
+        if force_status is not UNSET and not session.is_default:
+            session.force_status = force_status
         if description is not None:
             session.description = description
 
@@ -303,12 +326,16 @@ class EduSessionService:
             True if deleted
 
         Raises:
-            ValueError: If session not found
+            ValueError: If session not found or is the default session
 
         Note:
             Related session members will be deleted automatically (CASCADE).
+            Default sessions (is_default=True) cannot be deleted.
         """
         session = self.get_session(session_id)
+
+        if session.is_default:
+            raise ValueError("Default session cannot be deleted")
 
         db.session.delete(session)
         db.session.commit()

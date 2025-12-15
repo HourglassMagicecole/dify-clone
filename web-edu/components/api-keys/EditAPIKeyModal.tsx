@@ -57,7 +57,17 @@ export function EditAPIKeyModal({
       onClose()
     }
     catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('editModal.errors.updateFailed')
+      let message = t('editModal.errors.updateFailed')
+      if (error instanceof Error) {
+        // 우선순위 관련 에러를 사용자 친화적 메시지로 변환
+        if (error.message.includes('already exists')) {
+          message = t('editModal.errors.priorityDuplicate')
+        } else if (error.message.includes('Cannot set') && error.message.includes('without')) {
+          message = t('editModal.errors.priorityOrderInvalid')
+        } else {
+          message = error.message
+        }
+      }
       setError(message)
     }
     finally {

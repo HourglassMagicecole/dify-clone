@@ -30,6 +30,145 @@ class APIKeyService:
         """Initialize API Key service with encryption service."""
         self.encryption_service = APIKeyEncryptionService()
 
+    def _check_priority_unique(
+        self,
+        provider: str,
+        priority: str,
+        exclude_id: str | None = None,
+    ) -> None:
+        """
+        같은 프로바이더 내에서 우선순위 중복 검사.
+
+        Args:
+            provider: 프로바이더 타입
+            priority: 확인할 우선순위
+            exclude_id: 제외할 API Key ID (업데이트 시 자기 자신 제외)
+
+        Raises:
+            ValueError: 해당 우선순위가 이미 존재하는 경우
+        """
+        query = db.session.query(AdminAPIKeyConfig).filter(
+            AdminAPIKeyConfig.provider == provider,
+            AdminAPIKeyConfig.priority == priority,
+        )
+        if exclude_id:
+            query = query.filter(AdminAPIKeyConfig.id != exclude_id)
+
+        existing = query.first()
+        if existing:
+            raise ValueError(f"Priority '{priority}' already exists for provider '{provider}'")
+
+    def _validate_priority_order(
+        self,
+        provider: str,
+        priority: str,
+        exclude_id: str | None = None,
+    ) -> None:
+        """
+        우선순위 순서 검증 (secondary는 primary 필수, tertiary는 secondary 필수).
+
+        Args:
+            provider: 프로바이더 타입
+            priority: 설정할 우선순위
+            exclude_id: 제외할 API Key ID (업데이트 시 자기 자신 제외)
+
+        Raises:
+            ValueError: 상위 우선순위가 없는 경우
+        """
+        if priority == "primary":
+            return  # primary는 항상 허용
+
+        # secondary는 primary 필요
+        if priority == "secondary":
+            query = db.session.query(AdminAPIKeyConfig).filter(
+                AdminAPIKeyConfig.provider == provider,
+                AdminAPIKeyConfig.priority == "primary",
+            )
+            if exclude_id:
+                query = query.filter(AdminAPIKeyConfig.id != exclude_id)
+            if not query.first():
+                raise ValueError(f"Cannot set 'secondary' without 'primary' for provider '{provider}'")
+
+        # tertiary는 secondary 필요
+        if priority == "tertiary":
+            query = db.session.query(AdminAPIKeyConfig).filter(
+                AdminAPIKeyConfig.provider == provider,
+                AdminAPIKeyConfig.priority == "secondary",
+            )
+            if exclude_id:
+                query = query.filter(AdminAPIKeyConfig.id != exclude_id)
+            if not query.first():
+                raise ValueError(f"Cannot set 'tertiary' without 'secondary' for provider '{provider}'")
+
+    def _promote_lower_priorities(self, provider: str, deleted_priority: str) -> None:
+        """
+        삭제된 우선순위보다 낮은 것들을 승격.
+
+        primary 삭제 시: secondary → primary, tertiary → secondary
+        secondary 삭제 시: tertiary → secondary
+
+        Args:
+            provider: 프로바이더 타입
+            deleted_priority: 삭제된 우선순위
+        """
+        if deleted_priority == "primary":
+            # secondary → primary
+            secondary_key = (
+                db.session.query(AdminAPIKeyConfig)
+                .filter(
+                    AdminAPIKeyConfig.provider == provider,
+                    AdminAPIKeyConfig.priority == "secondary",
+                )
+                .first()
+            )
+            if secondary_key:
+                secondary_key.priority = "primary"
+                secondary_key.updated_at = datetime.now(UTC)
+                logger.info(
+                    "Promoted API key %s from secondary to primary (provider: %s)",
+                    secondary_key.id,
+                    provider,
+                )
+
+            # tertiary → secondary
+            tertiary_key = (
+                db.session.query(AdminAPIKeyConfig)
+                .filter(
+                    AdminAPIKeyConfig.provider == provider,
+                    AdminAPIKeyConfig.priority == "tertiary",
+                )
+                .first()
+            )
+            if tertiary_key:
+                tertiary_key.priority = "secondary"
+                tertiary_key.updated_at = datetime.now(UTC)
+                logger.info(
+                    "Promoted API key %s from tertiary to secondary (provider: %s)",
+                    tertiary_key.id,
+                    provider,
+                )
+
+        elif deleted_priority == "secondary":
+            # tertiary → secondary
+            tertiary_key = (
+                db.session.query(AdminAPIKeyConfig)
+                .filter(
+                    AdminAPIKeyConfig.provider == provider,
+                    AdminAPIKeyConfig.priority == "tertiary",
+                )
+                .first()
+            )
+            if tertiary_key:
+                tertiary_key.priority = "secondary"
+                tertiary_key.updated_at = datetime.now(UTC)
+                logger.info(
+                    "Promoted API key %s from tertiary to secondary (provider: %s)",
+                    tertiary_key.id,
+                    provider,
+                )
+
+        db.session.commit()
+
     def create_api_key(
         self,
         key_name: str,
@@ -61,7 +200,13 @@ class APIKeyService:
         if priority not in AdminAPIKeyConfig.SUPPORTED_PRIORITIES:
             raise ValueError(f"Invalid priority: {priority}")
 
-        # 2. 암호화
+        # 2. 같은 프로바이더 내 우선순위 중복 검사
+        self._check_priority_unique(provider, priority)
+
+        # 3. 우선순위 순서 검증 (secondary는 primary 필수 등)
+        self._validate_priority_order(provider, priority)
+
+        # 4. 암호화
         encrypted_key = self.encryption_service.encrypt(api_key)
         logger.info("API key encrypted for provider: %s", provider)
 
@@ -172,6 +317,10 @@ class APIKeyService:
         if priority is not None:
             if priority not in AdminAPIKeyConfig.SUPPORTED_PRIORITIES:
                 raise ValueError(f"Invalid priority: {priority}")
+            # 같은 프로바이더 내 우선순위 중복 검사 (자기 자신 제외)
+            self._check_priority_unique(api_key_config.provider, priority, exclude_id=key_id)
+            # 우선순위 순서 검증 (자기 자신 제외)
+            self._validate_priority_order(api_key_config.provider, priority, exclude_id=key_id)
             api_key_config.priority = priority
 
         if is_active is not None:
@@ -187,6 +336,10 @@ class APIKeyService:
         """
         API Key 삭제.
 
+        삭제 후 하위 우선순위 키들이 자동으로 승격됩니다:
+        - primary 삭제 시: secondary → primary, tertiary → secondary
+        - secondary 삭제 시: tertiary → secondary
+
         Args:
             key_id: API Key ID
 
@@ -197,10 +350,17 @@ class APIKeyService:
         if not api_key_config:
             raise ValueError(f"API Key not found: {key_id}")
 
+        # 삭제 전에 provider와 priority 저장
+        provider = api_key_config.provider
+        deleted_priority = api_key_config.priority
+
         db.session.delete(api_key_config)
         db.session.commit()
 
-        logger.info("API key deleted: %s (provider: %s)", key_id, api_key_config.provider)
+        logger.info("API key deleted: %s (provider: %s)", key_id, provider)
+
+        # 하위 우선순위 승격
+        self._promote_lower_priorities(provider, deleted_priority)
 
     def get_decrypted_key(self, key_id: str) -> str:
         """

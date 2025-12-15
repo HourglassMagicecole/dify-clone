@@ -83,6 +83,11 @@
   "filter_by_creator": "생성자별 필터",
   "filter_all": "전체",
   "noSessionsStudent": "참여 중인 세션이 없습니다. 관리자에게 문의하세요.",
-  "noSessionsAdmin": "세션이 없습니다. 세션을 생성하세요.",
-  "selectSession": "세션을 선택하세요"
+  "noSessionsAdmin": "활성화된 세션이 없습니다",
+  "selectSession": "세션을 선택하세요",
+  "force_active": "강제 활성화",
+  "force_inactive": "강제 비활성화",
+  "activation_status": "활성화 상태",
+  "auto_by_date": "자동 (시작일/종료일 기준)",
+  "activation_hint": "자동: 시작일~종료일 범위 내에서만 활성화됩니다"
 }

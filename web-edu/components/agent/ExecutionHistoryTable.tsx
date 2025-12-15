@@ -134,23 +134,8 @@ export const ExecutionHistoryTable = forwardRef<ExecutionHistoryTableRef, Execut
       setIsLoading(true)
       const response = await agentAPI.getExecutionHistory(agentId, { limit: 5 })
 
-      // eslint-disable-next-line no-console
-      console.log('[ExecutionHistoryTable] API response:', response)
-      const firstItem = Array.isArray(response) ? response[0] : response.data?.[0]
-      // eslint-disable-next-line no-console
-      console.log('[ExecutionHistoryTable] First item:', firstItem)
-      // eslint-disable-next-line no-console
-      console.log('[ExecutionHistoryTable] First item.message:', firstItem?.message)
-      // eslint-disable-next-line no-console
-      console.log('[ExecutionHistoryTable] Token fields check:', {
-        message_tokens: firstItem?.message_tokens,
-        answer_tokens: firstItem?.answer_tokens,
-        total_tokens: firstItem?.total_tokens,
-        provider_response_latency: firstItem?.provider_response_latency,
-      })
-
-        // Handle both response formats: { data: [...] } or [...]
-        const conversations = Array.isArray(response) ? response : (response.data || [])
+      // Handle both response formats: { data: [...] } or [...]
+      const conversations = Array.isArray(response) ? response : (response.data || [])
 
         // Check if we have conversations
         if (!Array.isArray(conversations) || conversations.length === 0) {

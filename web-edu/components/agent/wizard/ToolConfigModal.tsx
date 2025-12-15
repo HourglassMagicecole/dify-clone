@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import dynamic from 'next/dynamic'
+import ReactMarkdown from 'react-markdown'
 import { Modal } from '@/components/common/Modal'
 import { Button } from '@/components/common/Button'
 import { Tooltip } from '@/components/common/Tooltip'
@@ -1064,9 +1065,21 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
 
                     return (
                       <div key={index} className="bg-white p-3 rounded border">
-                        <pre className="whitespace-pre-wrap text-sm font-sans text-gray-800">
-                          {textContent}
-                        </pre>
+                        <div className="prose prose-sm max-w-none text-gray-800">
+                          <ReactMarkdown
+                            components={{
+                              img: ({ src, alt }) => (
+                                <img
+                                  src={src}
+                                  alt={alt || ''}
+                                  className="max-w-full h-auto rounded my-2"
+                                />
+                              ),
+                            }}
+                          >
+                            {textContent}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     )
                   }

@@ -8,10 +8,9 @@ import { useSession } from '@/context/SessionContext'
 import { DashboardAPI } from '@/service/dashboard-api'
 import { ContextBanner } from '@/components/dashboard/ContextBanner'
 import { ResourceSummaryCard, EmptyResourceState } from '@/components/dashboard/ResourceSummaryCard'
-import { SuggestedNextSteps } from '@/components/dashboard/SuggestedNextSteps'
 import { RecentActivityTimeline } from '@/components/dashboard/RecentActivityTimeline'
 import { QuickStartButtons } from '@/components/dashboard/QuickStartButtons'
-import Link from 'next/link'
+import { ApiUsageChart } from '@/components/dashboard/ApiUsageChart'
 
 /**
  * 공용 대시보드 페이지 (Story 2.2B)
@@ -112,53 +111,35 @@ export default function UnifiedDashboard() {
         {/* 전체 리소스 요약 */}
         <section className="mb-8">
           <ResourceSummaryCard
-            summary={data?.resourceSummary || { agents: 0, datasets: 0, total: 0 }}
+            summary={data?.resourceSummary || { agents: 0, workflows: 0, datasets: 0, total: 0 }}
             scope="system"
             sessionName={currentSession?.session_name}
             isLoading={showLoading}
           />
         </section>
 
-        {/* 시스템 관리 빠른 작업 */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4">시스템 관리</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <Link
-              href="/admin/sessions"
-              className="bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-6 transition-colors"
-            >
-              <div className="text-2xl mb-2">📋</div>
-              <h3 className="font-semibold text-blue-900">세션 관리</h3>
-              <p className="text-sm text-blue-700">세션 생성 및 관리</p>
-            </Link>
+        {/* API 사용량 차트 (Story 3.8) */}
+        <section className="mb-8">
+          <ApiUsageChart
+            data={
+              data?.apiUsage || {
+                totalCalls: 0,
+                totalTokens: 0,
+                estimatedCost: 0,
+                dailyUsage: [],
+              }
+            }
+            isLoading={showLoading}
+          />
+        </section>
 
-            <Link
-              href="/admin/users"
-              className="bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-6 transition-colors"
-            >
-              <div className="text-2xl mb-2">👥</div>
-              <h3 className="font-semibold text-green-900">사용자 관리</h3>
-              <p className="text-sm text-green-700">사용자 생성 및 관리</p>
-            </Link>
-
-            <Link
-              href="/admin/api-keys"
-              className="bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg p-6 transition-colors"
-            >
-              <div className="text-2xl mb-2">🔑</div>
-              <h3 className="font-semibold text-purple-900">프로바이더 관리</h3>
-              <p className="text-sm text-purple-700">API 키 생성 및 설정</p>
-            </Link>
-
-            <Link
-              href="/owner/monitoring"
-              className="bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg p-6 transition-colors"
-            >
-              <div className="text-2xl mb-2">📊</div>
-              <h3 className="font-semibold text-orange-900">모니터링</h3>
-              <p className="text-sm text-orange-700">시스템 모니터링</p>
-            </Link>
-          </div>
+        {/* 최근 활동 타임라인 (사용자 이름 포함) */}
+        <section className="mb-8">
+          <RecentActivityTimeline
+            activities={showLoading ? [] : (data?.recentActivities || [])}
+            isLoading={showLoading}
+            showUserName
+          />
         </section>
       </div>
     )
@@ -194,61 +175,35 @@ export default function UnifiedDashboard() {
         {/* 내 리소스 (세션별) */}
         <section className="mb-8">
           <ResourceSummaryCard
-            summary={data?.resourceSummary || { agents: 0, datasets: 0, total: 0 }}
+            summary={data?.resourceSummary || { agents: 0, workflows: 0, datasets: 0, total: 0 }}
             scope="my_resources"
             sessionName={currentSession.session_name}
             isLoading={showLoading}
           />
         </section>
 
-        {/* 내 학생 활동 현황 */}
+        {/* API 사용량 차트 (Story 3.8) */}
         <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">내 학생 활동 현황</h2>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-gray-500">학생 활동 위젯 (Phase 5에서 구현)</p>
-          </div>
+          <ApiUsageChart
+            data={
+              data?.apiUsage || {
+                totalCalls: 0,
+                totalTokens: 0,
+                estimatedCost: 0,
+                dailyUsage: [],
+              }
+            }
+            isLoading={showLoading}
+          />
         </section>
 
-        {/* 세션별 빠른 작업 */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4">세션별 빠른 작업</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <Link
-              href={`/admin/sessions/${currentSession.id}`}
-              className="bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-6 transition-colors"
-            >
-              <div className="text-2xl mb-2">📋</div>
-              <h3 className="font-semibold text-blue-900">세션 관리</h3>
-              <p className="text-sm text-blue-700">세션 설정 및 멤버 관리</p>
-            </Link>
-
-            <Link
-              href={`/admin/sessions/${currentSession.id}`}
-              className="bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-6 transition-colors"
-            >
-              <div className="text-2xl mb-2">👥</div>
-              <h3 className="font-semibold text-green-900">학생 초대</h3>
-              <p className="text-sm text-green-700">학생 추가 및 관리</p>
-            </Link>
-
-            <Link
-              href="/agents/create"
-              className="bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg p-6 transition-colors"
-            >
-              <div className="text-2xl mb-2">🤖</div>
-              <h3 className="font-semibold text-purple-900">Agent 생성</h3>
-              <p className="text-sm text-purple-700">새로운 Agent 만들기</p>
-            </Link>
-
-            <Link
-              href="/datasets/create"
-              className="bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg p-6 transition-colors"
-            >
-              <div className="text-2xl mb-2">📚</div>
-              <h3 className="font-semibold text-orange-900">RAG 생성</h3>
-              <p className="text-sm text-orange-700">새로운 Dataset 만들기</p>
-            </Link>
-          </div>
+        {/* 최근 활동 타임라인 (사용자 이름 포함) */}
+        <section className="mb-8">
+          <RecentActivityTimeline
+            activities={showLoading ? [] : (data?.recentActivities || [])}
+            isLoading={showLoading}
+            showUserName
+          />
         </section>
       </div>
     )
@@ -285,7 +240,7 @@ export default function UnifiedDashboard() {
       <div className="mb-8">
         {showLoading ? (
           <ResourceSummaryCard
-            summary={{ agents: 0, datasets: 0, total: 0 }}
+            summary={{ agents: 0, workflows: 0, datasets: 0, total: 0 }}
             scope="my_resources"
             sessionName={currentSession?.session_name}
             isLoading
@@ -301,24 +256,9 @@ export default function UnifiedDashboard() {
         )}
       </div>
 
-      {/* Suggested Next Steps */}
-      {!showLoading && (
-        <div className="mb-8">
-          <SuggestedNextSteps resourceSummary={data.resourceSummary} />
-        </div>
-      )}
-
       {/* 빠른 시작 버튼 */}
       <div className="mb-8">
         <QuickStartButtons />
-      </div>
-
-      {/* 최근 활동 타임라인 */}
-      <div className="mb-8">
-        <RecentActivityTimeline
-          activities={showLoading ? [] : data.recentActivities}
-          isLoading={showLoading}
-        />
       </div>
     </div>
   )
