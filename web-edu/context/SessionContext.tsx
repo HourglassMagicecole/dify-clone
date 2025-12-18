@@ -110,6 +110,18 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
   }, [authLoading, user, refreshSessions])
 
+  // currentSession이 삭제된 경우 초기화
+  useEffect(() => {
+    if (currentSession && sessions.length > 0) {
+      const sessionExists = sessions.some(s => s.id === currentSession.id)
+      if (!sessionExists) {
+        // 현재 세션이 삭제됨 - 초기화
+        setCurrentSession(null)
+        localStorage.removeItem('lastSessionId')
+      }
+    }
+  }, [currentSession, sessions])
+
   // 세션 초기화: 역할별 초기 세션 선택
   useEffect(() => {
     if (!authLoading && user && sessions.length > 0 && !currentSession) {

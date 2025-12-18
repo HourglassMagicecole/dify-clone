@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { sessionAPI } from '@/service/session-api'
 import { CreateSessionModal } from '@/components/session/CreateSessionModal'
+import { SessionDeleteDialog } from '@/components/session/SessionDeleteDialog'
 import { useSession } from '@/context/SessionContext'
 import { useAuth } from '@/hooks/useAuth'
 import type { Session } from '@/types/session'
@@ -18,6 +19,7 @@ export default function SessionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null)
 
   // 필터 상태 (Owner만 사용)
   const [creatorFilter, setCreatorFilter] = useState<string>('all')
@@ -43,18 +45,13 @@ export default function SessionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleDelete = async (sessionId: string) => {
-    if (!confirm(t('delete_confirm'))) {
-      return
-    }
+  const handleDelete = (session: Session) => {
+    setSessionToDelete(session)
+  }
 
-    try {
-      await sessionAPI.deleteSession(sessionId)
-      await Promise.all([loadSessions(), refreshSessionContext()])
-    }
-    catch (err) {
-      alert(err instanceof Error ? err.message : t('failed_to_delete'))
-    }
+  const handleDeleteComplete = async () => {
+    setSessionToDelete(null)
+    await Promise.all([loadSessions(), refreshSessionContext()])
   }
 
   // 필터링된 세션 목록 (early return 이전에 useMemo 호출 - React Hooks 규칙)
@@ -204,7 +201,7 @@ export default function SessionsPage() {
                       {t('view_details')}
                     </button>
                     <button
-                      onClick={() => handleDelete(session.id)}
+                      onClick={() => handleDelete(session)}
                       className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
                     >
                       {t('delete')}
@@ -221,6 +218,15 @@ export default function SessionsPage() {
           onSuccess={async () => {
             await Promise.all([loadSessions(), refreshSessionContext()])
           }}
+        />
+      )}
+
+      {sessionToDelete && (
+        <SessionDeleteDialog
+          isOpen={!!sessionToDelete}
+          session={sessionToDelete}
+          onClose={() => setSessionToDelete(null)}
+          onDeleteComplete={handleDeleteComplete}
         />
       )}
     </div>

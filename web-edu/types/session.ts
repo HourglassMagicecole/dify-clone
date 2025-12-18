@@ -54,3 +54,128 @@ export interface SessionListResponse {
   page: number
   limit: number
 }
+
+// ============================================================================
+// Session Resource Types
+// ============================================================================
+
+export interface SessionResource {
+  resource_id: string
+  resource_name: string
+  account_id: string
+  account_name: string | null
+  account_email: string | null
+  tagged_at: string // ISO 8601
+  created_at: string // ISO 8601
+}
+
+export interface SessionResourcesSummary {
+  total_apps: number
+  total_datasets: number
+}
+
+export interface SessionResourcesResponse {
+  apps: SessionResource[]
+  datasets: SessionResource[]
+  summary: SessionResourcesSummary
+}
+
+export interface ResourceAccount {
+  account_id: string
+  name: string
+  email: string
+}
+
+export interface DeleteResourcesResponse {
+  task_id: string
+  message: string
+}
+
+export interface DeleteProgress {
+  current: number
+  total: number
+  deleted_apps: number
+  deleted_datasets: number
+  phase: 'deleting_apps' | 'deleting_datasets' | 'cleanup'
+}
+
+export interface DeleteResult {
+  status: string
+  deleted_apps: number
+  deleted_datasets: number
+  verified_tags_remaining: number
+  errors: string[]
+}
+
+export interface DeleteStatus {
+  status: 'pending' | 'progress' | 'completed' | 'failed' | string
+  progress: DeleteProgress | null
+  result: DeleteResult | null
+  error: string | null
+}
+
+// ============================================================================
+// Member Removal Types
+// ============================================================================
+
+export interface RemoveMemberResponse {
+  task_id: string
+  message: string
+}
+
+export interface MemberRemoveProgress {
+  current: number
+  total: number
+  deleted_apps: number
+  deleted_datasets: number
+  member_removed: boolean
+  phase: 'deleting_apps' | 'deleting_datasets' | 'removing_member'
+}
+
+export interface MemberRemoveResult {
+  status: string
+  deleted_apps: number
+  deleted_datasets: number
+  member_removed: boolean
+  errors: string[]
+}
+
+export interface MemberRemoveStatus {
+  status: 'pending' | 'progress' | 'completed' | 'failed' | string
+  progress: MemberRemoveProgress | null
+  result: MemberRemoveResult | null
+  error: string | null
+}
+
+// ============================================================================
+// Session Deletion Types
+// ============================================================================
+
+export interface DeleteSessionResponse {
+  task_id: string
+  message: string
+}
+
+export interface SessionDeleteProgress {
+  current: number
+  total: number
+  deleted_apps: number
+  deleted_datasets: number
+  session_deleted: boolean
+  phase: 'deleting_apps' | 'deleting_datasets' | 'deleting_session'
+}
+
+export interface SessionDeleteResult {
+  status: string
+  deleted_apps: number
+  deleted_datasets: number
+  session_deleted: boolean
+  errors: string[]
+}
+
+export interface SessionDeleteStatus {
+  status: 'pending' | 'progress' | 'completed' | 'failed' | string
+  progress: SessionDeleteProgress | null
+  result: SessionDeleteResult | null
+  error: string | null
+}

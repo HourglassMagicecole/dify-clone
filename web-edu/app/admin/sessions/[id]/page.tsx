@@ -1,13 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { sessionAPI } from '@/service/session-api'
 import { SessionMemberTable } from '@/components/session/SessionMemberTable'
 import { EditSessionModal } from '@/components/session/EditSessionModal'
+import { SessionResourceSection } from '@/components/session/SessionResourceSection'
+import { ResourceDeleteDialog } from '@/components/session/ResourceDeleteDialog'
+import { SessionDeleteDialog } from '@/components/session/SessionDeleteDialog'
 import { useSession } from '@/context/SessionContext'
 import type { Session, SessionMember } from '@/types/session'
+
+type TabType = 'members' | 'resources'
 
 export default function SessionDetailPage() {
   const params = useParams()
@@ -23,6 +28,16 @@ export default function SessionDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabType>('members')
+
+  // Resource delete dialog state
+  const [showDeleteResourceDialog, setShowDeleteResourceDialog] = useState(false)
+  const [deleteAccountId, setDeleteAccountId] = useState<string | undefined>()
+  const [deleteAccountName, setDeleteAccountName] = useState<string | undefined>()
+  const [resourceSummary, setResourceSummary] = useState({ total_apps: 0, total_datasets: 0 })
+
+  // Session delete dialog state
+  const [showDeleteSessionDialog, setShowDeleteSessionDialog] = useState(false)
 
   const loadSessionData = async () => {
     try {
@@ -50,19 +65,13 @@ export default function SessionDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId])
 
-  const handleDelete = async () => {
-    if (!confirm(t('delete_confirm_detail'))) {
-      return
-    }
+  const handleDelete = () => {
+    setShowDeleteSessionDialog(true)
+  }
 
-    try {
-      await sessionAPI.deleteSession(sessionId)
-      await refreshSessionContext() // Update SessionSelector
-      router.push('/admin/sessions')
-    }
-    catch (err) {
-      alert(err instanceof Error ? err.message : t('failed_to_delete'))
-    }
+  const handleDeleteComplete = async () => {
+    await refreshSessionContext() // Update SessionSelector
+    router.push('/admin/sessions')
   }
 
   const handleCopySessionId = async () => {
@@ -118,87 +127,112 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      {/* Session Info */}
-      <div className="mb-6 rounded-lg border border-gray-300 bg-white p-6">
-        <h2 className="mb-4 text-lg font-bold">{t('session_info')}</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <div className="text-sm text-gray-600">{t('session_id')}</div>
-            <div className="flex items-center gap-2">
-              <code className="rounded bg-gray-100 px-2 py-1 text-xs">{session.id}</code>
-              <button
-                onClick={handleCopySessionId}
-                className={`px-3 py-1 text-xs rounded transition-colors ${
-                  isCopied
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-600 text-white hover:bg-gray-700'
-                }`}
-              >
-                {isCopied ? tCommon('copied') : tCommon('copy')}
-              </button>
-            </div>
+      {/* Session Info - Compact Layout */}
+      <div className="mb-6 rounded-lg border border-gray-300 bg-white p-4">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">{t('session_id')}:</span>
+            <code className="rounded bg-gray-100 px-2 py-0.5 text-xs">{session.id}</code>
+            <button
+              onClick={handleCopySessionId}
+              className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                isCopied
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-500 text-white hover:bg-gray-600'
+              }`}
+            >
+              {isCopied ? tCommon('copied') : tCommon('copy')}
+            </button>
           </div>
-          <div>
-            <div className="text-sm text-gray-600">{t('session_tag')}</div>
-            <div className="font-medium">
-              <code className="rounded bg-gray-100 px-2 py-1">{session.session_tag}</code>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">{t('session_tag')}:</span>
+            <code className="rounded bg-gray-100 px-2 py-0.5 text-sm">{session.session_tag}</code>
           </div>
-          <div>
-            <div className="text-sm text-gray-600">{t('status')}</div>
-            <div>
-              <span
-                className={`rounded px-2 py-1 text-sm ${
-                  session.is_currently_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {session.is_currently_active ? t('active') : t('inactive')}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">{t('status')}:</span>
+            <span
+              className={`rounded px-2 py-0.5 text-xs ${
+                session.is_currently_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              {session.is_currently_active ? t('active') : t('inactive')}
+            </span>
+            {session.force_status !== null && (
+              <span className="text-xs text-gray-500">
+                ({session.force_status ? t('force_active') : t('force_inactive')})
               </span>
-              {session.force_status !== null && (
-                <span className="ml-2 text-xs text-gray-500">
-                  ({session.force_status ? t('force_active') : t('force_inactive')})
-                </span>
-              )}
-            </div>
+            )}
           </div>
-          <div>
-            <div className="text-sm text-gray-600">{t('start_date')}</div>
-            <div className="font-medium">{new Date(session.start_date).toLocaleDateString()}</div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">{t('start')}:</span>
+            <span className="text-sm">{new Date(session.start_date).toLocaleDateString()}</span>
           </div>
-          <div>
-            <div className="text-sm text-gray-600">{t('end_date')}</div>
-            <div className="font-medium">
-              {session.end_date ? new Date(session.end_date).toLocaleDateString() : 'N/A'}
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">{t('end')}:</span>
+            <span className="text-sm">{session.end_date ? new Date(session.end_date).toLocaleDateString() : 'N/A'}</span>
           </div>
-          <div>
-            <div className="text-sm text-gray-600">{t('max_students')}</div>
-            <div className="font-medium">{session.max_students}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600">{t('current_members')}</div>
-            <div className="font-medium">{members.length}</div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">{t('max_students')}:</span>
+            <span className="text-sm">{session.max_students}</span>
           </div>
         </div>
         {session.description && (
-          <div className="mt-4">
-            <div className="text-sm text-gray-600">{t('description')}</div>
-            <div className="mt-1">{session.description}</div>
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <span className="text-sm text-gray-500">{t('description')}:</span>
+            <span className="ml-2 text-sm">{session.description}</span>
           </div>
         )}
       </div>
 
-      {/* Session Members */}
-      <div className="rounded-lg border border-gray-300 bg-white p-6">
-        <h2 className="mb-4 text-lg font-bold">
-          {t('session_members')} ({members.length})
-        </h2>
-        <SessionMemberTable
-          sessionId={sessionId}
-          members={members}
-          instructorAccountId={session.instructor_account_id}
-          onMembersChange={loadSessionData}
-        />
+      {/* Tabs */}
+      <div className="rounded-lg border border-gray-300 bg-white">
+        {/* Tab Headers */}
+        <div className="flex border-b border-gray-300">
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'members'
+                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            {t('members_tab')} ({members.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('resources')}
+            className={`px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'resources'
+                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            {t('resources_tab')}
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-6">
+          {activeTab === 'members' && (
+            <SessionMemberTable
+              sessionId={sessionId}
+              members={members}
+              instructorAccountId={session.instructor_account_id}
+              onMembersChange={loadSessionData}
+            />
+          )}
+
+          {activeTab === 'resources' && (
+            <SessionResourceSection
+              sessionId={sessionId}
+              onDeleteRequest={(accountId, accountName, summary) => {
+                setDeleteAccountId(accountId)
+                setDeleteAccountName(accountName)
+                setResourceSummary(summary || { total_apps: 0, total_datasets: 0 })
+                setShowDeleteResourceDialog(true)
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Edit Modal */}
@@ -209,6 +243,29 @@ export default function SessionDetailPage() {
             setShowEditModal(false)
             loadSessionData()
           }}
+        />
+      )}
+
+      {/* Resource Delete Dialog */}
+      <ResourceDeleteDialog
+        isOpen={showDeleteResourceDialog}
+        sessionId={sessionId}
+        accountId={deleteAccountId}
+        accountName={deleteAccountName}
+        resourceSummary={resourceSummary}
+        onClose={() => setShowDeleteResourceDialog(false)}
+        onDeleteComplete={() => {
+          loadSessionData()
+        }}
+      />
+
+      {/* Session Delete Dialog */}
+      {session && (
+        <SessionDeleteDialog
+          isOpen={showDeleteSessionDialog}
+          session={session}
+          onClose={() => setShowDeleteSessionDialog(false)}
+          onDeleteComplete={handleDeleteComplete}
         />
       )}
     </div>

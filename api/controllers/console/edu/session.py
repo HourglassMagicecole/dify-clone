@@ -12,6 +12,7 @@ from controllers.console.edu.auth_decorators import (
 )
 from services.edu.session_helper import is_session_currently_active
 from services.edu.session_service import EduSessionService
+from services.education_management.session_resource_service import SessionResourceService
 
 bp = Blueprint("edu_sessions", __name__, url_prefix="/console/api/edu/sessions")
 
@@ -21,6 +22,67 @@ def _get_session_by_id(session_id: str):
     """세션 조회 헬퍼 함수 (owner_or_creator_required용)."""
     service = EduSessionService()
     return service.get_session(session_id)
+
+
+def _get_celery_task_status(task_id: str) -> tuple[dict, int]:
+    """
+    Celery 태스크 상태를 조회하는 공통 헬퍼 함수.
+
+    Args:
+        task_id: Celery task ID
+
+    Returns:
+        tuple: (response_dict, status_code)
+            - response_dict: JSON 응답 딕셔너리
+            - status_code: HTTP 상태 코드
+    """
+    from celery.result import AsyncResult
+    from flask import current_app
+
+    celery_app = current_app.extensions.get("celery")
+    if not celery_app:
+        return {"result": "error", "message": "Celery not configured"}, 500
+
+    result = AsyncResult(task_id, app=celery_app)
+
+    if result.state == "PENDING":
+        response = {
+            "status": "pending",
+            "progress": None,
+            "result": None,
+            "error": None,
+        }
+    elif result.state == "PROGRESS":
+        response = {
+            "status": "progress",
+            "progress": result.info,
+            "result": None,
+            "error": None,
+        }
+    elif result.state == "SUCCESS":
+        response = {
+            "status": "completed",
+            "progress": None,
+            "result": result.result,
+            "error": None,
+        }
+    elif result.state == "FAILURE":
+        response = {
+            "status": "failed",
+            "progress": None,
+            "result": None,
+            "error": str(result.info) if result.info else "Task failed",
+        }
+    else:
+        # Handle other states (RETRY, REVOKED, etc.)
+        response = {
+            "status": result.state.lower(),
+            "progress": None,
+            "result": None,
+            "error": None,
+        }
+
+    return {"result": "success", "data": response}, 200
 
 
 # Pydantic 요청/응답 모델
@@ -356,6 +418,9 @@ def delete_session(session_id: str):
     """
     세션 삭제 (소유자 또는 생성자만).
 
+    세션의 모든 리소스(Agent, Dataset)도 함께 삭제됩니다.
+    비동기 Celery 태스크로 처리됩니다.
+
     Permission:
         - Owner: 모든 세션 삭제 가능
         - Admin: 자신이 생성한 세션만 삭제 가능
@@ -364,24 +429,69 @@ def delete_session(session_id: str):
         session_id: Session UUID
 
     Returns:
-        JSON: 삭제 성공 메시지
+        JSON: task_id와 메시지 (202 Accepted)
 
     Note:
-        관련 세션 멤버도 CASCADE로 자동 삭제됩니다.
+        - 세션의 모든 리소스(Agent, Dataset)가 삭제됩니다.
+        - 세션 멤버는 CASCADE로 자동 삭제됩니다.
+        - LLM 사용 기록은 보존됩니다.
     """
+    from tasks.education.delete_session_task import delete_session_with_resources_task
+
     try:
+        # Verify session exists and is not default
         service = EduSessionService()
+        session = service.get_session(session_id)
 
-        # Permission is checked by @owner_or_creator_required decorator
+        if session.is_default:
+            return jsonify({"result": "error", "message": "Default session cannot be deleted"}), 400
 
-        service.delete_session(session_id)
+        # Start async deletion task
+        task = delete_session_with_resources_task.delay(
+            session_id=session_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user.id,
+        )
 
-        return jsonify({"result": "success", "message": "Session deleted successfully"})
+        return jsonify(
+            {
+                "result": "success",
+                "data": {
+                    "task_id": task.id,
+                    "message": "세션 삭제 작업이 시작되었습니다.",
+                },
+            }
+        ), 202  # Accepted
 
     except ValueError as e:
         return jsonify({"result": "error", "message": str(e)}), 404
     except Exception as e:
-        return jsonify({"result": "error", "message": f"Failed to delete session: {e!s}"}), 500
+        return jsonify({"result": "error", "message": f"Failed to start session deletion: {e!s}"}), 500
+
+
+@bp.route("/<string:session_id>/delete-status/<string:task_id>", methods=["GET"])
+@jwt_required
+@owner_or_creator_required(_get_session_by_id)
+def get_session_delete_status(session_id: str, task_id: str):
+    """
+    세션 삭제 태스크 상태 조회.
+
+    Args:
+        session_id: Session UUID
+        task_id: Celery task ID
+
+    Returns:
+        JSON: 태스크 상태 정보
+            - status: "pending" | "progress" | "completed" | "failed"
+            - progress: (진행 중일 때) 진행 상황
+            - result: (완료 시) 삭제 결과
+            - error: (실패 시) 에러 메시지
+    """
+    try:
+        response, status_code = _get_celery_task_status(task_id)
+        return jsonify(response), status_code
+    except Exception as e:
+        return jsonify({"result": "error", "message": f"Failed to get task status: {e!s}"}), 500
 
 
 @bp.route("/<string:session_id>/members", methods=["GET"])
@@ -466,6 +576,9 @@ def remove_session_member(session_id: str, account_id: str):
     """
     세션 멤버 제거 (소유자 또는 생성자만).
 
+    멤버의 리소스(Agent, Dataset)도 함께 삭제됩니다.
+    비동기 Celery 태스크로 처리됩니다.
+
     Permission:
         - Owner: 모든 세션에서 멤버 제거 가능
         - Admin: 자신이 생성한 세션에서만 멤버 제거 가능
@@ -475,21 +588,246 @@ def remove_session_member(session_id: str, account_id: str):
         account_id: Account UUID to remove
 
     Returns:
-        JSON: 성공 메시지
+        JSON: task_id와 메시지 (202 Accepted)
     """
+    from tasks.education.remove_member_task import remove_session_member_with_resources_task
+
     try:
+        # Verify member exists
         service = EduSessionService()
+        members = service.get_session_members(session_id)
+        member_exists = any(m["account_id"] == account_id for m in members)
 
-        # Permission is checked by @owner_or_creator_required decorator
-
-        removed = service.remove_session_member(session_id, account_id)
-
-        if not removed:
+        if not member_exists:
             return jsonify({"result": "error", "message": "Member not found"}), 404
 
-        return jsonify({"result": "success", "message": "Member removed successfully"})
+        # Start async removal task
+        task = remove_session_member_with_resources_task.delay(
+            session_id=session_id,
+            member_account_id=account_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user.id,
+        )
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": {
+                    "task_id": task.id,
+                    "message": "멤버 제거 작업이 시작되었습니다.",
+                },
+            }
+        ), 202  # Accepted
 
     except ValueError as e:
         return jsonify({"result": "error", "message": str(e)}), 404
     except Exception as e:
-        return jsonify({"result": "error", "message": f"Failed to remove member: {e!s}"}), 500
+        return jsonify({"result": "error", "message": f"Failed to start member removal: {e!s}"}), 500
+
+
+@bp.route("/<string:session_id>/members/<string:account_id>/remove-status/<string:task_id>", methods=["GET"])
+@jwt_required
+@owner_or_creator_required(_get_session_by_id)
+def get_member_remove_status(session_id: str, account_id: str, task_id: str):
+    """
+    멤버 제거 태스크 상태 조회.
+
+    Args:
+        session_id: Session UUID
+        account_id: Account UUID being removed
+        task_id: Celery task ID
+
+    Returns:
+        JSON: 태스크 상태 정보
+            - status: "pending" | "progress" | "completed" | "failed"
+            - progress: (진행 중일 때) 진행 상황
+            - result: (완료 시) 제거 결과
+            - error: (실패 시) 에러 메시지
+    """
+    try:
+        response, status_code = _get_celery_task_status(task_id)
+        return jsonify(response), status_code
+    except Exception as e:
+        return jsonify({"result": "error", "message": f"Failed to get task status: {e!s}"}), 500
+
+
+# ============================================================================
+# Session Resource Management Endpoints
+# ============================================================================
+
+
+@bp.route("/<string:session_id>/resources", methods=["GET"])
+@jwt_required
+@owner_or_creator_required(_get_session_by_id)
+def get_session_resources(session_id: str):
+    """
+    세션 리소스 조회 (소유자 또는 생성자만).
+
+    Permission:
+        - Owner: 모든 세션의 리소스 조회 가능
+        - Admin: 자신이 생성한 세션의 리소스만 조회 가능
+
+    Args:
+        session_id: Session UUID
+
+    Query Parameters:
+        resource_type (str, optional): Filter by type ("app" or "dataset")
+        account_id (str, optional): Filter by account UUID
+
+    Returns:
+        JSON: 리소스 목록 및 요약
+            - apps: App 리소스 목록
+            - datasets: Dataset 리소스 목록
+            - summary: {total_apps, total_datasets}
+    """
+    # Parse query parameters
+    resource_type = request.args.get("resource_type")
+    account_id = request.args.get("account_id")
+
+    # Validate resource_type if provided
+    if resource_type and resource_type not in ("app", "dataset"):
+        return jsonify({"result": "error", "message": "Invalid resource_type. Must be 'app' or 'dataset'."}), 400
+
+    try:
+        service = SessionResourceService()
+        resources = service.get_session_resources(
+            session_id=session_id,
+            resource_type=resource_type,
+            account_id=account_id,
+        )
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": resources,
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"result": "error", "message": f"Failed to get session resources: {e!s}"}), 500
+
+
+@bp.route("/<string:session_id>/resources/accounts", methods=["GET"])
+@jwt_required
+@owner_or_creator_required(_get_session_by_id)
+def get_session_resource_accounts(session_id: str):
+    """
+    세션에서 리소스를 생성한 사용자 목록 조회.
+
+    Permission:
+        - Owner: 모든 세션 조회 가능
+        - Admin: 자신이 생성한 세션만 조회 가능
+
+    Args:
+        session_id: Session UUID
+
+    Returns:
+        JSON: 사용자 목록 (account_id, name, email)
+    """
+    try:
+        service = SessionResourceService()
+        accounts = service.get_unique_accounts(session_id)
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": accounts,
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"result": "error", "message": f"Failed to get resource accounts: {e!s}"}), 500
+
+
+class DeleteResourcesRequest(BaseModel):
+    """리소스 삭제 요청 모델."""
+
+    account_id: str | None = Field(None, description="특정 사용자 리소스만 삭제 (선택)")
+
+
+@bp.route("/<string:session_id>/resources", methods=["DELETE"])
+@jwt_required
+@owner_or_creator_required(_get_session_by_id)
+def delete_session_resources(session_id: str):
+    """
+    세션 리소스 일괄 삭제 (소유자 또는 생성자만).
+
+    비동기 Celery 태스크로 처리됩니다.
+
+    Permission:
+        - Owner: 모든 세션의 리소스 삭제 가능
+        - Admin: 자신이 생성한 세션의 리소스만 삭제 가능
+
+    Args:
+        session_id: Session UUID
+
+    Request Body (optional):
+        account_id (str, optional): 특정 사용자의 리소스만 삭제
+
+    Returns:
+        JSON: task_id와 메시지 (202 Accepted)
+    """
+    from tasks.education.session_resource_cleanup_task import delete_session_resources_task
+
+    # Parse account_id from query parameter or request body
+    account_id = request.args.get("account_id")
+    if not account_id:
+        # Use silent=True to avoid error when body is empty
+        json_data = request.get_json(silent=True)
+        if json_data:
+            try:
+                data = DeleteResourcesRequest(**json_data)
+                account_id = data.account_id
+            except Exception as e:
+                return jsonify({"result": "error", "message": f"Invalid request data: {e!s}"}), 400
+
+    try:
+        # Start async deletion task
+        task = delete_session_resources_task.delay(
+            session_id=session_id,
+            account_id=account_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user.id,
+        )
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": {
+                    "task_id": task.id,
+                    "message": "리소스 삭제 작업이 시작되었습니다.",
+                },
+            }
+        ), 202  # Accepted
+
+    except Exception as e:
+        return jsonify({"result": "error", "message": f"Failed to start resource deletion: {e!s}"}), 500
+
+
+@bp.route("/<string:session_id>/resources/delete-status/<string:task_id>", methods=["GET"])
+@jwt_required
+@owner_or_creator_required(_get_session_by_id)
+def get_delete_status(session_id: str, task_id: str):
+    """
+    리소스 삭제 태스크 상태 조회.
+
+    Permission:
+        - Owner: 모든 세션의 태스크 상태 조회 가능
+        - Admin: 자신이 생성한 세션의 태스크 상태만 조회 가능
+
+    Args:
+        session_id: Session UUID
+        task_id: Celery Task ID
+
+    Returns:
+        JSON: 태스크 상태 정보
+            - status: "pending" | "progress" | "completed" | "failed"
+            - progress: (진행 중일 때) 진행 상황
+            - result: (완료 시) 삭제 결과
+            - error: (실패 시) 에러 메시지
+    """
+    try:
+        response, status_code = _get_celery_task_status(task_id)
+        return jsonify(response), status_code
+    except Exception as e:
+        return jsonify({"result": "error", "message": f"Failed to get task status: {e!s}"}), 500

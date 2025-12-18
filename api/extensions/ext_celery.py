@@ -160,6 +160,9 @@ def init_app(app: DifyApp) -> Celery:
 
     # Education management tasks
     imports.append("tasks.education.bulk_user_task")
+    imports.append("tasks.education.session_resource_cleanup_task")
+    imports.append("tasks.education.remove_member_task")
+    imports.append("tasks.education.delete_session_task")
 
     celery_app.conf.update(beat_schedule=beat_schedule, imports=imports)
 
