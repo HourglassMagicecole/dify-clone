@@ -191,7 +191,7 @@ export class ApiClient {
 
     if (!response.ok) {
       const message = await this.extractErrorMessage(response)
-      throw new Error(message)
+      return { result: 'fail', message }
     }
 
     const json = await response.json()
@@ -216,7 +216,7 @@ export class ApiClient {
 
     if (!response.ok) {
       const message = await this.extractErrorMessage(response)
-      throw new Error(message)
+      return { result: 'fail', message }
     }
 
     const json = await response.json()
@@ -241,7 +241,7 @@ export class ApiClient {
 
     if (!response.ok) {
       const message = await this.extractErrorMessage(response)
-      throw new Error(message)
+      return { result: 'fail', message }
     }
 
     const json = await response.json()
@@ -264,7 +264,7 @@ export class ApiClient {
 
     if (!response.ok) {
       const message = await this.extractErrorMessage(response)
-      throw new Error(message)
+      return { result: 'fail', message }
     }
 
     // DELETE often returns empty body or 204

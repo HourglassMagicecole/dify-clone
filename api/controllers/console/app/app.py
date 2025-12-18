@@ -200,28 +200,34 @@ class AppListApi(Resource):
         if not session_id:
             raise BadRequest("session_id is required to create an agent")
 
-        # Validate session and user membership (with date-based activation check)
+        # Validate session exists and is active (with date-based activation check)
         from sqlalchemy import select
 
         from models.education.session import EducationSession
         from models.education.session_member import EducationSessionMember
         from services.edu.session_helper import build_session_active_condition
 
-        stmt = (
-            select(EducationSession)
-            .join(EducationSessionMember, EducationSession.id == EducationSessionMember.session_id)
-            .where(
-                EducationSession.id == session_id,
-                EducationSession.is_active == True,
-                build_session_active_condition(),
-                EducationSessionMember.account_id == current_user.id,
-                EducationSessionMember.status == "active",
-            )
+        # Step 1: Check if session exists and is active
+        session_stmt = select(EducationSession).where(
+            EducationSession.id == session_id,
+            EducationSession.is_active == True,
+            build_session_active_condition(),
         )
-        active_session = db.session.scalar(stmt)
+        active_session = db.session.scalar(session_stmt)
 
         if not active_session:
-            raise BadRequest("Invalid session_id or session is not currently active")
+            raise BadRequest("선택한 세션이 존재하지 않거나 현재 활성화되지 않았습니다")
+
+        # Step 2: Check if user is a member of the session
+        member_stmt = select(EducationSessionMember).where(
+            EducationSessionMember.session_id == session_id,
+            EducationSessionMember.account_id == current_user.id,
+            EducationSessionMember.status == "active",
+        )
+        member = db.session.scalar(member_stmt)
+
+        if not member:
+            raise BadRequest("해당 세션에 대한 접근 권한이 없습니다. 세션 관리자에게 멤버 등록을 요청하세요")
 
         app_service = AppService()
         if not isinstance(current_user, Account):

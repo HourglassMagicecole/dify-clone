@@ -743,7 +743,10 @@ export function AgentWizardProvider({
         const response = await difyAPI.createAppWithConfig(createAppPayload)
 
         if (response.result !== 'success' || !response.data) {
-          throw new Error(response.message || t('toasts.agentCreationFailed'))
+          const errorMessage = response.message || t('toasts.agentCreationFailed')
+          setState(prev => ({ ...prev, isLoading: false, error: errorMessage }))
+          showToast(errorMessage, 'error')
+          return null
         }
 
         agentId = response.data.id
