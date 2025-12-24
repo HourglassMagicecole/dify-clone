@@ -346,6 +346,26 @@ export default function DatasetDetailPage() {
                 {formatDate(dataset.created_at)}
               </p>
             </div>
+            <div>
+              <span className="text-gray-500">{t('detail.searchMethod')}</span>
+              <p className="font-medium text-gray-900 dark:text-white">
+                {dataset.retrieval_model_dict?.search_method
+                  ? t(`detail.searchMethods.${dataset.retrieval_model_dict.search_method}`)
+                  : '-'}
+              </p>
+            </div>
+            <div>
+              <span className="text-gray-500">{t('detail.topK')}</span>
+              <p className="font-medium text-gray-900 dark:text-white">
+                {dataset.retrieval_model_dict?.top_k ?? '-'}
+              </p>
+            </div>
+            <div>
+              <span className="text-gray-500">{t('detail.reranking')}</span>
+              <p className="font-medium text-gray-900 dark:text-white">
+                {dataset.retrieval_model_dict?.reranking_enable ? t('detail.enabled') : t('detail.disabled')}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -442,7 +462,11 @@ export default function DatasetDetailPage() {
         {/* Retrieval Test Tab Content (Story 3.4) */}
         {activeTab === 'retrieval-test' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <RetrievalTest datasetId={datasetId} />
+            <RetrievalTest
+              datasetId={datasetId}
+              initialRetrievalModel={dataset.retrieval_model_dict}
+              onSettingsSaved={loadDataset}
+            />
           </div>
         )}
       </div>

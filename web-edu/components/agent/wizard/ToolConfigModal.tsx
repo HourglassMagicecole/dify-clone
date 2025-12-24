@@ -17,6 +17,7 @@ import {
   type UserToolConfig,
 } from '@/service/tool-api'
 import { modelAPI } from '@/service/model-api'
+import { useSession } from '@/context/SessionContext'
 import type { Tool, ToolParameter } from '@/types/tool'
 import type { ModelStatusValue } from '@/types/model'
 
@@ -36,10 +37,15 @@ interface ToolConfigModalProps {
   onApiKeySaved?: () => void  // API Key 저장 후 도구 목록 새로고침 콜백
 }
 
-export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolConfigModalProps) {
+export default function ToolConfigModal({
+  tool,
+  onClose,
+  onApiKeySaved,
+}: ToolConfigModalProps) {
   const { t, i18n } = useTranslation('agent')
   // Convert i18n language code (ko-KR) to API format (ko_KR)
   const currentLang = (i18n.language.replace('-', '_') || 'en_US') as 'en_US' | 'ko_KR'
+  const { currentSession } = useSession()
   const [testParams, setTestParams] = useState<Record<string, string | number | boolean | string[]>>({})
   const [testResult, setTestResult] = useState<ToolTestResult | null>(null)
   const [testing, setTesting] = useState(false)
@@ -50,9 +56,11 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
   // STT specific states
   const [isRecording, setIsRecording] = useState(false)
   const [audioFile, setAudioFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  // MediaRecorder refs for recording
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
 
   // API Key management states (for TOOL_PROVIDER type)
   const [userApiKey, setUserApiKey] = useState<string>('')
@@ -169,7 +177,7 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
       const provider = tool.provider || 'edu_tools'
       // Merge testParams with overrideParams (overrideParams takes precedence)
       const finalParams = { ...testParams, ...overrideParams }
-      const response = await testTool(provider, tool.name, finalParams)
+      const response = await testTool(provider, tool.name, finalParams, currentSession?.id)
 
       if (response.result === 'success' && response.data) {
         setTestResult(response.data)
@@ -235,21 +243,66 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
     }))
   }
 
-  // STT: Start recording
+  // Helper: Create WAV blob from AudioBuffer
+  const audioBufferToWav = (audioBuffer: AudioBuffer): Blob => {
+    const numChannels = 1 // mono
+    const sampleRate = audioBuffer.sampleRate
+    const format = 1 // PCM
+    const bitDepth = 16
+
+    // Get audio data (use first channel for mono)
+    const audioData = audioBuffer.getChannelData(0)
+    const dataLength = audioData.length * (bitDepth / 8)
+    const buffer = new ArrayBuffer(44 + dataLength)
+    const view = new DataView(buffer)
+
+    // Write WAV header
+    const writeString = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i))
+      }
+    }
+
+    writeString(0, 'RIFF')
+    view.setUint32(4, 36 + dataLength, true)
+    writeString(8, 'WAVE')
+    writeString(12, 'fmt ')
+    view.setUint32(16, 16, true) // PCM chunk size
+    view.setUint16(20, format, true) // PCM format
+    view.setUint16(22, numChannels, true)
+    view.setUint32(24, sampleRate, true)
+    view.setUint32(28, sampleRate * numChannels * (bitDepth / 8), true) // byte rate
+    view.setUint16(32, numChannels * (bitDepth / 8), true) // block align
+    view.setUint16(34, bitDepth, true)
+    writeString(36, 'data')
+    view.setUint32(40, dataLength, true)
+
+    // Write audio data (Float32 to Int16)
+    let offset = 44
+    for (let i = 0; i < audioData.length; i++) {
+      const sample = Math.max(-1, Math.min(1, audioData[i] ?? 0))
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true)
+      offset += 2
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' })
+  }
+
+  // STT: Start recording using MediaRecorder
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaStreamRef.current = stream
 
-      // Try to use supported audio formats (OpenAI Whisper friendly)
-      // Priority: mp4 > webm > wav
+      // Use webm format (most reliable in browsers)
       const mimeTypes = [
-        'audio/mp4',
-        'audio/mpeg',
         'audio/webm;codecs=opus',
         'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4',
       ]
 
-      let selectedMimeType = 'audio/webm'
+      let selectedMimeType = ''
       for (const mimeType of mimeTypes) {
         if (MediaRecorder.isTypeSupported(mimeType)) {
           selectedMimeType = mimeType
@@ -257,7 +310,9 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
         }
       }
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: selectedMimeType })
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: selectedMimeType || undefined,
+      })
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
@@ -267,19 +322,7 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
         }
       }
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: selectedMimeType })
-        // Determine file extension from MIME type
-        const ext = selectedMimeType.includes('mp4') ? 'mp4'
-                  : selectedMimeType.includes('mpeg') ? 'mp3'
-                  : selectedMimeType.includes('webm') ? 'webm'
-                  : 'audio'
-        const file = new File([audioBlob], `recording.${ext}`, { type: selectedMimeType })
-        setAudioFile(file)
-        stream.getTracks().forEach(track => track.stop())
-      }
-
-      mediaRecorder.start()
+      mediaRecorder.start(100) // Collect data every 100ms
       setIsRecording(true)
     }
     catch (error) {
@@ -288,11 +331,56 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
     }
   }
 
-  // STT: Stop recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
+  // STT: Stop recording and convert to WAV
+  const stopRecording = async () => {
+    if (!mediaRecorderRef.current || !isRecording) return
+
+    // Create a promise that resolves when recording stops
+    const recordingPromise = new Promise<Blob>((resolve) => {
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.onstop = () => {
+          const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm'
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType })
+          resolve(audioBlob)
+        }
+      }
+    })
+
+    mediaRecorderRef.current.stop()
+    setIsRecording(false)
+
+    // Stop media stream
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop())
+      mediaStreamRef.current = null
+    }
+
+    try {
+      const audioBlob = await recordingPromise
+
+      // Convert webm to WAV using AudioContext.decodeAudioData()
+      const arrayBuffer = await audioBlob.arrayBuffer()
+      const audioContext = new AudioContext()
+
+      try {
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+        const wavBlob = audioBufferToWav(audioBuffer)
+        const file = new File([wavBlob], 'recording.wav', { type: 'audio/wav' })
+        setAudioFile(file)
+      }
+      catch (decodeError) {
+        console.error('Failed to decode audio, using original format:', decodeError)
+        // Fallback: use original webm if decoding fails
+        const ext = audioBlob.type.includes('webm') ? 'webm' : 'audio'
+        const file = new File([audioBlob], `recording.${ext}`, { type: audioBlob.type })
+        setAudioFile(file)
+      }
+      finally {
+        await audioContext.close()
+      }
+    }
+    catch (error) {
+      console.error('Error processing audio:', error)
     }
   }
 
@@ -319,13 +407,14 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
       const reader = new FileReader()
       reader.onload = async () => {
         const base64Audio = reader.result as string
-        const model = testParams.model || 'openai#whisper-1'
+        // Test always uses whisper-1 for compatibility with browser-recorded audio
+        const model = 'openai#whisper-1'
 
         const provider = tool.provider || 'edu_tools'
         const response = await testTool(provider, tool.name, {
           audio_file: base64Audio,
           model,
-        })
+        }, currentSession?.id)
 
         if (response.result === 'success' && response.data) {
           setTestResult(response.data)
@@ -550,48 +639,31 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
 
   // Render STT-specific UI
   const renderSTTUI = () => {
-    const selectedModel = String(testParams.model || 'openai#whisper-1')
-    const selectedModelStatus = getModelStatus(selectedModel, sttModels)
-    const isSelectedModelActive = selectedModelStatus?.status === 'active'
-
-    // Fallback models if API hasn't loaded yet
-    const displayModels = sttModels.length > 0 ? sttModels : [
-      { model: 'openai#whisper-1', label: 'Whisper-1', status: 'active' as ModelStatusValue },
-    ]
+    // Test always uses whisper-1 for compatibility with browser-recorded audio
+    const testModel = 'openai#whisper-1'
+    const whisperStatus = getModelStatus(testModel, sttModels)
+    const isWhisperActive = whisperStatus?.status === 'active'
 
     return (
       <div className="space-y-4">
-        {/* Model Selection */}
+        {/* Model Info - Test uses whisper-1 */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            {t('tools.sttModel')} <span className="text-red-500">*</span>
+            {t('tools.sttModel')}
           </label>
-          {modelsLoading ? (
-            <div className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50 text-gray-500">
-              {t('common:loading')}...
-            </div>
-          ) : (
-            <select
-              value={selectedModel}
-              onChange={e => handleParamChange('model', e.target.value)}
-              className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                !isSelectedModelActive && sttModels.length > 0
-                  ? 'border-orange-300 bg-orange-50'
-                  : 'border-gray-300'
-              }`}
-            >
-              {displayModels.map(m => (
-                <option key={m.model} value={m.model}>
-                  {m.label} {m.status !== 'active' ? `⚠️ (${t('tools.modelDisabled')})` : ''}
-                </option>
-              ))}
-            </select>
-          )}
-          {/* Warning for disabled model */}
-          {!isSelectedModelActive && sttModels.length > 0 && (
+          <div className={`w-full border rounded px-3 py-2 bg-gray-50 ${
+            !isWhisperActive && sttModels.length > 0
+              ? 'border-orange-300 bg-orange-50'
+              : 'border-gray-300'
+          }`}>
+            <span className="text-gray-700">whisper-1</span>
+            <span className="text-gray-500 text-sm ml-2">({t('tools.testUsesWhisper')})</span>
+          </div>
+          {/* Warning if whisper-1 is disabled */}
+          {!isWhisperActive && sttModels.length > 0 && (
             <p className="mt-1 text-sm text-orange-600 flex items-center gap-1">
               <span>⚠️</span>
-              {t('tools.selectedModelDisabledWarning')}
+              {t('tools.whisperDisabledWarning')}
             </p>
           )}
         </div>
@@ -634,19 +706,23 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
 
       {/* Selected File Info */}
       {audioFile && (
-        <div className="p-2 bg-gray-100 rounded text-sm">
-          {t('tools.selected')} {audioFile.name} ({(audioFile.size / 1024).toFixed(2)} KB)
+        <div className="p-2 bg-gray-100 rounded text-sm space-y-1">
+          <div>
+            {t('tools.selected')} {audioFile.name} ({(audioFile.size / 1024).toFixed(2)} KB)
+          </div>
+          <a
+            href={URL.createObjectURL(audioFile)}
+            download={audioFile.name}
+            className="text-blue-600 hover:underline text-xs"
+          >
+            📥 Download file for debugging
+          </a>
         </div>
       )}
 
       {/* Convert Button */}
       <Button
-        onClick={() => {
-          // Ensure model parameter is set before calling handleSTTTest
-          const model = testParams.model || 'openai#whisper-1'
-          handleParamChange('model', model)
-          handleSTTTest()
-        }}
+        onClick={handleSTTTest}
         disabled={testing || !audioFile}
         variant="default"
       >
@@ -895,37 +971,95 @@ export default function ToolConfigModal({ tool, onClose, onApiKeySaved }: ToolCo
     )
   }
 
-  // Render default parameter UI
-  const renderDefaultUI = () => (
-    <div className="space-y-3">
-      <h3 className="font-semibold">{t('tools.testParameters')}</h3>
-      {tool.parameters && tool.parameters.length > 0 ? (
-        tool.parameters.map(param => (
-          <div key={param.name}>
-            <label className="flex items-center gap-1 text-sm font-medium mb-1">
-              <span>
-                {param.label[currentLang] || param.label.en_US}
-                {param.required && <span className="text-red-500 ml-1">*</span>}
-              </span>
-              <Tooltip content={param.description[currentLang] || param.description.en_US} />
-            </label>
-            {renderParameterInput(param)}
-          </div>
-        ))
-      ) : (
-        <p className="text-sm text-gray-500">No parameters required</p>
-      )}
+  // Get display value for a parameter (for read-only display)
+  const getParamDisplayValue = (param: ToolParameter): string => {
+    const value = testParams[param.name] ?? param.default
+    if (value === undefined || value === null) return '-'
 
-      {/* Test Button */}
-      <Button
-        onClick={() => handleTest()}
-        disabled={testing}
-        variant="default"
-      >
-        {testing ? t('common:testing') : t('tools.test')}
-      </Button>
-    </div>
-  )
+    // For boolean type, show yes/no
+    if (param.type === 'boolean') {
+      return value ? t('common:yes') : t('common:no')
+    }
+
+    // For select type, find the label
+    if (param.type === 'select' && param.options) {
+      const option = param.options.find(opt => opt.value === value)
+      if (option) {
+        return option.label[currentLang] || option.label.en_US
+      }
+    }
+
+    return String(value)
+  }
+
+  // Render default parameter UI
+  const renderDefaultUI = () => {
+    if (!tool?.parameters) return null
+
+    // Separate form params (read-only) and llm params (editable for test)
+    const formParams = tool.parameters.filter(p => p.form === 'form')
+    const llmParams = tool.parameters.filter(p => p.form === 'llm')
+
+    return (
+      <div className="space-y-4">
+        {/* Default Settings (read-only) */}
+        {formParams.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+              {t('tools.defaultSettings')}
+            </h3>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
+              {formParams.map(param => (
+                <div key={param.name} className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {param.label[currentLang] || param.label.en_US}
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {getParamDisplayValue(param)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Test Parameters (editable) */}
+        {llmParams.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+              {t('tools.testParameters')}
+            </h3>
+            {llmParams.map(param => (
+              <div key={param.name}>
+                <label className="flex items-center gap-1 text-sm font-medium mb-1">
+                  <span>
+                    {param.label[currentLang] || param.label.en_US}
+                    {param.required && <span className="text-red-500 ml-1">*</span>}
+                  </span>
+                  <Tooltip content={param.description[currentLang] || param.description.en_US} />
+                </label>
+                {renderParameterInput(param)}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* No parameters message */}
+        {formParams.length === 0 && llmParams.length === 0 && (
+          <p className="text-sm text-gray-500">{t('tools.noParamsRequired')}</p>
+        )}
+
+        {/* Test Button */}
+        <Button
+          onClick={() => handleTest()}
+          disabled={testing}
+          variant="default"
+        >
+          {testing ? t('common:testing') : t('tools.test')}
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <Modal

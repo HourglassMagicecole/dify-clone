@@ -36,7 +36,7 @@ parameters:
   required: true
   type: string
   default: "A cute cat sitting on a laptop keyboard, digital art"
-- default: 1024x1024
+- default: 512x512
   form: form
   human_description:
     en_US: used for selecting the image size

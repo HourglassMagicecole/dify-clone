@@ -2,6 +2,7 @@ import io
 import logging
 import uuid
 from collections.abc import Generator
+from decimal import Decimal
 
 from flask import Response, stream_with_context
 from werkzeug.datastructures import FileStorage
@@ -29,7 +30,81 @@ logger = logging.getLogger(__name__)
 
 class AudioService:
     @classmethod
-    def transcript_asr(cls, app_model: App, file: FileStorage, end_user: str | None = None):
+    def _record_stt_usage(
+        cls,
+        app_model: App,
+        model_instance,
+        file_size: int,
+        account_id: str | None = None,
+    ) -> None:
+        """Record STT usage."""
+        try:
+            from services.api_usage_tracking_service import ApiUsageTrackingService
+
+            # Estimate audio duration in minutes (rough estimate based on file size)
+            # Assuming average bitrate of 128kbps for MP3
+            estimated_minutes = Decimal(file_size) / Decimal(128 * 1024 / 8 * 60)
+
+            # Get session_id if app is tagged to a session
+            session_id = ApiUsageTrackingService.get_session_id_for_app(
+                db.session,  # type: ignore[arg-type]
+                str(app_model.id),
+            )
+
+            ApiUsageTrackingService.record_stt_usage(
+                session=db.session,  # type: ignore[arg-type]
+                tenant_id=app_model.tenant_id,
+                model_provider=model_instance.provider,
+                model_id=model_instance.model,
+                estimated_minutes=estimated_minutes,
+                app_id=str(app_model.id),
+                app_name=app_model.name,
+                account_id=account_id,
+                session_id=session_id,
+            )
+        except Exception:
+            logger.exception("Failed to record STT usage")
+
+    @classmethod
+    def _record_tts_usage(
+        cls,
+        app_model: App,
+        model_instance,
+        char_count: int,
+        account_id: str | None = None,
+    ) -> None:
+        """Record TTS usage."""
+        try:
+            from services.api_usage_tracking_service import ApiUsageTrackingService
+
+            # Get session_id if app is tagged to a session
+            session_id = ApiUsageTrackingService.get_session_id_for_app(
+                db.session,  # type: ignore[arg-type]
+                str(app_model.id),
+            )
+
+            ApiUsageTrackingService.record_tts_usage(
+                session=db.session,  # type: ignore[arg-type]
+                tenant_id=app_model.tenant_id,
+                model_provider=model_instance.provider,
+                model_id=model_instance.model,
+                char_count=char_count,
+                app_id=str(app_model.id),
+                app_name=app_model.name,
+                account_id=account_id,
+                session_id=session_id,
+            )
+        except Exception:
+            logger.exception("Failed to record TTS usage")
+
+    @classmethod
+    def transcript_asr(
+        cls,
+        app_model: App,
+        file: FileStorage,
+        end_user: str | None = None,
+        account_id: str | None = None,
+    ):
         if app_model.mode in {AppMode.ADVANCED_CHAT, AppMode.WORKFLOW}:
             workflow = app_model.workflow
             if workflow is None:
@@ -70,7 +145,12 @@ class AudioService:
         buffer = io.BytesIO(file_content)
         buffer.name = "temp.mp3"
 
-        return {"text": model_instance.invoke_speech2text(file=buffer, user=end_user)}
+        result = model_instance.invoke_speech2text(file=buffer, user=end_user)
+
+        # Record STT usage
+        cls._record_stt_usage(app_model, model_instance, file_size, account_id)
+
+        return {"text": result}
 
     @classmethod
     def transcript_tts(
@@ -81,10 +161,17 @@ class AudioService:
         end_user: str | None = None,
         message_id: str | None = None,
         is_draft: bool = False,
+        account_id: str | None = None,
     ):
         from app import app
 
-        def invoke_tts(text_content: str, app_model: App, voice: str | None = None, is_draft: bool = False):
+        def invoke_tts(
+            text_content: str,
+            app_model: App,
+            voice: str | None = None,
+            is_draft: bool = False,
+            account_id: str | None = None,
+        ):
             with app.app_context():
                 if voice is None:
                     if app_model.mode in {AppMode.ADVANCED_CHAT, AppMode.WORKFLOW}:
@@ -125,6 +212,9 @@ class AudioService:
                         else:
                             raise ValueError("Sorry, no voice available.")
 
+                    # Record TTS usage
+                    cls._record_tts_usage(app_model, model_instance, len(text_content), account_id)
+
                     return model_instance.invoke_tts(
                         content_text=text_content.strip(), user=end_user, tenant_id=app_model.tenant_id, voice=voice
                     )
@@ -143,14 +233,26 @@ class AudioService:
                 return None
 
             else:
-                response = invoke_tts(text_content=message.answer, app_model=app_model, voice=voice, is_draft=is_draft)
+                response = invoke_tts(
+                    text_content=message.answer,
+                    app_model=app_model,
+                    voice=voice,
+                    is_draft=is_draft,
+                    account_id=account_id,
+                )
                 if isinstance(response, Generator):
                     return Response(stream_with_context(response), content_type="audio/mpeg")
                 return response
         else:
             if text is None:
                 raise ValueError("Text is required")
-            response = invoke_tts(text_content=text, app_model=app_model, voice=voice, is_draft=is_draft)
+            response = invoke_tts(
+                text_content=text,
+                app_model=app_model,
+                voice=voice,
+                is_draft=is_draft,
+                account_id=account_id,
+            )
             if isinstance(response, Generator):
                 return Response(stream_with_context(response), content_type="audio/mpeg")
             return response

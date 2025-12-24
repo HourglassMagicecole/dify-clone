@@ -20,9 +20,76 @@ logger = logging.getLogger(__name__)
 
 
 class CacheEmbedding(Embeddings):
-    def __init__(self, model_instance: ModelInstance, user: str | None = None):
+    def __init__(
+        self,
+        model_instance: ModelInstance,
+        user: str | None = None,
+        # Optional context for usage tracking
+        tenant_id: str | None = None,
+        app_id: str | None = None,
+        app_name: str | None = None,
+        account_id: str | None = None,
+        session_id: str | None = None,
+        invoke_source: str | None = None,
+    ):
         self._model_instance = model_instance
         self._user = user
+        # Usage tracking context (optional)
+        self._tenant_id = tenant_id
+        self._app_id = app_id
+        self._app_name = app_name
+        self._account_id = account_id
+        self._session_id = session_id
+        self._invoke_source = invoke_source
+
+    def _record_embedding_usage(self, input_tokens: int) -> None:
+        """Record embedding usage if context is available."""
+        logger.info(
+            "Recording embedding usage: tenant_id=%s, app_id=%s, account_id=%s, tokens=%d",
+            self._tenant_id,
+            self._app_id,
+            self._account_id,
+            input_tokens,
+        )
+        # Only require tenant_id; app_id is optional (may not exist during indexing)
+        if not self._tenant_id:
+            logger.warning("Skipping embedding usage - no tenant_id")
+            return
+
+        try:
+            from models.model import App
+            from services.api_usage_tracking_service import ApiUsageTrackingService
+
+            # Get session_id from app_id if not provided
+            session_id = self._session_id
+            if not session_id and self._app_id:
+                session_id = ApiUsageTrackingService.get_session_id_for_app(
+                    db.session,
+                    self._app_id,
+                )
+
+            # Get app_name from app_id if not provided
+            app_name = self._app_name
+            if not app_name and self._app_id:
+                app = db.session.query(App).filter(App.id == self._app_id).first()
+                if app:
+                    app_name = app.name
+
+            result = ApiUsageTrackingService.record_embedding_usage(
+                session=db.session,
+                tenant_id=self._tenant_id,
+                model_provider=self._model_instance.provider,
+                model_id=self._model_instance.model,
+                input_tokens=input_tokens,
+                app_id=self._app_id,
+                app_name=app_name,
+                account_id=self._account_id,
+                session_id=session_id,
+                invoke_source=self._invoke_source,
+            )
+            logger.info("Embedding usage recorded: %s", result)
+        except Exception:
+            logger.exception("Failed to record embedding usage")
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """Embed search docs in batches of 10."""
@@ -49,6 +116,7 @@ class CacheEmbedding(Embeddings):
         if embedding_queue_indices:
             embedding_queue_texts = [texts[i] for i in embedding_queue_indices]
             embedding_queue_embeddings = []
+            total_tokens = 0
             try:
                 model_type_instance = cast(TextEmbeddingModel, self._model_instance.model_type_instance)
                 model_schema = model_type_instance.get_model_schema(
@@ -66,6 +134,10 @@ class CacheEmbedding(Embeddings):
                         texts=batch_texts, user=self._user, input_type=EmbeddingInputType.DOCUMENT
                     )
 
+                    # Track tokens for usage recording
+                    if embedding_result.usage:
+                        total_tokens += embedding_result.usage.tokens
+
                     for vector in embedding_result.embeddings:
                         try:
                             # FIXME: type ignore for numpy here
@@ -80,6 +152,23 @@ class CacheEmbedding(Embeddings):
                             db.session.rollback()
                         except Exception:
                             logger.exception("Failed transform embedding")
+
+                # Record embedding usage if context available
+                logger.info(
+                    "Embedding completed: total_tokens=%d, queue_size=%d, tenant_id=%s",
+                    total_tokens,
+                    len(embedding_queue_texts),
+                    self._tenant_id,
+                )
+                if total_tokens > 0:
+                    self._record_embedding_usage(total_tokens)
+                elif len(embedding_queue_texts) > 0:
+                    # Some models don't report token usage, estimate based on text length
+                    estimated_tokens = sum(len(t) // 4 for t in embedding_queue_texts)
+                    logger.info("Estimating tokens from text length: %d", estimated_tokens)
+                    if estimated_tokens > 0:
+                        self._record_embedding_usage(estimated_tokens)
+
                 cache_embeddings = []
                 try:
                     for i, n_embedding in zip(embedding_queue_indices, embedding_queue_embeddings):
@@ -118,6 +207,10 @@ class CacheEmbedding(Embeddings):
             embedding_result = self._model_instance.invoke_text_embedding(
                 texts=[text], user=self._user, input_type=EmbeddingInputType.QUERY
             )
+
+            # Record embedding usage if context available
+            if embedding_result.usage and embedding_result.usage.tokens > 0:
+                self._record_embedding_usage(embedding_result.usage.tokens)
 
             embedding_results = embedding_result.embeddings[0]
             # FIXME: type ignore for numpy here

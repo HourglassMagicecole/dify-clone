@@ -164,6 +164,27 @@ def init_app(app: DifyApp) -> Celery:
     imports.append("tasks.education.remove_member_task")
     imports.append("tasks.education.delete_session_task")
 
+    # API usage aggregation tasks
+    if dify_config.ENABLE_API_USAGE_AGGREGATION_TASK:
+        imports.append("schedule.api_usage_aggregation_task")
+        # Daily aggregation at 1:00 AM
+        beat_schedule["aggregate_daily_usage"] = {
+            "task": "schedule.api_usage_aggregation_task.aggregate_daily_usage",
+            "schedule": crontab(minute="0", hour="1"),
+        }
+        # Monthly aggregation at 2:00 AM on the 1st
+        beat_schedule["aggregate_monthly_usage"] = {
+            "task": "schedule.api_usage_aggregation_task.aggregate_monthly_usage",
+            "schedule": crontab(minute="0", hour="2", day_of_month="1"),
+        }
+    if dify_config.ENABLE_API_USAGE_CLEANUP_TASK:
+        imports.append("schedule.api_usage_aggregation_task")
+        # Cleanup old logs at 3:00 AM
+        beat_schedule["cleanup_old_usage_logs"] = {
+            "task": "schedule.api_usage_aggregation_task.cleanup_old_usage_logs",
+            "schedule": crontab(minute="0", hour="3"),
+        }
+
     celery_app.conf.update(beat_schedule=beat_schedule, imports=imports)
 
     return celery_app

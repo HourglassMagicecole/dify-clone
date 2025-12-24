@@ -32,10 +32,30 @@ class AbstractVectorFactory(ABC):
 
 
 class Vector:
-    def __init__(self, dataset: Dataset, attributes: list | None = None):
+    def __init__(
+        self,
+        dataset: Dataset,
+        attributes: list | None = None,
+        # Optional context for usage tracking
+        tenant_id: str | None = None,
+        app_id: str | None = None,
+        app_name: str | None = None,
+        account_id: str | None = None,
+        session_id: str | None = None,
+        invoke_source: str | None = None,
+    ):
         if attributes is None:
             attributes = ["doc_id", "dataset_id", "document_id", "doc_hash"]
         self._dataset = dataset
+        # Store context for usage tracking
+        # For indexing: use dataset.created_by as default account_id
+        # For search: explicit context will be passed
+        self._tenant_id = tenant_id or dataset.tenant_id
+        self._app_id = app_id
+        self._app_name = app_name
+        self._account_id = account_id or dataset.created_by
+        self._session_id = session_id
+        self._invoke_source = invoke_source
         self._embeddings = self._get_embeddings()
         self._attributes = attributes
         self._vector_processor = self._init_vector()
@@ -242,7 +262,15 @@ class Vector:
             model_type=ModelType.TEXT_EMBEDDING,
             model=self._dataset.embedding_model,
         )
-        return CacheEmbedding(embedding_model)
+        return CacheEmbedding(
+            embedding_model,
+            tenant_id=self._tenant_id,
+            app_id=self._app_id,
+            app_name=self._app_name,
+            account_id=self._account_id,
+            session_id=self._session_id,
+            invoke_source=self._invoke_source,
+        )
 
     def _filter_duplicate_texts(self, texts: list[Document]) -> list[Document]:
         for text in texts.copy():

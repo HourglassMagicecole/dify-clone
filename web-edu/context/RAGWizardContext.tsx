@@ -23,6 +23,9 @@ import {
   Dataset,
   DocumentInfo,
   DocumentIndexingStatus,
+  // Retrieval settings
+  RetrievalModel,
+  DEFAULT_RETRIEVAL_MODEL,
 } from '@/types/dataset'
 
 // ============================================================================
@@ -72,6 +75,11 @@ interface RAGWizardContextValue extends RAGWizardState {
   selectedEmbeddingProvider: string | null
   setEmbeddingModels: (models: EmbeddingModelProvider[]) => void
   setSelectedEmbeddingModel: (model: string | null, provider: string | null) => void
+
+  // Step 3: Retrieval settings
+  retrievalConfig: RetrievalModel
+  setRetrievalConfig: (config: RetrievalModel) => void
+  updateRetrievalConfig: (updates: Partial<RetrievalModel>) => void
 
   // Story 3.2 - Step 4: Store actions
   createdDataset: Dataset | null
@@ -189,6 +197,9 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
   const [embeddingModels, setEmbeddingModelsState] = useState<EmbeddingModelProvider[]>([])
   const [selectedEmbeddingModel, setSelectedEmbeddingModelState] = useState<string | null>(null)
   const [selectedEmbeddingProvider, setSelectedEmbeddingProviderState] = useState<string | null>(null)
+
+  // Step 3: Retrieval settings state
+  const [retrievalConfig, setRetrievalConfigState] = useState<RetrievalModel>(DEFAULT_RETRIEVAL_MODEL)
 
   // Story 3.2: Step 4 Store state
   const [createdDataset, setCreatedDatasetState] = useState<Dataset | null>(null)
@@ -311,6 +322,15 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
   const setSelectedEmbeddingModel = useCallback((model: string | null, provider: string | null) => {
     setSelectedEmbeddingModelState(model)
     setSelectedEmbeddingProviderState(provider)
+  }, [])
+
+  // Step 3: Retrieval settings actions
+  const setRetrievalConfig = useCallback((config: RetrievalModel) => {
+    setRetrievalConfigState(config)
+  }, [])
+
+  const updateRetrievalConfig = useCallback((updates: Partial<RetrievalModel>) => {
+    setRetrievalConfigState(prev => ({ ...prev, ...updates }))
   }, [])
 
   // Story 3.2: Step 4 Store actions
@@ -573,6 +593,10 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     selectedEmbeddingProvider,
     setEmbeddingModels,
     setSelectedEmbeddingModel,
+    // Step 3: Retrieval settings state and actions
+    retrievalConfig,
+    setRetrievalConfig,
+    updateRetrievalConfig,
     // Story 3.2: Step 4 Store state and actions
     createdDataset,
     createdDocuments,
@@ -629,6 +653,9 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
     selectedEmbeddingProvider,
     setEmbeddingModels,
     setSelectedEmbeddingModel,
+    retrievalConfig,
+    setRetrievalConfig,
+    updateRetrievalConfig,
     createdDataset,
     createdDocuments,
     batchId,

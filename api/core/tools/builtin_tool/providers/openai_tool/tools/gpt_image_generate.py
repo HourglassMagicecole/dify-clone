@@ -1,4 +1,5 @@
 import base64
+import logging
 from collections.abc import Generator
 from typing import Any
 
@@ -7,6 +8,8 @@ from yarl import URL
 
 from core.tools.builtin_tool.tool import BuiltinTool
 from core.tools.entities.tool_entities import ToolInvokeMessage
+
+logger = logging.getLogger(__name__)
 
 
 class GPTImageGenerateTool(BuiltinTool):
@@ -66,6 +69,17 @@ class GPTImageGenerateTool(BuiltinTool):
         try:
             response = client.images.generate(**generation_args)
 
+            # Record image generation usage
+            self._record_image_gen_usage(
+                image_count=len(response.data),
+                quality=quality if quality != "auto" else "standard",
+                resolution=size if size != "auto" else "1024x1024",
+                app_id=app_id,
+                account_id=user_id,
+                conversation_id=conversation_id,
+                message_id=message_id,
+            )
+
             for image in response.data:
                 if not image.b64_json:
                     continue
@@ -74,6 +88,50 @@ class GPTImageGenerateTool(BuiltinTool):
 
         except Exception as e:
             yield self.create_text_message(f"Failed to generate image: {str(e)}")
+
+    def _record_image_gen_usage(
+        self,
+        image_count: int,
+        quality: str,
+        resolution: str,
+        app_id: str | None = None,
+        account_id: str | None = None,
+        conversation_id: str | None = None,
+        message_id: str | None = None,
+    ) -> None:
+        """Record image generation usage."""
+        if not self.runtime or not self.runtime.tenant_id:
+            return
+
+        try:
+            from extensions.ext_database import db
+            from models.model import App
+            from services.api_usage_tracking_service import ApiUsageTrackingService
+
+            # Get app_name from app_id
+            app_name: str | None = None
+            if app_id:
+                app = db.session.query(App).filter(App.id == app_id).first()
+                if app:
+                    app_name = app.name
+
+            ApiUsageTrackingService.record_image_gen_usage(
+                session=db.session,  # type: ignore[arg-type]
+                tenant_id=self.runtime.tenant_id,
+                model_provider="openai",
+                model_id="dall-e-3",
+                image_count=image_count,
+                quality=quality,
+                resolution=resolution,
+                tool_name="gpt_image_generate",
+                app_id=app_id,
+                app_name=app_name,
+                account_id=account_id,
+                conversation_id=conversation_id,
+                message_id=message_id,
+            )
+        except Exception:
+            logger.exception("Failed to record GPT Image Generate usage")
 
     @staticmethod
     def _decode_image(base64_image: str) -> tuple[str, bytes]:

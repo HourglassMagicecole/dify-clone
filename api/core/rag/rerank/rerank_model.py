@@ -1,11 +1,53 @@
+import logging
+
 from core.model_manager import ModelInstance
 from core.rag.models.document import Document
 from core.rag.rerank.rerank_base import BaseRerankRunner
 
+logger = logging.getLogger(__name__)
+
 
 class RerankModelRunner(BaseRerankRunner):
-    def __init__(self, rerank_model_instance: ModelInstance):
+    def __init__(
+        self,
+        rerank_model_instance: ModelInstance,
+        # Optional context for usage tracking
+        tenant_id: str | None = None,
+        app_id: str | None = None,
+        app_name: str | None = None,
+        account_id: str | None = None,
+        session_id: str | None = None,
+    ):
         self.rerank_model_instance = rerank_model_instance
+        # Usage tracking context (optional)
+        self._tenant_id = tenant_id
+        self._app_id = app_id
+        self._app_name = app_name
+        self._account_id = account_id
+        self._session_id = session_id
+
+    def _record_rerank_usage(self, doc_count: int) -> None:
+        """Record rerank usage if context is available."""
+        if not self._tenant_id or not self._app_id:
+            return
+
+        try:
+            from extensions.ext_database import db
+            from services.api_usage_tracking_service import ApiUsageTrackingService
+
+            ApiUsageTrackingService.record_rerank_usage(
+                session=db.session,
+                tenant_id=self._tenant_id,
+                model_provider=self.rerank_model_instance.provider,
+                model_id=self.rerank_model_instance.model,
+                doc_count=doc_count,
+                app_id=self._app_id,
+                app_name=self._app_name,
+                account_id=self._account_id,
+                session_id=self._session_id,
+            )
+        except Exception:
+            logger.exception("Failed to record rerank usage")
 
     def run(
         self,
@@ -46,6 +88,10 @@ class RerankModelRunner(BaseRerankRunner):
         rerank_result = self.rerank_model_instance.invoke_rerank(
             query=query, docs=docs, score_threshold=score_threshold, top_n=top_n, user=user
         )
+
+        # Record rerank usage if context available
+        if len(docs) > 0:
+            self._record_rerank_usage(len(docs))
 
         rerank_documents = []
 

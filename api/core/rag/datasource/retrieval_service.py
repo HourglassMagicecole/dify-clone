@@ -43,6 +43,12 @@ class RetrievalService:
         reranking_mode: str = "reranking_model",
         weights: dict | None = None,
         document_ids_filter: list[str] | None = None,
+        # Optional context for usage tracking
+        app_id: str | None = None,
+        app_name: str | None = None,
+        account_id: str | None = None,
+        session_id: str | None = None,
+        invoke_source: str | None = None,
     ):
         if not query:
             return []
@@ -83,6 +89,11 @@ class RetrievalService:
                         retrieval_method=retrieval_method,
                         exceptions=exceptions,
                         document_ids_filter=document_ids_filter,
+                        app_id=app_id,
+                        app_name=app_name,
+                        account_id=account_id,
+                        session_id=session_id,
+                        invoke_source=invoke_source,
                     )
                 )
             if RetrievalMethod.is_support_fulltext_search(retrieval_method):
@@ -99,6 +110,11 @@ class RetrievalService:
                         retrieval_method=retrieval_method,
                         exceptions=exceptions,
                         document_ids_filter=document_ids_filter,
+                        app_id=app_id,
+                        app_name=app_name,
+                        account_id=account_id,
+                        session_id=session_id,
+                        invoke_source=invoke_source,
                     )
                 )
             concurrent.futures.wait(futures, timeout=30, return_when=concurrent.futures.ALL_COMPLETED)
@@ -108,7 +124,16 @@ class RetrievalService:
 
         if retrieval_method == RetrievalMethod.HYBRID_SEARCH.value:
             data_post_processor = DataPostProcessor(
-                str(dataset.tenant_id), reranking_mode, reranking_model, weights, False
+                str(dataset.tenant_id),
+                reranking_mode,
+                reranking_model,
+                weights,
+                False,
+                app_id=app_id,
+                app_name=app_name,
+                account_id=account_id,
+                session_id=session_id,
+                invoke_source=invoke_source,
             )
             all_documents = data_post_processor.invoke(
                 query=query,
@@ -187,6 +212,12 @@ class RetrievalService:
         retrieval_method: str,
         exceptions: list,
         document_ids_filter: list[str] | None = None,
+        # Optional context for usage tracking
+        app_id: str | None = None,
+        app_name: str | None = None,
+        account_id: str | None = None,
+        session_id: str | None = None,
+        invoke_source: str | None = None,
     ):
         with flask_app.app_context():
             try:
@@ -194,7 +225,14 @@ class RetrievalService:
                 if not dataset:
                     raise ValueError("dataset not found")
 
-                vector = Vector(dataset=dataset)
+                vector = Vector(
+                    dataset=dataset,
+                    app_id=app_id,
+                    app_name=app_name,
+                    account_id=account_id,
+                    session_id=session_id,
+                    invoke_source=invoke_source,
+                )
                 documents = vector.search_by_vector(
                     query,
                     search_type="similarity_score_threshold",
@@ -212,7 +250,15 @@ class RetrievalService:
                         and retrieval_method == RetrievalMethod.SEMANTIC_SEARCH.value
                     ):
                         data_post_processor = DataPostProcessor(
-                            str(dataset.tenant_id), str(RerankMode.RERANKING_MODEL.value), reranking_model, None, False
+                            str(dataset.tenant_id),
+                            str(RerankMode.RERANKING_MODEL.value),
+                            reranking_model,
+                            None,
+                            False,
+                            app_id=app_id,
+                            app_name=app_name,
+                            account_id=account_id,
+                            session_id=session_id,
                         )
                         all_documents.extend(
                             data_post_processor.invoke(
@@ -240,6 +286,12 @@ class RetrievalService:
         retrieval_method: str,
         exceptions: list,
         document_ids_filter: list[str] | None = None,
+        # Optional context for usage tracking
+        app_id: str | None = None,
+        app_name: str | None = None,
+        account_id: str | None = None,
+        session_id: str | None = None,
+        invoke_source: str | None = None,
     ):
         with flask_app.app_context():
             try:
@@ -247,7 +299,14 @@ class RetrievalService:
                 if not dataset:
                     raise ValueError("dataset not found")
 
-                vector_processor = Vector(dataset=dataset)
+                vector_processor = Vector(
+                    dataset=dataset,
+                    app_id=app_id,
+                    app_name=app_name,
+                    account_id=account_id,
+                    session_id=session_id,
+                    invoke_source=invoke_source,
+                )
 
                 documents = vector_processor.search_by_full_text(
                     cls.escape_query_for_search(query), top_k=top_k, document_ids_filter=document_ids_filter
@@ -260,7 +319,15 @@ class RetrievalService:
                         and retrieval_method == RetrievalMethod.FULL_TEXT_SEARCH.value
                     ):
                         data_post_processor = DataPostProcessor(
-                            str(dataset.tenant_id), str(RerankMode.RERANKING_MODEL.value), reranking_model, None, False
+                            str(dataset.tenant_id),
+                            str(RerankMode.RERANKING_MODEL.value),
+                            reranking_model,
+                            None,
+                            False,
+                            app_id=app_id,
+                            app_name=app_name,
+                            account_id=account_id,
+                            session_id=session_id,
                         )
                         all_documents.extend(
                             data_post_processor.invoke(

@@ -67,9 +67,20 @@ from . import (
     user_tool_configs,  # pyright: ignore[reportUnusedImport]
 )
 from .api_key import bp as api_key_bp
+from .price_config import bp as price_config_bp
 from .resource_tags import bp as resource_tags_bp
 from .role import bp as role_bp
 from .session import bp as session_bp
+from .usage_analytics import bp as usage_analytics_bp
 from .users import bp as users_bp
 
-__all__ = ["api_key_bp", "require_admin", "resource_tags_bp", "role_bp", "session_bp", "users_bp"]
+__all__ = [
+    "api_key_bp",
+    "price_config_bp",
+    "require_admin",
+    "resource_tags_bp",
+    "role_bp",
+    "session_bp",
+    "usage_analytics_bp",
+    "users_bp",
+]

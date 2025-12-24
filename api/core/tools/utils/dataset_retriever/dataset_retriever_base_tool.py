@@ -18,12 +18,12 @@ class DatasetRetrieverBaseTool(BaseModel, ABC):
     retriever_from: str
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def run(self, query: str) -> str:
+    def run(self, query: str, app_id: str | None = None) -> str:
         """Use the tool."""
-        return self._run(query)
+        return self._run(query, app_id=app_id)
 
     @abstractmethod
-    def _run(self, query: str) -> str:
+    def _run(self, query: str, app_id: str | None = None) -> str:
         """Use the tool.
 
         Add run_manager: Optional[CallbackManagerForToolRun] = None

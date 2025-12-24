@@ -78,7 +78,8 @@ class ParagraphIndexProcessor(BaseIndexProcessor):
 
     def load(self, dataset: Dataset, documents: list[Document], with_keywords: bool = True, **kwargs):
         if dataset.indexing_technique == "high_quality":
-            vector = Vector(dataset)
+            session_id = kwargs.get("session_id")
+            vector = Vector(dataset, session_id=session_id, invoke_source="indexing")
             vector.create(documents)
             with_keywords = False
         if with_keywords:

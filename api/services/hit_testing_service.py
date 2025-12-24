@@ -33,6 +33,7 @@ class HitTestingService:
         retrieval_model: Any,  # FIXME drop this any
         external_retrieval_model: dict,
         limit: int = 10,
+        session_id: str | None = None,
     ):
         start = time.perf_counter()
 
@@ -76,6 +77,9 @@ class HitTestingService:
             reranking_mode=retrieval_model.get("reranking_mode") or "reranking_model",
             weights=retrieval_model.get("weights", None),
             document_ids_filter=document_ids_filter,
+            account_id=account.id,
+            session_id=session_id,
+            invoke_source="hit_testing",
         )
 
         end = time.perf_counter()

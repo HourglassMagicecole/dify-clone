@@ -8,6 +8,14 @@ interface ModalProps {
   title: string
   children: React.ReactNode
   footer?: React.ReactNode
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+}
+
+const sizeClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
 }
 
 export function Modal({
@@ -16,6 +24,7 @@ export function Modal({
   title,
   children,
   footer,
+  size = 'md',
 }: ModalProps) {
   // ESC 키로 닫기
   useEffect(() => {
@@ -44,7 +53,7 @@ export function Modal({
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className={`relative bg-white rounded-lg shadow-xl ${sizeClasses[size]} w-full`}>
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>

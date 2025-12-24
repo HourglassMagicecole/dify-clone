@@ -385,7 +385,7 @@ class TestGetApiUsage:
         # Assert
         assert "totalCalls" in result
         assert "dailyUsage" in result
-        # filter가 호출되었는지 확인 (LlmUsageLog.session_id로 직접 필터링)
+        # filter가 호출되었는지 확인 (ApiUsageLog.session_id로 직접 필터링)
         assert mock_db.session.query.return_value.filter.called
 
     # 3.8-UNIT-003: 일별 데이터 구조 확인

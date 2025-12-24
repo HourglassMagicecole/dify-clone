@@ -205,7 +205,23 @@
     "selectedModel": "Selected Model",
     "provider": "Provider",
     "modelId": "Model ID",
-    "contextSize": "Context Size"
+    "contextSize": "Context Size",
+    "retrievalSettings": "Retrieval Settings",
+    "searchMethod": "Search Method",
+    "semanticSearch": "Semantic",
+    "semanticSearchDesc": "Meaning-based (similar expressions found)",
+    "fullTextSearch": "Keyword",
+    "fullTextSearchDesc": "Exact word match required",
+    "hybridSearch": "Hybrid",
+    "hybridSearchDesc": "Semantic + Keyword combined",
+    "topK": "Top K",
+    "topKDescription": "Number of results to return",
+    "scoreThreshold": "Score Threshold",
+    "scoreThresholdDescription": "Minimum similarity score",
+    "reranking": "Reranking",
+    "rerankingDescription": "Re-order results for better relevance",
+    "selectRerankModel": "Select rerank model",
+    "noRerankModels": "No rerank models available"
   },
   "step4": {
     "title": "Create RAG Knowledge Base",
@@ -215,6 +231,19 @@
     "fileCount": "Files",
     "embeddingModel": "Embedding Model",
     "chunkSize": "Chunk Size",
+    "chunkOverlap": "Chunk Overlap",
+    "separator": "Separator",
+    "topK": "Top K",
+    "scoreThreshold": "Score Threshold",
+    "searchMethod": "Search Method",
+    "searchMethods": {
+      "semantic_search": "Semantic",
+      "full_text_search": "Keyword",
+      "hybrid_search": "Hybrid"
+    },
+    "reranking": "Reranking",
+    "disabled": "Disabled",
+    "enabled": "Enabled",
     "indexing": "Creating embeddings...",
     "progress": "Progress",
     "status": {
@@ -244,7 +273,8 @@
     "previous": "Previous",
     "back": "Back",
     "cancel": "Cancel",
-    "uploading": "Uploading..."
+    "uploading": "Uploading...",
+    "loading": "Loading..."
   },
   "validation": {
     "nameRequired": "Please enter a knowledge base name",
@@ -296,6 +326,16 @@
     "wordCount": "Words",
     "embeddingModel": "Embedding Model",
     "createdAt": "Created",
+    "searchMethod": "Search Method",
+    "topK": "Top K",
+    "reranking": "Reranking",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "searchMethods": {
+      "semantic_search": "Semantic",
+      "full_text_search": "Keyword",
+      "hybrid_search": "Hybrid"
+    },
     "documents": "Documents",
     "noDocuments": "No documents",
     "words": "words",
@@ -377,6 +417,9 @@
     "unknownDocument": "Unknown Document",
     "chunk": "Chunk #{{position}}",
     "rerankingNotConfigured": "Reranking model not configured",
+    "save": "Save",
+    "saving": "Saving...",
+    "reset": "Reset",
     "matchHint": {
       "semantic": "Retrieved by semantic similarity (meaning-based)",
       "fullText": "Retrieved by keyword matching",
@@ -385,7 +428,8 @@
       "hybridMatched": "Matched keywords: {{words}} (+ semantic similarity)"
     },
     "errors": {
-      "searchFailed": "Search failed. Please try again."
+      "searchFailed": "Search failed. Please try again.",
+      "saveFailed": "Failed to save settings. Please try again."
     }
   }
 }

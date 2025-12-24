@@ -16,6 +16,7 @@ from core.entities.knowledge_entities import IndexingEstimate, PreviewDetail, QA
 from core.errors.error import ProviderTokenNotInitError
 from core.model_manager import ModelInstance, ModelManager
 from core.model_runtime.entities.model_entities import ModelType
+from core.provider_manager import ProviderManager
 from core.rag.cleaner.clean_processor import CleanProcessor
 from core.rag.datasource.keyword.keyword_factory import Keyword
 from core.rag.docstore.dataset_docstore import DatasetDocumentStore
@@ -49,8 +50,47 @@ class IndexingRunner:
         self.storage = storage
         self.model_manager = ModelManager()
 
-    def run(self, dataset_documents: list[DatasetDocument]):
+    def _get_embedding_model_instance(self, tenant_id: str) -> ModelInstance | None:
+        """
+        Get embedding model instance with fallback to first active model.
+
+        Tries to get default model first, falls back to first active embedding model
+        if default is not configured or disabled.
+        """
+        # Try default model first
+        try:
+            return self.model_manager.get_default_model_instance(
+                tenant_id=tenant_id,
+                model_type=ModelType.TEXT_EMBEDDING,
+            )
+        except Exception:
+            logger.debug("Default embedding model not available, trying to find active model")
+
+        # Fallback: find first active embedding model
+        try:
+            provider_manager = ProviderManager()
+            provider_configurations = provider_manager.get_configurations(tenant_id)
+            models = provider_configurations.get_models(model_type=ModelType.TEXT_EMBEDDING, only_active=True)
+
+            if models:
+                first_model = models[0]
+                provider = first_model.provider.provider
+                # Simplify provider name if needed
+                simple_provider = provider.split("/")[-1] if "/" in provider else provider
+                return self.model_manager.get_model_instance(
+                    tenant_id=tenant_id,
+                    provider=simple_provider,
+                    model_type=ModelType.TEXT_EMBEDDING,
+                    model=first_model.model,
+                )
+        except Exception:
+            logger.exception("Failed to get any active embedding model")
+
+        return None
+
+    def run(self, dataset_documents: list[DatasetDocument], session_id: str | None = None):
         """Run the indexing process."""
+        self._session_id = session_id
         for dataset_document in dataset_documents:
             try:
                 # get dataset
@@ -260,16 +300,10 @@ class IndexingRunner:
                         model=dataset.embedding_model,
                     )
                 else:
-                    embedding_model_instance = self.model_manager.get_default_model_instance(
-                        tenant_id=tenant_id,
-                        model_type=ModelType.TEXT_EMBEDDING,
-                    )
+                    embedding_model_instance = self._get_embedding_model_instance(tenant_id)
         else:
             if indexing_technique == "high_quality":
-                embedding_model_instance = self.model_manager.get_default_model_instance(
-                    tenant_id=tenant_id,
-                    model_type=ModelType.TEXT_EMBEDDING,
-                )
+                embedding_model_instance = self._get_embedding_model_instance(tenant_id)
         # keep separate, avoid union-list ambiguity
         preview_texts: list[PreviewDetail] = []
         qa_preview_texts: list[QAPreviewDetail] = []
@@ -564,6 +598,7 @@ class IndexingRunner:
                             dataset,
                             dataset_document,
                             embedding_model_instance,
+                            self._session_id,
                         )
                     )
 
@@ -615,7 +650,14 @@ class IndexingRunner:
                 db.session.commit()
 
     def _process_chunk(
-        self, flask_app, index_processor, chunk_documents, dataset, dataset_document, embedding_model_instance
+        self,
+        flask_app,
+        index_processor,
+        chunk_documents,
+        dataset,
+        dataset_document,
+        embedding_model_instance,
+        session_id: str | None = None,
     ):
         with flask_app.app_context():
             # check document is paused
@@ -627,7 +669,7 @@ class IndexingRunner:
                 tokens += sum(embedding_model_instance.get_text_embedding_num_tokens(page_content_list))
 
             # load index
-            index_processor.load(dataset, chunk_documents, with_keywords=False)
+            index_processor.load(dataset, chunk_documents, with_keywords=False, session_id=session_id)
 
             document_ids = [document.metadata["doc_id"] for document in chunk_documents]
             db.session.query(DocumentSegment).where(

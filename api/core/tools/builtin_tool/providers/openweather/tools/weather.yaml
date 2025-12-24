@@ -38,7 +38,7 @@ parameters:
   required: true
   type: string
   default: "Seoul"
-- default: zh_cn
+- default: en_us
   form: form
   human_description:
     en_US: language

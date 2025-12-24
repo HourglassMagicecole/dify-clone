@@ -81,7 +81,7 @@ parameters:
   - name: max_results
     type: number
     required: true
-    default: 3
+    default: 1
     label:
       en_US: Max results
       zh_Hans: 最大结果数量

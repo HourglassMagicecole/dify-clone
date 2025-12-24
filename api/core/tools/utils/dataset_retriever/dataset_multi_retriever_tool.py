@@ -46,7 +46,7 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
             name=f"dataset_{tenant_id.replace('-', '_')}", tenant_id=tenant_id, dataset_ids=dataset_ids, **kwargs
         )
 
-    def _run(self, query: str) -> str:
+    def _run(self, query: str, app_id: str | None = None) -> str:
         threads = []
         all_documents: list[RagDocument] = []
         for dataset_id in self.dataset_ids:
@@ -58,6 +58,7 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
                     "query": query,
                     "all_documents": all_documents,
                     "hit_callbacks": self.hit_callbacks,
+                    "app_id": app_id,
                 },
             )
             threads.append(retrieval_thread)
@@ -155,6 +156,7 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
         query: str,
         all_documents: list,
         hit_callbacks: list[DatasetIndexToolCallbackHandler],
+        app_id: str | None = None,
     ):
         with flask_app.app_context():
             stmt = select(Dataset).where(Dataset.tenant_id == self.tenant_id, Dataset.id == dataset_id)
@@ -176,6 +178,7 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
                     dataset_id=dataset.id,
                     query=query,
                     top_k=retrieval_model.get("top_k") or 4,
+                    app_id=app_id,
                 )
                 if documents:
                     all_documents.extend(documents)
@@ -195,6 +198,7 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
                         else None,
                         reranking_mode=retrieval_model.get("reranking_mode") or "reranking_model",
                         weights=retrieval_model.get("weights", None),
+                        app_id=app_id,
                     )
 
                     all_documents.extend(documents)

@@ -1,5 +1,7 @@
 import io
+import logging
 from collections.abc import Generator
+from decimal import Decimal
 from typing import Any
 
 from core.model_manager import ModelManager
@@ -9,6 +11,8 @@ from core.tools.builtin_tool.tool import BuiltinTool
 from core.tools.entities.common_entities import I18nObject
 from core.tools.entities.tool_entities import ToolInvokeMessage, ToolParameter
 from services.model_provider_service import ModelProviderService
+
+logger = logging.getLogger(__name__)
 
 
 class TTSTool(BuiltinTool):
@@ -39,8 +43,10 @@ class TTSTool(BuiltinTool):
                     raise ValueError("Sorry, no voice available.")
             else:
                 raise ValueError("Sorry, no voice available.")
+        text_content: str = tool_parameters.get("text") or ""  # type: ignore
+        logger.info("TTS invoked: provider=%s, model=%s, chars=%d", provider, model, len(text_content))
         tts = model_instance.invoke_tts(
-            content_text=tool_parameters.get("text"),  # type: ignore
+            content_text=text_content,
             user=user_id,
             tenant_id=self.runtime.tenant_id,
             voice=voice,  # type: ignore
@@ -50,11 +56,89 @@ class TTSTool(BuiltinTool):
             buffer.write(chunk)
 
         wav_bytes = buffer.getvalue()
+
+        # Record TTS usage
+        self._record_tts_usage(
+            provider=provider,
+            model=model,
+            char_count=len(text_content),
+            audio_bytes_size=len(wav_bytes),
+            app_id=app_id,
+            conversation_id=conversation_id,
+            message_id=message_id,
+        )
+
         yield self.create_text_message("Audio generated successfully")
         yield self.create_blob_message(
             blob=wav_bytes,
             meta={"mime_type": "audio/x-wav"},
         )
+
+    def _record_tts_usage(
+        self,
+        provider: str,
+        model: str,
+        char_count: int,
+        audio_bytes_size: int,
+        app_id: str | None,
+        conversation_id: str | None,
+        message_id: str | None,
+    ) -> None:
+        """Record TTS usage for this tool invocation."""
+        try:
+            from extensions.ext_database import db
+            from models.model import App, Conversation
+            from services.api_usage_tracking_service import ApiUsageTrackingService
+
+            if not self.runtime:
+                return
+
+            # Estimate audio duration in minutes from WAV bytes
+            # Assuming 24kHz, 16-bit mono PCM (OpenAI TTS default)
+            # bytes_per_second = 24000 * 2 = 48000
+            audio_seconds = audio_bytes_size / 48000
+            audio_minutes = Decimal(audio_seconds) / Decimal(60)
+
+            # Get account_id from conversation
+            account_id: str | None = None
+            if conversation_id:
+                conv = db.session.query(Conversation).filter(Conversation.id == conversation_id).first()
+                if conv and conv.from_account_id:
+                    account_id = str(conv.from_account_id)
+
+            # Get app_name from app_id
+            app_name: str | None = None
+            if app_id:
+                app = db.session.query(App).filter(App.id == app_id).first()
+                if app:
+                    app_name = app.name
+
+            # Use runtime context for tool_test scenarios
+            # For tool_test, use runtime.account_id (the actual user) instead of user_id ("test_user")
+            if self.runtime and self.runtime.invoke_source == "tool_test":
+                effective_account_id = self.runtime.account_id
+            else:
+                effective_account_id = account_id or (self.runtime.account_id if self.runtime else None)
+            invoke_source = self.runtime.invoke_source if self.runtime else None
+            session_id = self.runtime.session_id if self.runtime else None
+
+            ApiUsageTrackingService.record_tts_usage(
+                session=db.session,  # type: ignore[arg-type]
+                tenant_id=self.runtime.tenant_id or "",
+                model_provider=provider,
+                model_id=model,
+                char_count=char_count,
+                audio_minutes=audio_minutes,
+                app_id=app_id,
+                app_name=app_name,
+                account_id=effective_account_id,
+                session_id=session_id,
+                conversation_id=conversation_id,
+                message_id=message_id,
+                invoke_source=invoke_source,
+            )
+        except Exception:
+            logger.exception("Failed to record TTS usage for tool")
 
     def get_available_models(self) -> list[tuple[str, str, list[Any]]]:
         if not self.runtime:

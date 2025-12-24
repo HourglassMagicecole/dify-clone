@@ -180,6 +180,7 @@ class ToolTestAPI(Resource):
                 return {"result": "error", "message": "Request body is required"}, 400
 
             test_parameters = req_data.get("parameters", {})
+            session_id = req_data.get("session_id")
 
             # Test tool
             result = ToolRegistryService.test_tool(
@@ -188,6 +189,7 @@ class ToolTestAPI(Resource):
                 tool_name=tool_name,
                 test_parameters=test_parameters,
                 user_id=user_id,
+                session_id=session_id,
             )
 
             # Return result (success or error)

@@ -19,7 +19,19 @@ class DataPostProcessor:
         reranking_model: dict | None = None,
         weights: dict | None = None,
         reorder_enabled: bool = False,
+        # Optional context for usage tracking
+        app_id: str | None = None,
+        app_name: str | None = None,
+        account_id: str | None = None,
+        session_id: str | None = None,
+        invoke_source: str | None = None,
     ):
+        self._tenant_id = tenant_id
+        self._app_id = app_id
+        self._app_name = app_name
+        self._account_id = account_id
+        self._session_id = session_id
+        self._invoke_source = invoke_source
         self.rerank_runner = self._get_rerank_runner(reranking_mode, tenant_id, reranking_model, weights)
         self.reorder_runner = self._get_reorder_runner(reorder_enabled)
 
@@ -67,7 +79,13 @@ class DataPostProcessor:
             if rerank_model_instance is None:
                 return None
             runner = RerankRunnerFactory.create_rerank_runner(
-                runner_type=reranking_mode, rerank_model_instance=rerank_model_instance
+                runner_type=reranking_mode,
+                rerank_model_instance=rerank_model_instance,
+                tenant_id=self._tenant_id,
+                app_id=self._app_id,
+                app_name=self._app_name,
+                account_id=self._account_id,
+                session_id=self._session_id,
             )
             return runner
         return None

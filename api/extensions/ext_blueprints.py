@@ -8,7 +8,15 @@ def init_app(app: DifyApp):
     from flask_cors import CORS
 
     from controllers.console import bp as console_app_bp
-    from controllers.console.edu import api_key_bp, resource_tags_bp, role_bp, session_bp, users_bp
+    from controllers.console.edu import (
+        api_key_bp,
+        price_config_bp,
+        resource_tags_bp,
+        role_bp,
+        session_bp,
+        usage_analytics_bp,
+        users_bp,
+    )
     from controllers.console.edu.dashboard import bp as dashboard_bp
     from controllers.console.edu.session_member import bp as session_member_bp
     from controllers.files import bp as files_bp
@@ -108,6 +116,24 @@ def init_app(app: DifyApp):
         methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
     )
     app.register_blueprint(api_key_bp)
+
+    CORS(
+        price_config_bp,
+        resources={r"/*": {"origins": dify_config.CONSOLE_CORS_ALLOW_ORIGINS}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+    )
+    app.register_blueprint(price_config_bp)
+
+    CORS(
+        usage_analytics_bp,
+        resources={r"/*": {"origins": dify_config.CONSOLE_CORS_ALLOW_ORIGINS}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+    )
+    app.register_blueprint(usage_analytics_bp)
 
     CORS(
         files_bp,

@@ -124,7 +124,7 @@ class DatasetRetrieverTool(Tool):
             yield self.create_text_message(text="please input query")
         else:
             # invoke dataset retriever tool
-            result = self.retrieval_tool.run(query=query)
+            result = self.retrieval_tool.run(query=query, app_id=app_id)
             yield self.create_text_message(text=result)
 
     def validate_credentials(

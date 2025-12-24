@@ -390,6 +390,9 @@ class DatasetRetrieval:
                             reranking_mode=retrieval_model_config.get("reranking_mode", "reranking_model"),
                             weights=retrieval_model_config.get("weights", None),
                             document_ids_filter=document_ids_filter,
+                            # Usage tracking context
+                            app_id=app_id,
+                            account_id=user_id,
                         )
                 self._on_query(query, [dataset_id], app_id, user_from, user_id)
 
@@ -475,6 +478,9 @@ class DatasetRetrieval:
                     "all_documents": all_documents,
                     "document_ids_filter": document_ids_filter,
                     "metadata_condition": metadata_condition,
+                    # Usage tracking context
+                    "app_id": app_id,
+                    "user_id": user_id if user_from == "account" else None,
                 },
             )
             threads.append(retrieval_thread)
@@ -485,7 +491,15 @@ class DatasetRetrieval:
         with measure_time() as timer:
             if reranking_enable:
                 # do rerank for searched documents
-                data_post_processor = DataPostProcessor(tenant_id, reranking_mode, reranking_model, weights, False)
+                data_post_processor = DataPostProcessor(
+                    tenant_id,
+                    reranking_mode,
+                    reranking_model,
+                    weights,
+                    False,
+                    app_id=app_id,
+                    account_id=user_id if user_from == "account" else None,
+                )
 
                 all_documents = data_post_processor.invoke(
                     query=query, documents=all_documents, score_threshold=score_threshold, top_n=top_k
@@ -588,6 +602,9 @@ class DatasetRetrieval:
         all_documents: list,
         document_ids_filter: list[str] | None = None,
         metadata_condition: MetadataCondition | None = None,
+        # Usage tracking context
+        app_id: str | None = None,
+        user_id: str | None = None,
     ):
         with flask_app.app_context():
             dataset_stmt = select(Dataset).where(Dataset.id == dataset_id)
@@ -628,6 +645,9 @@ class DatasetRetrieval:
                         query=query,
                         top_k=top_k,
                         document_ids_filter=document_ids_filter,
+                        # Usage tracking context
+                        app_id=app_id,
+                        account_id=user_id,
                     )
                     if documents:
                         all_documents.extend(documents)
@@ -648,6 +668,9 @@ class DatasetRetrieval:
                             reranking_mode=retrieval_model.get("reranking_mode") or "reranking_model",
                             weights=retrieval_model.get("weights", None),
                             document_ids_filter=document_ids_filter,
+                            # Usage tracking context
+                            app_id=app_id,
+                            account_id=user_id,
                         )
 
                         all_documents.extend(documents)

@@ -16,6 +16,23 @@ from core.helper import ssrf_proxy
 from extensions.ext_database import db
 from models import MessageFile, ToolFile, UploadFile
 
+# Video containers (webm, mp4) can contain audio-only content from browser recording
+_COMPATIBLE_FILE_TYPES = {
+    (FileType.VIDEO, "audio"),  # video container detected, but specified as audio
+    (FileType.AUDIO, "video"),  # audio detected, but specified as video
+}
+
+
+def _is_type_compatible(detected_type: FileType, specified_type: str) -> bool:
+    """Check if detected file type is compatible with specified type.
+
+    webm and mp4 containers can hold both video and audio content,
+    so we allow video/audio compatibility for these cases.
+    """
+    if detected_type.value == specified_type:
+        return True
+    return (detected_type, specified_type) in _COMPATIBLE_FILE_TYPES
+
 
 def build_from_message_files(
     *,
@@ -155,7 +172,7 @@ def _build_from_local_file(
     detected_file_type = _standardize_file_type(extension="." + row.extension, mime_type=row.mime_type)
     specified_type = mapping.get("type", "custom")
 
-    if strict_type_validation and detected_file_type.value != specified_type:
+    if strict_type_validation and not _is_type_compatible(detected_file_type, specified_type):
         raise ValueError("Detected file type does not match the specified type. Please verify the file.")
 
     file_type = FileType(specified_type) if specified_type and specified_type != FileType.CUSTOM else detected_file_type
@@ -203,7 +220,7 @@ def _build_from_remote_url(
 
         specified_type = mapping.get("type")
 
-        if strict_type_validation and specified_type and detected_file_type.value != specified_type:
+        if strict_type_validation and specified_type and not _is_type_compatible(detected_file_type, specified_type):
             raise ValueError("Detected file type does not match the specified type. Please verify the file.")
 
         file_type = (
@@ -231,7 +248,8 @@ def _build_from_remote_url(
     extension = mimetypes.guess_extension(mime_type) or ("." + filename.split(".")[-1] if "." in filename else ".bin")
 
     file_type = _standardize_file_type(extension=extension, mime_type=mime_type)
-    if file_type.value != mapping.get("type", "custom"):
+    specified_type = mapping.get("type", "custom")
+    if strict_type_validation and not _is_type_compatible(file_type, specified_type):
         raise ValueError("Detected file type does not match the specified type. Please verify the file.")
 
     return File(

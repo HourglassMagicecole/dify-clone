@@ -19,6 +19,12 @@ class ToolRuntime(BaseModel):
     credentials: dict[str, Any] = Field(default_factory=dict)
     credential_type: CredentialType = Field(default=CredentialType.API_KEY)
     runtime_parameters: dict[str, Any] = Field(default_factory=dict)
+    # Source of invocation for usage tracking (agent, tool_test, hit_testing, etc.)
+    invoke_source: str | None = None
+    # Account ID for usage tracking (user who initiated the call)
+    account_id: str | None = None
+    # Education session ID for usage tracking
+    session_id: str | None = None
 
 
 class FakeToolRuntime(ToolRuntime):

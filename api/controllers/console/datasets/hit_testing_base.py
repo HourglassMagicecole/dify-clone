@@ -51,6 +51,7 @@ class DatasetsHitTestingBase:
         parser.add_argument("query", type=str, location="json")
         parser.add_argument("retrieval_model", type=dict, required=False, location="json")
         parser.add_argument("external_retrieval_model", type=dict, required=False, location="json")
+        parser.add_argument("session_id", type=str, required=False, location="json")
         return parser.parse_args()
 
     @staticmethod
@@ -63,6 +64,7 @@ class DatasetsHitTestingBase:
                 retrieval_model=args["retrieval_model"],
                 external_retrieval_model=args["external_retrieval_model"],
                 limit=10,
+                session_id=args.get("session_id"),
             )
             return {"query": response["query"], "records": marshal(response["records"], hit_testing_record_fields)}
         except services.errors.index.IndexNotInitializedError:

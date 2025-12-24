@@ -17,13 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(queue="dataset")
-def duplicate_document_indexing_task(dataset_id: str, document_ids: list):
+def duplicate_document_indexing_task(dataset_id: str, document_ids: list, session_id: str | None = None):
     """
     Async process document
     :param dataset_id:
     :param document_ids:
+    :param session_id: Education session ID for usage tracking
 
-    Usage: duplicate_document_indexing_task.delay(dataset_id, document_ids)
+    Usage: duplicate_document_indexing_task.delay(dataset_id, document_ids, session_id)
     """
     documents = []
     start_at = time.perf_counter()
@@ -100,7 +101,7 @@ def duplicate_document_indexing_task(dataset_id: str, document_ids: list):
         db.session.commit()
 
         indexing_runner = IndexingRunner()
-        indexing_runner.run(documents)
+        indexing_runner.run(documents, session_id=session_id)
         end_at = time.perf_counter()
         logger.info(click.style(f"Processed dataset: {dataset_id} latency: {end_at - start_at}", fg="green"))
     except DocumentIsPausedError as ex:

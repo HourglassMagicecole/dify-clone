@@ -11,16 +11,17 @@
 
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MagnifyingGlassIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, QuestionMarkCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { datasetAPI } from '@/service/dataset-api'
+import { useSession } from '@/context/SessionContext'
 import { Button } from '@/components/common/Button'
 import { RetrievalResultItem } from './RetrievalResultItem'
-import type { HitTestingRecord, SearchMethod } from '@/types/dataset'
+import type { HitTestingRecord, SearchMethod, RetrievalModel } from '@/types/dataset'
 
 const MAX_QUERY_LENGTH = 250
-const DEFAULT_TOP_K = 4
+const DEFAULT_TOP_K = 1
 const DEFAULT_SEARCH_METHOD: SearchMethod = 'semantic_search'
 
 const SEARCH_METHODS: { value: SearchMethod; labelKey: string; descKey: string }[] = [
@@ -31,6 +32,10 @@ const SEARCH_METHODS: { value: SearchMethod; labelKey: string; descKey: string }
 
 interface RetrievalTestProps {
   datasetId: string
+  /** Initial retrieval settings from dataset (optional) */
+  initialRetrievalModel?: Partial<RetrievalModel>
+  /** Callback when settings are saved */
+  onSettingsSaved?: () => void
 }
 
 interface SearchSettings {
@@ -39,8 +44,9 @@ interface SearchSettings {
   rerankingEnable: boolean
 }
 
-export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactElement {
+export function RetrievalTest({ datasetId, initialRetrievalModel, onSettingsSaved }: RetrievalTestProps): React.ReactElement {
   const { t } = useTranslation('dataset')
+  const { currentSession } = useSession()
 
   // Query state
   const [query, setQuery] = useState('')
@@ -58,12 +64,29 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
   const [searchTime, setSearchTime] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Settings
-  const [settings, setSettings] = useState<SearchSettings>({
-    searchMethod: DEFAULT_SEARCH_METHOD,
-    topK: DEFAULT_TOP_K,
-    rerankingEnable: false,
-  })
+  // Initial settings from dataset (for reset functionality)
+  const initialSettings = useMemo<SearchSettings>(() => ({
+    searchMethod: initialRetrievalModel?.search_method || DEFAULT_SEARCH_METHOD,
+    topK: initialRetrievalModel?.top_k || DEFAULT_TOP_K,
+    rerankingEnable: initialRetrievalModel?.reranking_enable || false,
+  }), [initialRetrievalModel])
+
+  // Settings - use initial values from dataset if provided
+  const [settings, setSettings] = useState<SearchSettings>(() => ({
+    searchMethod: initialRetrievalModel?.search_method || DEFAULT_SEARCH_METHOD,
+    topK: initialRetrievalModel?.top_k || DEFAULT_TOP_K,
+    rerankingEnable: initialRetrievalModel?.reranking_enable || false,
+  }))
+
+  // Saving state
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Check if settings have changed
+  const hasSettingsChanged = useMemo(() => {
+    return settings.searchMethod !== initialSettings.searchMethod ||
+           settings.topK !== initialSettings.topK ||
+           settings.rerankingEnable !== initialSettings.rerankingEnable
+  }, [settings, initialSettings])
 
   // Reranking model availability (AC5)
   const [rerankingAvailable, setRerankingAvailable] = useState(false)
@@ -114,6 +137,7 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
           },
           score_threshold_enabled: false,
         },
+        session_id: currentSession?.id,
       })
 
       const endTime = performance.now()
@@ -131,7 +155,7 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
     } finally {
       setIsLoading(false)
     }
-  }, [datasetId, query, settings, isLoading, t])
+  }, [datasetId, query, settings, isLoading, t, currentSession?.id])
 
   // Handle Enter key
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -140,6 +164,39 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
       handleSearch()
     }
   }
+
+  // Save settings to dataset
+  const handleSaveSettings = useCallback(async () => {
+    try {
+      setIsSaving(true)
+      setError(null)
+
+      await datasetAPI.updateDataset(datasetId, {
+        retrieval_model: {
+          search_method: settings.searchMethod,
+          reranking_enable: settings.rerankingEnable,
+          reranking_model: {
+            reranking_provider_name: '',
+            reranking_model_name: '',
+          },
+          top_k: settings.topK,
+          score_threshold_enabled: false,
+        },
+      })
+
+      onSettingsSaved?.()
+    } catch (err) {
+      console.error('Failed to save settings:', err)
+      setError(t('retrievalTest.errors.saveFailed'))
+    } finally {
+      setIsSaving(false)
+    }
+  }, [datasetId, settings, onSettingsSaved, t])
+
+  // Reset settings to initial values
+  const handleResetSettings = useCallback(() => {
+    setSettings(initialSettings)
+  }, [initialSettings])
 
   return (
     <div className="space-y-6">
@@ -151,36 +208,6 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {t('retrievalTest.description')}
         </p>
-      </div>
-
-      {/* Query Input Section */}
-      <div className="space-y-2">
-        <label
-          htmlFor="search-query"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          {t('retrievalTest.queryLabel')}
-        </label>
-        <div className="relative">
-          <textarea
-            id="search-query"
-            value={query}
-            onChange={(e) => setQuery(e.target.value.slice(0, MAX_QUERY_LENGTH))}
-            onKeyDown={handleKeyDown}
-            placeholder={t('retrievalTest.queryPlaceholder')}
-            rows={3}
-            className="
-              w-full px-4 py-3 border border-gray-300 rounded-lg
-              focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-              dark:bg-gray-700 dark:border-gray-600 dark:text-white
-              dark:placeholder-gray-400
-              resize-none
-            "
-          />
-          <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-            {query.length}/{MAX_QUERY_LENGTH}
-          </div>
-        </div>
       </div>
 
       {/* Search Method Selection */}
@@ -305,11 +332,64 @@ export function RetrievalTest({ datasetId }: RetrievalTestProps): React.ReactEle
           )}
         </div>
 
-        {/* Search Button */}
+        {/* Save/Reset Buttons */}
+        {hasSettingsChanged && (
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetSettings}
+              disabled={isSaving}
+            >
+              <ArrowPathIcon className="h-4 w-4 mr-1" />
+              {t('retrievalTest.reset')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveSettings}
+              disabled={isSaving}
+            >
+              {isSaving ? t('retrievalTest.saving') : t('retrievalTest.save')}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Query Input Section */}
+      <div className="space-y-2">
+        <label
+          htmlFor="search-query"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {t('retrievalTest.queryLabel')}
+        </label>
+        <div className="relative">
+          <textarea
+            id="search-query"
+            value={query}
+            onChange={(e) => setQuery(e.target.value.slice(0, MAX_QUERY_LENGTH))}
+            onKeyDown={handleKeyDown}
+            placeholder={t('retrievalTest.queryPlaceholder')}
+            rows={3}
+            className="
+              w-full px-4 py-3 border border-gray-300 rounded-lg
+              focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+              dark:bg-gray-700 dark:border-gray-600 dark:text-white
+              dark:placeholder-gray-400
+              resize-none
+            "
+          />
+          <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+            {query.length}/{MAX_QUERY_LENGTH}
+          </div>
+        </div>
+      </div>
+
+      {/* Search Button */}
+      <div className="flex justify-end">
         <Button
           onClick={handleSearch}
           disabled={!query.trim() || isLoading}
-          className="ml-auto"
         >
           {isLoading ? (
             <>

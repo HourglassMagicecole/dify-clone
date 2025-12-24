@@ -10,6 +10,7 @@ export interface ToolParameter {
   name: string
   type: 'string' | 'number' | 'boolean' | 'select' | 'file' | 'files'
   required: boolean
+  form: 'form' | 'llm'  // 'form': user configurable, 'llm': filled by LLM
   label: {
     en_US: string
     ko_KR: string

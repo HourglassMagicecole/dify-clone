@@ -28,6 +28,18 @@ export interface Dataset {
   updated_at: number
   /** Owner name for display in Owner/Admin table view (Story 3.3) */
   author_name?: string
+  /** Retrieval model settings configured during dataset creation */
+  retrieval_model_dict?: {
+    search_method: 'semantic_search' | 'full_text_search' | 'hybrid_search'
+    reranking_enable: boolean
+    reranking_model?: {
+      reranking_provider_name: string
+      reranking_model_name: string
+    }
+    top_k: number
+    score_threshold_enabled: boolean
+    score_threshold?: number
+  }
 }
 
 export interface DatasetListResponse {
@@ -835,6 +847,22 @@ export interface RetrievalModel {
   score_threshold?: number
 }
 
+/**
+ * Default retrieval model configuration for RAG creation
+ * Used in RAG Wizard Step 3 (Embed)
+ */
+export const DEFAULT_RETRIEVAL_MODEL: RetrievalModel = {
+  search_method: 'semantic_search',
+  reranking_enable: false,
+  reranking_model: {
+    reranking_provider_name: '',
+    reranking_model_name: '',
+  },
+  top_k: 1,
+  score_threshold_enabled: false,
+  score_threshold: 0.5,
+}
+
 // ----------------------------------------------------------------------------
 // Task 1.2: HitTestingRequest 타입 추가
 // ----------------------------------------------------------------------------
@@ -847,6 +875,7 @@ export interface RetrievalModel {
 export interface HitTestingRequest {
   query: string
   retrieval_model?: Partial<RetrievalModel>
+  session_id?: string
 }
 
 // ----------------------------------------------------------------------------

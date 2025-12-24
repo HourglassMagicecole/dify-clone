@@ -56,7 +56,7 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
             **kwargs,
         )
 
-    def _run(self, query: str) -> str:
+    def _run(self, query: str, app_id: str | None = None) -> str:
         dataset_stmt = select(Dataset).where(Dataset.tenant_id == self.tenant_id, Dataset.id == self.dataset_id)
         dataset = db.session.scalar(dataset_stmt)
 
@@ -135,6 +135,8 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
                     query=query,
                     top_k=self.top_k,
                     document_ids_filter=document_ids_filter,
+                    app_id=app_id,
+                    account_id=self.user_id,
                 )
                 return str("\n".join([document.page_content for document in documents]))
             else:
@@ -154,6 +156,8 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
                         reranking_mode=retrieval_model.get("reranking_mode") or "reranking_model",
                         weights=retrieval_model.get("weights"),
                         document_ids_filter=document_ids_filter,
+                        app_id=app_id,
+                        account_id=self.user_id,
                     )
                 else:
                     documents = []

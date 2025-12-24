@@ -475,7 +475,16 @@
     "convertToText": "텍스트로 변환",
     "converting": "변환 중...",
     "modelDisabled": "비활성화",
-    "selectedModelDisabledWarning": "선택한 모델이 비활성화되어 있습니다. 모델 관리에서 활성화하거나 다른 모델을 선택하세요."
+    "selectedModelDisabledWarning": "선택한 모델이 비활성화되어 있습니다. 모델 관리에서 활성화하거나 다른 모델을 선택하세요.",
+    "testUsesWhisper": "테스트는 whisper-1 사용",
+    "whisperDisabledWarning": "whisper-1이 비활성화되어 있습니다. 테스트하려면 모델 관리에서 활성화하세요.",
+    "parameterSettings": "파라미터 설정",
+    "saveSettings": "설정 저장",
+    "noConfigurableParams": "설정 가능한 파라미터가 없습니다",
+    "noParamsRequired": "필수 파라미터가 없습니다",
+    "configuredBadge": "설정됨",
+    "defaultSettings": "기본 설정",
+    "testParameters": "테스트 파라미터"
   },
   "roleSamples": {
     "learningMentor": {

@@ -14,7 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from models.account import Account, TenantAccountRole
 from models.dataset import Dataset
-from models.education import LlmUsageLog
+from models.education import ApiUsageLog
 from models.education.resource_tag import SessionResourceTag
 from models.engine import db
 from models.model import App
@@ -488,35 +488,35 @@ class DashboardService:
 
             # 기본 쿼리: llm_usage_logs 테이블에서 일별 집계
             if session_id:
-                # 세션별 필터링: LlmUsageLog.session_id로 직접 필터링 (App/SessionResourceTag 삭제되어도 유지)
+                # 세션별 필터링: ApiUsageLog.session_id로 직접 필터링 (App/SessionResourceTag 삭제되어도 유지)
                 daily_query = (
                     db.session.query(
-                        cast(LlmUsageLog.created_at, Date).label("date"),
-                        func.count(LlmUsageLog.id).label("call_count"),
-                        func.coalesce(func.sum(LlmUsageLog.input_tokens), 0).label("input_tokens"),
-                        func.coalesce(func.sum(LlmUsageLog.output_tokens), 0).label("output_tokens"),
-                        func.coalesce(func.sum(LlmUsageLog.total_price), Decimal(0)).label("total_cost"),
+                        cast(ApiUsageLog.created_at, Date).label("date"),
+                        func.count(ApiUsageLog.id).label("call_count"),
+                        func.coalesce(func.sum(ApiUsageLog.input_tokens), 0).label("input_tokens"),
+                        func.coalesce(func.sum(ApiUsageLog.output_tokens), 0).label("output_tokens"),
+                        func.coalesce(func.sum(ApiUsageLog.total_price), Decimal(0)).label("total_cost"),
                     )
                     .filter(
-                        LlmUsageLog.session_id == session_id,
-                        LlmUsageLog.created_at >= start_datetime,
+                        ApiUsageLog.session_id == session_id,
+                        ApiUsageLog.created_at >= start_datetime,
                     )
-                    .group_by(cast(LlmUsageLog.created_at, Date))
-                    .order_by(cast(LlmUsageLog.created_at, Date))
+                    .group_by(cast(ApiUsageLog.created_at, Date))
+                    .order_by(cast(ApiUsageLog.created_at, Date))
                 )
             else:
                 # 전체 집계 (Owner 전체 조회)
                 daily_query = (
                     db.session.query(
-                        cast(LlmUsageLog.created_at, Date).label("date"),
-                        func.count(LlmUsageLog.id).label("call_count"),
-                        func.coalesce(func.sum(LlmUsageLog.input_tokens), 0).label("input_tokens"),
-                        func.coalesce(func.sum(LlmUsageLog.output_tokens), 0).label("output_tokens"),
-                        func.coalesce(func.sum(LlmUsageLog.total_price), Decimal(0)).label("total_cost"),
+                        cast(ApiUsageLog.created_at, Date).label("date"),
+                        func.count(ApiUsageLog.id).label("call_count"),
+                        func.coalesce(func.sum(ApiUsageLog.input_tokens), 0).label("input_tokens"),
+                        func.coalesce(func.sum(ApiUsageLog.output_tokens), 0).label("output_tokens"),
+                        func.coalesce(func.sum(ApiUsageLog.total_price), Decimal(0)).label("total_cost"),
                     )
-                    .filter(LlmUsageLog.created_at >= start_datetime)
-                    .group_by(cast(LlmUsageLog.created_at, Date))
-                    .order_by(cast(LlmUsageLog.created_at, Date))
+                    .filter(ApiUsageLog.created_at >= start_datetime)
+                    .group_by(cast(ApiUsageLog.created_at, Date))
+                    .order_by(cast(ApiUsageLog.created_at, Date))
                 )
 
             results = daily_query.all()

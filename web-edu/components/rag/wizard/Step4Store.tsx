@@ -39,6 +39,7 @@ export function Step4Store(): React.ReactElement {
     // Step 3 data
     selectedEmbeddingModel,
     selectedEmbeddingProvider,
+    retrievalConfig,
     // Step 4 state
     createdDataset,
     batchId,
@@ -232,6 +233,14 @@ export function Step4Store(): React.ReactElement {
         doc_language: 'Korean',
         embedding_model: selectedEmbeddingModel,
         embedding_model_provider: selectedEmbeddingProvider,
+        retrieval_model: {
+          search_method: retrievalConfig.search_method,
+          reranking_enable: retrievalConfig.reranking_enable,
+          reranking_model: retrievalConfig.reranking_model,
+          top_k: retrievalConfig.top_k,
+          score_threshold_enabled: retrievalConfig.score_threshold_enabled,
+          score_threshold: retrievalConfig.score_threshold,
+        },
       }
 
       // Call API
@@ -353,6 +362,40 @@ export function Step4Store(): React.ReactElement {
             <div>
               <span className="text-gray-500">{t('step4.chunkSize')}:</span>{' '}
               <span className="font-medium">{processRule.rules?.segmentation.max_tokens}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">{t('step4.chunkOverlap')}:</span>{' '}
+              <span className="font-medium">{processRule.rules?.segmentation.chunk_overlap}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">{t('step4.separator')}:</span>{' '}
+              <span className="font-medium font-mono text-xs bg-gray-200 px-1 rounded">
+                {getSeparator().replace(/\n/g, '\\n')}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-500">{t('step4.topK')}:</span>{' '}
+              <span className="font-medium">{retrievalConfig.top_k}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">{t('step4.scoreThreshold')}:</span>{' '}
+              <span className="font-medium">
+                {retrievalConfig.score_threshold_enabled
+                  ? retrievalConfig.score_threshold
+                  : t('step4.disabled')}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-500">{t('step4.searchMethod')}:</span>{' '}
+              <span className="font-medium">{t(`step4.searchMethods.${retrievalConfig.search_method}`)}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">{t('step4.reranking')}:</span>{' '}
+              <span className="font-medium">
+                {retrievalConfig.reranking_enable
+                  ? retrievalConfig.reranking_model.reranking_model_name || t('step4.enabled')
+                  : t('step4.disabled')}
+              </span>
             </div>
           </div>
         </div>

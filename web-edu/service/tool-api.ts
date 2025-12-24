@@ -63,10 +63,11 @@ export const testTool = async (
   provider: string,
   toolName: string,
   parameters: Record<string, unknown>,
+  sessionId?: string,
 ): Promise<ApiResponse<ToolTestResult>> => {
   return apiClient.post<ToolTestResult>(
     `/console/api/education/tools/${provider}/${toolName}/test`,
-    { parameters },
+    { parameters, session_id: sessionId },
   )
 }
 

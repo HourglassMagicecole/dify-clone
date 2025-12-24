@@ -1440,6 +1440,7 @@ class DocumentService:
         account: Account | Any,
         dataset_process_rule: DatasetProcessRule | None = None,
         created_from: str = "web",
+        session_id: str | None = None,
     ) -> tuple[list[Document], str]:
         # check doc_form
         DatasetService.check_doc_form(dataset, knowledge_config.doc_form)
@@ -1713,9 +1714,9 @@ class DocumentService:
 
                 # trigger async task
                 if document_ids:
-                    document_indexing_task.delay(dataset.id, document_ids)
+                    document_indexing_task.delay(dataset.id, document_ids, session_id)
                 if duplicate_document_ids:
-                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids)
+                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids, session_id)
 
         return documents, batch
 
@@ -2191,7 +2192,12 @@ class DocumentService:
         return document
 
     @staticmethod
-    def save_document_without_dataset_id(tenant_id: str, knowledge_config: KnowledgeConfig, account: Account):
+    def save_document_without_dataset_id(
+        tenant_id: str,
+        knowledge_config: KnowledgeConfig,
+        account: Account,
+        session_id: str | None = None,
+    ):
         assert isinstance(current_user, Account)
         assert current_user.current_tenant_id is not None
 
@@ -2257,7 +2263,9 @@ class DocumentService:
         db.session.add(dataset)  # type: ignore
         db.session.flush()
 
-        documents, batch = DocumentService.save_document_with_dataset_id(dataset, knowledge_config, account)
+        documents, batch = DocumentService.save_document_with_dataset_id(
+            dataset, knowledge_config, account, session_id=session_id
+        )
 
         # Use provided name/description or generate default
         if knowledge_config.name:

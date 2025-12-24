@@ -980,6 +980,14 @@ class CeleryScheduleTasksConfig(BaseSettings):
         description="Enable check upgradable plugin task",
         default=True,
     )
+    ENABLE_API_USAGE_AGGREGATION_TASK: bool = Field(
+        description="Enable API usage aggregation task for education sessions",
+        default=True,
+    )
+    ENABLE_API_USAGE_CLEANUP_TASK: bool = Field(
+        description="Enable API usage log cleanup task",
+        default=True,
+    )
 
 
 class PositionConfig(BaseSettings):

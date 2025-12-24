@@ -475,7 +475,16 @@
     "convertToText": "Convert to Text",
     "converting": "Converting...",
     "modelDisabled": "Disabled",
-    "selectedModelDisabledWarning": "Selected model is disabled. Please enable it in Model Management or select another model."
+    "selectedModelDisabledWarning": "Selected model is disabled. Please enable it in Model Management or select another model.",
+    "testUsesWhisper": "Test uses whisper-1",
+    "whisperDisabledWarning": "whisper-1 is disabled. Please enable it in Model Management to test.",
+    "parameterSettings": "Parameter Settings",
+    "saveSettings": "Save Settings",
+    "noConfigurableParams": "No configurable parameters",
+    "noParamsRequired": "No parameters required",
+    "configuredBadge": "Configured",
+    "defaultSettings": "Default Settings",
+    "testParameters": "Test Parameters"
   },
   "roleSamples": {
     "learningMentor": {

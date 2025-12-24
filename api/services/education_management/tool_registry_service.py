@@ -1,9 +1,12 @@
 """Tool Registry Service for managing educational tools."""
 
 import base64
+import logging
 import uuid
 from enum import StrEnum
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from core.app.entities.app_invoke_entities import InvokeFrom
 from core.file.enums import FileTransferMethod, FileType
@@ -255,6 +258,7 @@ class ToolRegistryService:
         tool_name: str,
         test_parameters: dict[str, Any],
         user_id: str | None = None,
+        session_id: str | None = None,
     ) -> dict[str, Any]:
         """
         Test a tool with given parameters.
@@ -265,6 +269,7 @@ class ToolRegistryService:
             tool_name: The tool name
             test_parameters: Parameters to test the tool with
             user_id: The user ID (required for Type B tools)
+            session_id: The education session ID (for usage tracking)
 
         Returns:
             dict[str, Any]: Test result with success status and output/error
@@ -404,6 +409,9 @@ class ToolRegistryService:
                 tool_invoke_from=ToolInvokeFrom.AGENT,
                 credentials=credentials,
                 runtime_parameters={},
+                invoke_source="tool_test",
+                account_id=user_id,
+                session_id=session_id,
             )
 
             # Invoke tool with test parameters
@@ -501,10 +509,19 @@ class ToolRegistryService:
             # Audio
             "audio/webm": ".webm",
             "audio/wav": ".wav",
+            "audio/x-wav": ".wav",
             "audio/mp3": ".mp3",
             "audio/mpeg": ".mp3",
             "audio/ogg": ".ogg",
             "audio/m4a": ".m4a",
+            "audio/x-m4a": ".m4a",
+            "audio/mp4": ".m4a",
+            "audio/aac": ".aac",
+            "audio/flac": ".flac",
+            "audio/x-flac": ".flac",
+            # Video containers that may contain audio only (from browser recording)
+            "video/webm": ".webm",
+            "video/mp4": ".mp4",
             # Spreadsheet
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
             "application/vnd.ms-excel": ".xls",
@@ -522,7 +539,7 @@ class ToolRegistryService:
 
         def determine_file_type(mime_type: str) -> FileType:
             """Determine FileType from MIME type."""
-            if mime_type.startswith("audio/"):
+            if mime_type.startswith("audio/") or mime_type in ("video/webm", "video/mp4"):
                 return FileType.AUDIO
             elif mime_type.startswith("image/"):
                 return FileType.IMAGE
@@ -544,6 +561,9 @@ class ToolRegistryService:
 
                 # Determine file extension and type
                 extension = mime_to_ext.get(mime_type, ".bin")
+                logger.info(
+                    "Processing file: mime_type=%s, extension=%s, size=%d", mime_type, extension, len(file_bytes)
+                )
                 file_type = determine_file_type(mime_type)
 
                 # Generate unique storage key

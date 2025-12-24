@@ -69,7 +69,7 @@ parameters:
   - name: as_agent_tool
     type: boolean
     required: false
-    default: false
+    default: true
     form: form
     label:
       en_US: Used in Agent nodes

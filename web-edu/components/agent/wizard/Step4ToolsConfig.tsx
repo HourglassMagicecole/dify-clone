@@ -11,6 +11,7 @@ import {
   BeakerIcon,
   ExclamationTriangleIcon,
   KeyIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
 import { toolsConfigSchema, type ToolsConfigFormData } from '@/schemas/agent-schema'
 import { useAgentWizard } from '@/context/AgentWizardContext'
@@ -365,9 +366,11 @@ export default function Step4ToolsConfig() {
     const isSelected = selectedTools.some(t => t.tool_name === tool.name)
 
     if (isSelected) {
+      // 이미 선택된 도구 → 선택 해제
       setSelectedTools(prev => prev.filter(t => t.tool_name !== tool.name))
     }
     else {
+      // 새 도구 선택 → 기본값으로 바로 추가
       const newTool: SelectedTool = {
         provider_id: provider.name,
         provider_type: 'builtin',
@@ -378,6 +381,29 @@ export default function Step4ToolsConfig() {
         enabled: true,
       }
       setSelectedTools(prev => [...prev, newTool])
+    }
+  }
+
+  // 테스트 모달 열기 (도구 상세 정보 로드)
+  const openConfigModal = async (tool: Tool, provider: ToolProvider) => {
+    try {
+      const response = await getToolDetail(provider.name, tool.name)
+
+      if (response.result === 'success' && response.data) {
+        setConfigTool({
+          ...response.data,
+          provider: provider.name,
+          api_key_type: tool.api_key_type,
+          requires_user_key: tool.requires_user_key,
+          user_has_key: tool.user_has_key,
+        })
+      }
+      else {
+        setLoadError(response.message || 'Failed to load tool detail')
+      }
+    }
+    catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load tool detail')
     }
   }
 
@@ -397,27 +423,8 @@ export default function Step4ToolsConfig() {
   }
 
   const handleTestTool = async (tool: Tool, provider: ToolProvider) => {
-    try {
-      // Fetch detailed tool information including parameters
-      const response = await getToolDetail(provider.name, tool.name)
-
-      if (response.result === 'success' && response.data) {
-        // Add provider info and preserve availability metadata
-        setConfigTool({
-          ...response.data,
-          provider: provider.name,
-          api_key_type: tool.api_key_type,
-          requires_user_key: tool.requires_user_key,
-          user_has_key: tool.user_has_key,
-        })
-      }
-      else {
-        setLoadError(response.message || 'Failed to load tool detail')
-      }
-    }
-    catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Failed to load tool detail')
-    }
+    // 테스트 모달 열기
+    await openConfigModal(tool, provider)
   }
 
   // Filter providers by search query
@@ -606,32 +613,60 @@ export default function Step4ToolsConfig() {
             {t('toolsSettings.selectedToolsTitle')} ({selectedTools.length})
           </h3>
           <div className="space-y-2">
-            {selectedTools.map((tool) => (
-              <div
-                key={`${tool.provider_id}-${tool.tool_name}`}
-                className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600"
-              >
-                <div className="flex items-center gap-3">
-                  <CheckCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  <div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {getLocalizedText(tool.tool_label, tool.tool_name)}
-                    </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {getLocalizedText(tool.provider_name)}
-                    </p>
+            {selectedTools.map((tool) => {
+              const hasParams = Object.keys(tool.tool_parameters || {}).length > 0
+              const provider = toolProviders.find(p => p.name === tool.provider_id)
+              const toolInfo = provider?.tools.find(t => t.name === tool.tool_name)
+
+              return (
+                <div
+                  key={`${tool.provider_id}-${tool.tool_name}`}
+                  className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600"
+                >
+                  <div className="flex items-center gap-3">
+                    <CheckCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {getLocalizedText(tool.tool_label, tool.tool_name)}
+                        </span>
+                        {hasParams && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-green-700 bg-green-100 rounded dark:text-green-400 dark:bg-green-900/30">
+                            <Cog6ToothIcon className="h-3 w-3" />
+                            {t('tools.configuredBadge')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {getLocalizedText(tool.provider_name)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Edit Button */}
+                    {provider && toolInfo && (
+                      <button
+                        type="button"
+                        onClick={() => openConfigModal(toolInfo, provider)}
+                        className="p-1.5 text-gray-500 hover:text-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        aria-label={`Configure ${tool.tool_label}`}
+                      >
+                        <Cog6ToothIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                    {/* Remove Button */}
+                    <button
+                      type="button"
+                      onClick={() => removeTool(tool.tool_name)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      aria-label={`Remove ${tool.tool_label}`}
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeTool(tool.tool_name)}
-                  className="p-1 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  aria-label={`Remove ${tool.tool_label}`}
-                >
-                  <XMarkIcon className="h-5 w-5" />
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

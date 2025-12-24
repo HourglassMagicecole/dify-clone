@@ -254,31 +254,20 @@ export class DatasetAPI {
 
   /**
    * Check if embedding model is available and active
-   * Checks both: 1) default model is configured, 2) provider status is 'active'
+   * Checks if there is at least one active provider with embedding models
    */
   async isEmbeddingModelAvailable(): Promise<boolean> {
     try {
-      // Step 1: Get default model
-      const defaultModelResponse = await this.getDefaultModel('text-embedding')
-
-      if (defaultModelResponse.result !== 'success' || defaultModelResponse.data == null || !defaultModelResponse.data.model) {
-        return false
-      }
-
-      const defaultModel = defaultModelResponse.data.model
-
-      // Step 2: Get model list to check provider status
       const modelListResponse = await this.getModelList('text-embedding')
 
       if (modelListResponse.result !== 'success' || !modelListResponse.data) {
         return false
       }
 
-      // Step 3: Find the provider that contains the default model
+      // Check if any active provider has at least one embedding model
       for (const provider of modelListResponse.data) {
-        const modelFound = provider.models.some(m => m.model === defaultModel)
-        if (modelFound) {
-          return provider.status === 'active'
+        if (provider.status === 'active' && provider.models.length > 0) {
+          return true
         }
       }
 

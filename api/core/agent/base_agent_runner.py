@@ -561,7 +561,7 @@ class BaseAgentRunner(AppRunner):
                     filtered_files = []
 
                     if "audio" in param_name_lower:
-                        # Audio parameter - only inject audio files
+                        # Audio parameter - inject audio files only (mp3, wav)
                         filtered_files = [f for f in self.files if f.type == FileType.AUDIO]
                     elif "image" in param_name_lower or "vision" in param_name_lower:
                         # Image parameter - only inject image files
