@@ -11,6 +11,7 @@ import { useState, useEffect, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/context/ToastContext'
+import { useAuth } from '@/hooks/useAuth'
 import type { ExecutionState, UserInputForm, Agent } from '@/types/agent'
 import { DynamicFormRenderer } from '@/components/agent/DynamicFormRenderer'
 import { AgentThoughtTimeline } from '@/components/agent/AgentThoughtTimeline'
@@ -30,6 +31,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
   const router = useRouter()
   const { t } = useTranslation('agent')
   const { showToast } = useToast()
+  const { user } = useAuth()
   const historyTableRef = useRef<ExecutionHistoryTableRef>(null)
 
   // Agent data state
@@ -155,6 +157,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
           inputs,
           response_mode: 'streaming',
           files: files.length > 0 ? files : undefined,
+          userId: user?.id,  // Account ID for usage tracking
         },
         {
           onThought: (thought) => {

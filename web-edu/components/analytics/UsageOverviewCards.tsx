@@ -52,46 +52,48 @@ export function UsageOverviewCards({
     )
   }
 
+  const typeCards = [...byType].sort((a, b) => {
+    const orderA = USAGE_TYPE_CONFIG[a.usageType]?.order ?? 99
+    const orderB = USAGE_TYPE_CONFIG[b.usageType]?.order ?? 99
+    return orderA - orderB
+  })
+  const totalCards = 1 + typeCards.length // Total card + type cards
+
   return (
-    <div className="flex flex-wrap gap-3">
-      {/* Total Cost Card */}
-      <button
-        onClick={onTotalClick}
-        className="group rounded-lg bg-gradient-to-r from-gray-700 to-gray-800 px-5 py-4 text-left text-white shadow transition-all hover:scale-105 hover:shadow-lg"
-      >
-        <div className="text-xs font-medium opacity-80">총 비용</div>
-        <div className="mt-1 text-2xl font-bold">{formatPrice(totalCost)}</div>
-        <div className="mt-0.5 text-xs opacity-60">{totalRequests.toLocaleString()}회</div>
-        <div className="mt-1 text-[10px] opacity-50 group-hover:opacity-80">클릭하여 추이 보기</div>
-      </button>
+    <div>
+      <p className="mb-2 text-xs text-gray-500">💡 카드를 클릭하면 추이를 볼 수 있습니다</p>
+      <div className={`grid gap-3 grid-cols-${totalCards}`} style={{ gridTemplateColumns: `repeat(${totalCards}, minmax(0, 1fr))` }}>
+        {/* Total Cost Card */}
+        <button
+          onClick={onTotalClick}
+          className="group rounded-lg bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-4 text-left text-white shadow transition-all hover:scale-105 hover:shadow-lg"
+        >
+          <div className="text-xs font-medium opacity-80">총 비용</div>
+          <div className="mt-1 text-xl font-bold">{formatPrice(totalCost)}</div>
+          <div className="mt-1 text-xs opacity-60">{totalRequests.toLocaleString()}회</div>
+        </button>
 
       {/* Type Cards - sorted by predefined order */}
-      {[...byType]
-        .sort((a, b) => {
-          const orderA = USAGE_TYPE_CONFIG[a.usageType]?.order ?? 99
-          const orderB = USAGE_TYPE_CONFIG[b.usageType]?.order ?? 99
-          return orderA - orderB
-        })
-        .map((type) => {
-          const config = USAGE_TYPE_CONFIG[type.usageType] || {
-            label: type.usageType.toUpperCase(),
-            color: 'from-gray-500 to-gray-600',
-            order: 99,
-          }
+      {typeCards.map((type) => {
+        const config = USAGE_TYPE_CONFIG[type.usageType] || {
+          label: type.usageType.toUpperCase(),
+          color: 'from-gray-500 to-gray-600',
+          order: 99,
+        }
 
         return (
           <button
             key={type.usageType}
             onClick={() => onTypeClick?.(type.usageType)}
-            className={`group rounded-lg bg-gradient-to-r ${config.color} px-5 py-4 text-left text-white shadow transition-all hover:scale-105 hover:shadow-lg`}
+            className={`group rounded-lg bg-gradient-to-r ${config.color} px-4 py-4 text-left text-white shadow transition-all hover:scale-105 hover:shadow-lg`}
           >
             <div className="text-xs font-medium opacity-80">{config.label}</div>
-            <div className="mt-1 text-2xl font-bold">{formatPrice(type.totalPrice)}</div>
-            <div className="mt-0.5 text-xs opacity-60">{type.requestCount.toLocaleString()}회</div>
-            <div className="mt-1 text-[10px] opacity-50 group-hover:opacity-80">클릭하여 추이 보기</div>
+            <div className="mt-1 text-xl font-bold">{formatPrice(type.totalPrice)}</div>
+            <div className="mt-1 text-xs opacity-60">{type.requestCount.toLocaleString()}회</div>
           </button>
         )
       })}
+      </div>
     </div>
   )
 }

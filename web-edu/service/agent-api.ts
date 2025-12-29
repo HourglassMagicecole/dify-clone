@@ -781,7 +781,7 @@ export class AgentAPIService {
       const requestBody: Record<string, unknown> = {
         response_mode: request.response_mode, // Support both blocking and streaming
         files: request.files || [],
-        user: 'web-edu-user', // Required by Dify API
+        user: request.userId || 'web-edu-user', // Account ID for usage tracking
       }
 
       // Chat API requires 'query' field, Completion API uses 'inputs'

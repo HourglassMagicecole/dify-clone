@@ -497,6 +497,7 @@ export interface AgentExecutionRequest {
     transfer_method: string
     url: string
   }>
+  userId?: string                     // Account ID for usage tracking
 }
 
 /**

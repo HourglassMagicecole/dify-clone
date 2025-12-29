@@ -656,6 +656,21 @@ export function AgentWizardProvider({
         if (state.datasetConfig) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (modelConfigPayload as any).dataset_configs = state.datasetConfig
+
+          // For completion mode, dataset_query_variable is required
+          // Use the first text/paragraph variable from user_input_form
+          const isCompletionMode = state.basicSettings.mode === AgentType.COMPLETION
+          const userInputForm = state.promptSettings?.user_input_form || []
+          if (isCompletionMode && userInputForm.length > 0) {
+            const textVariable = userInputForm.find(
+              (field: { input_type: string; variable: string }) =>
+                field.input_type === 'text-input' || field.input_type === 'paragraph'
+            )
+            if (textVariable) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (modelConfigPayload as any).dataset_query_variable = textVariable.variable
+            }
+          }
         }
 
         await agentAPI.updateModelConfig(initialAgentId, modelConfigPayload)

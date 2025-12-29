@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from core.model_runtime.entities.model_entities import ModelType, PriceType
 from models.education import AdminPriceConfig, ApiUsageLog, SessionResourceTag
+from models.model import Account, EndUser
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,48 @@ class ApiUsageTrackingService:
     - Price lookup with priority: AdminPriceConfig > Dify PriceConfig > None
     - Cost calculation based on usage and pricing
     """
+
+    @staticmethod
+    def _resolve_account_id(session: Session, account_id: str | None) -> str | None:
+        """
+        Resolve account_id, converting End User ID to Account ID if needed.
+
+        When using Service API, the user_id passed is actually an End User ID.
+        This method checks if the given ID is an Account or End User, and if
+        it's an End User, extracts the Account ID from end_user.session_id
+        (which web-edu sets to the actual Account ID).
+
+        Args:
+            session: SQLAlchemy session
+            account_id: The ID to resolve (may be Account ID or End User ID)
+
+        Returns:
+            Resolved Account ID, or None if not resolvable
+        """
+        if not account_id:
+            return None
+
+        # Check if it's a valid UUID format (36 chars with 4 dashes)
+        if len(account_id) != 36 or account_id.count("-") != 4:
+            return None
+
+        # First, check if it's an actual Account
+        account = session.get(Account, account_id)
+        if account:
+            return account_id  # It's already a valid Account ID
+
+        # Not an Account, check if it's an End User
+        end_user = session.get(EndUser, account_id)
+        if end_user and end_user.session_id:
+            # session_id contains Account ID when set by web-edu
+            # Validate it looks like a UUID
+            if len(end_user.session_id) == 36 and end_user.session_id.count("-") == 4:
+                # Verify it's an actual Account
+                resolved_account = session.get(Account, end_user.session_id)
+                if resolved_account:
+                    return end_user.session_id
+
+        return None
 
     @staticmethod
     def record_usage(
@@ -134,11 +177,14 @@ class ApiUsageTrackingService:
                     tool_name=tool_name,
                 )
 
+            # Resolve account_id (convert End User ID to Account ID if needed)
+            resolved_account_id = ApiUsageTrackingService._resolve_account_id(session, account_id)
+
             usage_log = ApiUsageLog(
                 tenant_id=tenant_id,
                 usage_type=usage_type,
                 session_id=session_id,
-                account_id=account_id,
+                account_id=resolved_account_id,
                 app_id=app_id,
                 app_name=app_name,
                 conversation_id=conversation_id,
