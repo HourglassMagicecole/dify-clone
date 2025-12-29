@@ -97,7 +97,7 @@ export function MyUsageCard({ className = '' }: MyUsageCardProps) {
     <div className={`rounded-lg border border-gray-200 bg-white p-6 ${className}`}>
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">내 사용량</h3>
-        <Link href="/my-usage" className="text-sm text-blue-600 hover:text-blue-800">
+        <Link href="/my-session" className="text-sm text-blue-600 hover:text-blue-800">
           상세 보기 →
         </Link>
       </div>

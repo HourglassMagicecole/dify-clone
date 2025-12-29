@@ -1,45 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { sessionAPI } from '@/service/session-api'
-import { SessionTabs } from '@/components/session/SessionTabs'
+import { useSession } from '@/context/SessionContext'
 import { SessionDetailView } from '@/components/session/SessionDetailView'
-import type { Session } from '@/types/session'
+import { MyUsageSection } from '@/components/session/MyUsageSection'
 
 export default function MySessionPage() {
   const { t } = useTranslation('session')
   const { t: tCommon } = useTranslation('common')
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [selectedSessionId, setSelectedSessionId] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const loadSessions = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const data = await sessionAPI.listSessions(true) // 활성 세션만
-      setSessions(data.sessions || [])
-
-      // Auto-select first session
-      if (data.sessions && data.sessions.length > 0 && data.sessions[0]) {
-        setSelectedSessionId(data.sessions[0].id)
-      }
-    }
-    catch (err) {
-      setError(err instanceof Error ? err.message : t('loading_failed'))
-    }
-    finally {
-      setIsLoading(false)
-    }
-  }, [t])
-
-  useEffect(() => {
-    loadSessions()
-  }, [loadSessions])
-
-  const selectedSession = sessions.find(s => s.id === selectedSessionId)
+  const { currentSession, isLoading } = useSession()
 
   // Loading state
   if (isLoading) {
@@ -55,38 +24,8 @@ export default function MySessionPage() {
     )
   }
 
-  // Error state
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-center gap-3">
-            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div>
-              <h3 className="text-red-800 font-medium">{t('error_loading_sessions')}</h3>
-              <p className="text-red-600 text-sm mt-1">{error}</p>
-            </div>
-          </div>
-          <button
-            onClick={loadSessions}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            {t('retry')}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Empty state - no sessions
-  if (sessions.length === 0) {
+  // No session selected
+  if (!currentSession) {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">{tCommon('nav.my_session')}</h1>
@@ -105,30 +44,14 @@ export default function MySessionPage() {
     )
   }
 
-  // Page title: singular or plural based on session count
-  const pageTitle = sessions.length === 1 ? tCommon('nav.my_session') : tCommon('nav.my_sessions')
-
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">{pageTitle}</h1>
+      <h1 className="text-2xl font-bold mb-6">{tCommon('nav.my_session')}</h1>
 
-      {/* Session Tabs (only shown if multiple sessions) */}
-      <SessionTabs
-        sessions={sessions}
-        activeSessionId={selectedSessionId}
-        onSessionChange={setSelectedSessionId}
-      />
-
-      {/* Session Detail */}
-      {selectedSession
-        ? (
-            <SessionDetailView session={selectedSession} showMembers={false} />
-          )
-        : (
-            <div className="text-center py-8 text-gray-500">
-              {t('session_not_found')}
-            </div>
-          )}
+      <div className="space-y-6">
+        <SessionDetailView session={currentSession} showMembers={false} />
+        <MyUsageSection sessionId={currentSession.id} />
+      </div>
     </div>
   )
 }

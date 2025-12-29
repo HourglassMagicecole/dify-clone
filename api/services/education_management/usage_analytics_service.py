@@ -361,12 +361,13 @@ class UsageAnalyticsService:
                 func.sum(ApiUsageLog.total_price).label("total_price"),
                 ApiUsageLog.currency,
             )
-            .where(
-                ApiUsageLog.tenant_id == tenant_id,
-                ApiUsageLog.account_id == account_id,
-            )
+            .where(ApiUsageLog.account_id == account_id)
             .group_by(ApiUsageLog.usage_type, ApiUsageLog.currency)
         )
+
+        # tenant_id filter (optional - students may not have tenant_id)
+        if tenant_id:
+            stmt = stmt.where(ApiUsageLog.tenant_id == tenant_id)
 
         if edu_session_id:
             stmt = stmt.where(ApiUsageLog.session_id == edu_session_id)
