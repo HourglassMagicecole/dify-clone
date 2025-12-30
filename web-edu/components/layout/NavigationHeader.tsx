@@ -159,6 +159,15 @@ export function NavigationHeader() {
                 {t('common:nav.my_session')}
               </Link>
             )}
+            {/* Admin/Owner: Session Usage (main menu) */}
+            {user.role === 'admin' && (
+              <Link
+                href="/admin/session-usage"
+                className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              >
+                {t('common:nav.session_usage')}
+              </Link>
+            )}
             {/* Admin/Owner 관리 드롭다운 (AC: 5, 6, 7 - Story 3.8) */}
             {user.role === 'admin' && (
               <AdminDropdown isOwner={user.actualRole === 'owner'} />
