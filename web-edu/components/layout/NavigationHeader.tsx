@@ -113,7 +113,7 @@ export function NavigationHeader() {
               trigger={
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                   <UserAvatar name={user.name} avatarUrl={user.avatar || undefined} size="sm" />
-                  <span className="text-sm font-medium hidden md:inline">{user.name}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200 hidden md:inline">{user.name}</span>
                 </div>
               }
               align="right"
@@ -157,15 +157,6 @@ export function NavigationHeader() {
                 className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
               >
                 {t('common:nav.my_session')}
-              </Link>
-            )}
-            {/* Admin/Owner: Session Usage (main menu) */}
-            {user.role === 'admin' && (
-              <Link
-                href="/admin/session-usage"
-                className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              >
-                {t('common:nav.session_usage')}
               </Link>
             )}
             {/* Admin/Owner 관리 드롭다운 (AC: 5, 6, 7 - Story 3.8) */}

@@ -9,6 +9,8 @@ interface ResourceSummaryCardProps {
   scope: 'system' | 'my_resources'
   sessionName?: string
   isLoading?: boolean
+  memberCount?: number
+  maxMembers?: number
 }
 
 /**
@@ -20,15 +22,19 @@ export function ResourceSummaryCard({
   scope,
   sessionName,
   isLoading = false,
+  memberCount,
+  maxMembers,
 }: ResourceSummaryCardProps) {
   const { t } = useTranslation('dashboard')
 
   // scope에 따른 라벨
   const scopeLabel = scope === 'system' ? t('scope.system') : t('scope.my')
+  const showMembers = memberCount !== undefined && maxMembers !== undefined
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[1, 2].map((i) => (
+      <div className={`grid grid-cols-1 ${showMembers ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+        {[1, 2, showMembers ? 3 : null].filter(Boolean).map((i) => (
           <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
             <div className="h-8 bg-gray-200 rounded w-12"></div>
@@ -44,22 +50,22 @@ export function ResourceSummaryCard({
       count: summary.agents,
       icon: '🤖',
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      bgColor: 'bg-blue-50',
     },
     {
       label: t('resourceSummary.datasets'),
       count: summary.datasets,
       icon: '📚',
       color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
-    }
+      bgColor: 'bg-purple-50',
+    },
   ]
 
   return (
     <div>
       {/* scope 라벨 및 세션명 표시 */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold text-gray-800">
+        <h3 className="text-lg font-bold text-gray-900">
           {scopeLabel} 리소스
         </h3>
         {sessionName && (
@@ -70,7 +76,7 @@ export function ResourceSummaryCard({
       </div>
 
       {/* 리소스 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 ${showMembers ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
         {resources.map((resource) => (
           <div
             key={resource.label}
@@ -87,6 +93,19 @@ export function ResourceSummaryCard({
             </div>
           </div>
         ))}
+        {showMembers && (
+          <div className="bg-green-50 rounded-lg shadow p-6 hover:shadow-lg transition-shadow duration-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">{t('resourceSummary.members')}</p>
+                <p className="text-3xl font-bold text-green-600 mt-2">
+                  {memberCount} <span className="text-lg font-normal text-gray-500">/ {maxMembers}</span>
+                </p>
+              </div>
+              <div className="text-4xl">👥</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

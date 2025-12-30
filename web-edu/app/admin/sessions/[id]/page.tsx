@@ -4,6 +4,16 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { sessionAPI } from '@/service/session-api'
+import {
+  getSessionUsageSummary,
+  getSessionUserBreakdown,
+  getUserUsageLogs,
+  deleteSessionUsageLogs,
+  UsageSummary,
+  UserUsage,
+  UsageLogEntry,
+} from '@/service/usage-analytics-api'
+import { exportSessionUsageToXlsx } from '@/utils/export-xlsx'
 import { SessionMemberTable } from '@/components/session/SessionMemberTable'
 import { EditSessionModal } from '@/components/session/EditSessionModal'
 import { SessionResourceSection } from '@/components/session/SessionResourceSection'
@@ -39,6 +49,11 @@ export default function SessionDetailPage() {
 
   // Session delete dialog state
   const [showDeleteSessionDialog, setShowDeleteSessionDialog] = useState(false)
+
+  // Usage log management state
+  const [exportingLogs, setExportingLogs] = useState(false)
+  const [deletingLogs, setDeletingLogs] = useState(false)
+  const [logActionResult, setLogActionResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const loadSessionData = async () => {
     try {
@@ -86,6 +101,72 @@ export default function SessionDetailPage() {
     }
   }
 
+  const handleExportLogs = async () => {
+    if (!session) return
+
+    try {
+      setExportingLogs(true)
+      setLogActionResult(null)
+
+      const [summaryRes, userRes] = await Promise.all([
+        getSessionUsageSummary(session.id),
+        getSessionUserBreakdown(session.id),
+      ])
+
+      if (summaryRes.result !== 'success' || userRes.result !== 'success') {
+        throw new Error(t('usage_data_load_failed'))
+      }
+
+      const summaryData: UsageSummary[] = summaryRes.data || []
+      const userData: UserUsage[] = userRes.data || []
+
+      const userIds = [...new Set(userData.map((u) => u.account_id))].filter((id) => id && id !== 'unknown')
+
+      const userLogs = new Map<string, UsageLogEntry[]>()
+      for (const userId of userIds) {
+        const logsRes = await getUserUsageLogs(session.id, userId)
+        if (logsRes.result === 'success' && logsRes.data) {
+          userLogs.set(userId, logsRes.data.items)
+        }
+      }
+
+      exportSessionUsageToXlsx({
+        sessionName: session.session_name,
+        sessionTag: session.session_tag,
+        startDate: new Date(session.start_date).toLocaleDateString('ko-KR'),
+        endDate: session.end_date ? new Date(session.end_date).toLocaleDateString('ko-KR') : null,
+        summary: summaryData,
+        userBreakdown: userData,
+        userLogs,
+      })
+
+      setLogActionResult({ type: 'success', message: t('export_success') })
+    } catch (err) {
+      setLogActionResult({ type: 'error', message: err instanceof Error ? err.message : t('export_failed') })
+    } finally {
+      setExportingLogs(false)
+    }
+  }
+
+  const handleDeleteLogs = async () => {
+    if (!session) return
+    if (!confirm(t('confirm_delete_logs', { sessionName: session.session_name }))) return
+
+    try {
+      setDeletingLogs(true)
+      setLogActionResult(null)
+
+      const res = await deleteSessionUsageLogs(session.id)
+      if (res.result === 'success' && res.data) {
+        setLogActionResult({ type: 'success', message: t('logs_deleted', { count: res.data.deleted_count }) })
+      }
+    } catch (err) {
+      setLogActionResult({ type: 'error', message: err instanceof Error ? err.message : t('delete_failed') })
+    } finally {
+      setDeletingLogs(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -122,18 +203,29 @@ export default function SessionDetailPage() {
           >
             {t('edit_session')}
           </button>
-          <button
-            onClick={handleDelete}
-            disabled={isCurrentSession}
-            title={isCurrentSession ? t('cannot_delete_current_session') : undefined}
-            className={`rounded px-4 py-2 text-white ${
-              isCurrentSession
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-red-600 hover:bg-red-700'
-            }`}
+          <div
+            title={
+              session.is_default
+                ? t('cannot_delete_default_session')
+                : isCurrentSession
+                  ? t('cannot_delete_current_session')
+                  : session.is_currently_active
+                    ? t('cannot_delete_active_session')
+                    : undefined
+            }
           >
-            {t('delete_session')}
-          </button>
+            <button
+              onClick={handleDelete}
+              disabled={session.is_default || isCurrentSession || session.is_currently_active}
+              className={`rounded px-4 py-2 text-white ${
+                session.is_default || isCurrentSession || session.is_currently_active
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 hover:bg-red-700'
+              }`}
+            >
+              {t('delete_session')}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -190,6 +282,44 @@ export default function SessionDetailPage() {
           <div className="mt-3 pt-3 border-t border-gray-200">
             <span className="text-sm text-gray-500">{t('description')}:</span>
             <span className="ml-2 text-sm">{session.description}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Usage Log Management */}
+      <div className="mb-6 rounded-lg border border-gray-300 bg-white p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-gray-900">{t('usage_log_management')}</h3>
+            <p className="text-xs text-gray-500">{t('usage_log_management_desc')}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportLogs}
+              disabled={exportingLogs}
+              className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-400"
+            >
+              {exportingLogs ? t('exporting') : t('export_logs')}
+            </button>
+            <div title={session.is_currently_active ? t('cannot_delete_active_session_logs') : undefined}>
+              <button
+                onClick={handleDeleteLogs}
+                disabled={deletingLogs || session.is_currently_active}
+                className="rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {deletingLogs ? t('deleting') : t('delete_logs')}
+              </button>
+            </div>
+          </div>
+        </div>
+        {logActionResult && (
+          <div className={`mt-3 rounded p-2 text-sm ${
+            logActionResult.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+          }`}>
+            {logActionResult.message}
+            <button onClick={() => setLogActionResult(null)} className="ml-2 underline">
+              {tCommon('close')}
+            </button>
           </div>
         )}
       </div>

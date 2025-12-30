@@ -1,26 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  getSessionUsageSummary,
-  getSessionUserBreakdown,
-  getUserUsageLogs,
-  cleanupOldUsageLogs,
-  deleteSessionUsageLogs,
+  getSystemUsageSummary,
+  getSystemDailyTrend,
+  getSystemUserBreakdown,
   UsageSummary,
+  DailyUsage,
   UserUsage,
-  UsageLogEntry,
 } from '@/service/usage-analytics-api'
-import { exportSessionUsageToXlsx } from '@/utils/export-xlsx'
-import { sessionAPI } from '@/service/session-api'
-import type { Session } from '@/types/session'
 import { useAuth } from '@/hooks/useAuth'
+import { DateRangePicker, DateRange } from '@/components/common/DateRangePicker'
+import { UsageOverviewCards, TrendModal, StackedTrendDataPoint } from '@/components/analytics'
 
 /**
- * 시스템 사용량 관리 페이지 (Owner 전용)
- * - 비활성 세션 로그 관리 (내보내기, 삭제)
- * - 만료된 로그 일괄 정리
+ * 시스템 사용량 페이지 (Owner 전용)
+ * - 전체 시스템 사용량 통계
+ * - 사용자별 순위 (전체 시스템)
  */
 export default function UsageAnalyticsPage() {
   const router = useRouter()
@@ -30,128 +27,117 @@ export default function UsageAnalyticsPage() {
   // Redirect non-owner users
   useEffect(() => {
     if (!authLoading && !isOwner) {
-      router.replace('/admin/session-usage')
+      router.replace('/dashboard')
     }
   }, [authLoading, isOwner, router])
 
-  // Inactive sessions
-  const [inactiveSessions, setInactiveSessions] = useState<Session[]>([])
-  const [inactiveLoading, setInactiveLoading] = useState(true)
+  // Date range state
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const getDateString = (date: Date): string => date.toISOString().split('T')[0] ?? ''
+    const endDate = getDateString(new Date())
+    const startDate = getDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+    return { startDate, endDate }
+  })
+
+  // System usage stats
+  const [summary, setSummary] = useState<UsageSummary[]>([])
+  const [dailyTrend, setDailyTrend] = useState<DailyUsage[]>([])
+  const [userBreakdown, setUserBreakdown] = useState<UserUsage[]>([])
+  const [statsLoading, setStatsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Cleanup state
-  const [cleanupLoading, setCleanupLoading] = useState(false)
-  const [cleanupResult, setCleanupResult] = useState<{ deleted: number } | null>(null)
+  // Trend modal state
+  const [trendModalOpen, setTrendModalOpen] = useState(false)
+  const [trendModalType, setTrendModalType] = useState<string | null>(null)
 
-  // Session log delete state
-  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
-  const [deleteResult, setDeleteResult] = useState<{ deleted: number; sessionName: string } | null>(null)
-
-  // Session export state
-  const [exportingSessionId, setExportingSessionId] = useState<string | null>(null)
-
-  // Load inactive sessions
-  const loadInactiveSessions = async () => {
+  // Load system stats
+  const loadSystemStats = useCallback(async () => {
     try {
-      setInactiveLoading(true)
-      const data = await sessionAPI.listSessions(false, 1, 100)
-      setInactiveSessions(data.sessions)
+      setStatsLoading(true)
+      setError(null)
+
+      const [summaryRes, trendRes, userRes] = await Promise.all([
+        getSystemUsageSummary(dateRange.startDate, dateRange.endDate),
+        getSystemDailyTrend(dateRange.startDate, dateRange.endDate),
+        getSystemUserBreakdown(dateRange.startDate, dateRange.endDate),
+      ])
+
+      if (summaryRes.result === 'success') {
+        setSummary(summaryRes.data || [])
+      }
+      if (trendRes.result === 'success') {
+        setDailyTrend(trendRes.data || [])
+      }
+      if (userRes.result === 'success') {
+        setUserBreakdown(userRes.data || [])
+      }
     } catch (err) {
-      console.error('Failed to load inactive sessions:', err)
+      setError(err instanceof Error ? err.message : '데이터 로드 실패')
     } finally {
-      setInactiveLoading(false)
+      setStatsLoading(false)
     }
-  }
+  }, [dateRange.startDate, dateRange.endDate])
 
   useEffect(() => {
     if (isOwner) {
-      loadInactiveSessions()
+      loadSystemStats()
     }
-  }, [isOwner])
+  }, [isOwner, loadSystemStats])
 
-  const handleCleanup = async () => {
-    if (!confirm('만료된 사용량 로그를 삭제하시겠습니까?\n(보관 기한이 지난 로그가 삭제됩니다)')) {
-      return
-    }
+  // Calculate totals
+  const getTotalPrice = () => summary.reduce((acc, s) => acc + parseFloat(s.total_price), 0)
+  const getTotalRequests = () => summary.reduce((acc, s) => acc + s.request_count, 0)
 
-    try {
-      setCleanupLoading(true)
-      setCleanupResult(null)
-      const res = await cleanupOldUsageLogs()
-      if (res.result === 'success' && res.data) {
-        setCleanupResult({ deleted: res.data.deleted_count })
+  // Usage by type for cards
+  const usageByTypeStats = useMemo(() => {
+    return summary.map((s) => ({
+      usageType: s.usage_type,
+      totalPrice: parseFloat(s.total_price),
+      requestCount: s.request_count,
+    }))
+  }, [summary])
+
+  // Stacked trend data for chart
+  const stackedTrendData: StackedTrendDataPoint[] = useMemo(() => {
+    return dailyTrend
+      .map((d) => ({
+        date: d.date,
+        usageType: d.usage_type,
+        tokens: d.total_tokens,
+        price: parseFloat(d.total_price),
+        requests: d.request_count,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  }, [dailyTrend])
+
+  // User ranking table data (aggregate by user across all sessions)
+  const userRankingData = useMemo(() => {
+    const userMap = new Map<
+      string,
+      { name: string; sessions: Set<string>; totalCost: number; totalRequests: number }
+    >()
+
+    userBreakdown.forEach((u) => {
+      if (!userMap.has(u.account_id)) {
+        userMap.set(u.account_id, { name: u.account_name, sessions: new Set(), totalCost: 0, totalRequests: 0 })
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cleanup 실패')
-    } finally {
-      setCleanupLoading(false)
-    }
-  }
+      const user = userMap.get(u.account_id)!
+      if (u.session_name) user.sessions.add(u.session_name)
+      user.totalCost += parseFloat(u.total_price)
+      user.totalRequests += u.request_count
+    })
 
-  const handleDeleteSessionLogs = async (sessionId: string, sessionName: string) => {
-    if (!confirm(`"${sessionName}" 세션의 모든 사용량 로그를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
-      return
-    }
-
-    try {
-      setDeletingSessionId(sessionId)
-      setDeleteResult(null)
-      setError(null)
-      const res = await deleteSessionUsageLogs(sessionId)
-      if (res.result === 'success' && res.data) {
-        setDeleteResult({ deleted: res.data.deleted_count, sessionName })
-        loadInactiveSessions()
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '로그 삭제 실패')
-    } finally {
-      setDeletingSessionId(null)
-    }
-  }
-
-  const handleExportSession = async (session: Session) => {
-    try {
-      setExportingSessionId(session.id)
-      setError(null)
-
-      const [summaryRes, userRes] = await Promise.all([
-        getSessionUsageSummary(session.id),
-        getSessionUserBreakdown(session.id),
-      ])
-
-      if (summaryRes.result !== 'success' || userRes.result !== 'success') {
-        throw new Error('데이터 조회 실패')
-      }
-
-      const summaryData: UsageSummary[] = summaryRes.data || []
-      const userData: UserUsage[] = userRes.data || []
-
-      // Exclude "unknown" which indicates null account_id
-      const userIds = [...new Set(userData.map((u) => u.account_id))].filter((id) => id && id !== 'unknown')
-
-      const userLogs = new Map<string, UsageLogEntry[]>()
-      for (const userId of userIds) {
-        const logsRes = await getUserUsageLogs(session.id, userId)
-        if (logsRes.result === 'success' && logsRes.data) {
-          userLogs.set(userId, logsRes.data.items)
-        }
-      }
-
-      exportSessionUsageToXlsx({
-        sessionName: session.session_name,
-        sessionTag: session.session_tag,
-        startDate: new Date(session.start_date).toLocaleDateString('ko-KR'),
-        endDate: session.end_date ? new Date(session.end_date).toLocaleDateString('ko-KR') : null,
-        summary: summaryData,
-        userBreakdown: userData,
-        userLogs,
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '내보내기 실패')
-    } finally {
-      setExportingSessionId(null)
-    }
-  }
+    return Array.from(userMap.entries())
+      .map(([accountId, data]) => ({
+        accountId,
+        displayName: data.name,
+        sessions: Array.from(data.sessions).join(', '),
+        totalCost: data.totalCost,
+        totalRequests: data.totalRequests,
+      }))
+      .sort((a, b) => b.totalCost - a.totalCost)
+      .slice(0, 20) // Top 20
+  }, [userBreakdown])
 
   // Show loading while checking auth
   if (authLoading) {
@@ -170,84 +156,82 @@ export default function UsageAnalyticsPage() {
   return (
     <div className="p-6">
       {/* Page Title */}
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">시스템 사용량 관리</h1>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">시스템 사용량</h1>
+        <DateRangePicker value={dateRange} onChange={setDateRange} />
+      </div>
+
+      {error && (
+        <div className="mb-4 rounded-md bg-red-50 p-4 text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 text-red-800 underline">
+            닫기
+          </button>
+        </div>
+      )}
 
       <div className="space-y-6">
-        {/* Delete result message */}
-        {deleteResult !== null && (
-          <div className="rounded-md bg-green-50 p-4 text-green-800">
-            &quot;{deleteResult.sessionName}&quot; 세션의 {deleteResult.deleted}개 로그가 삭제되었습니다.
-            <button onClick={() => setDeleteResult(null)} className="ml-2 text-green-900 underline">
-              닫기
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <div className="rounded-md bg-red-50 p-4 text-red-600">
-            {error}
-            <button onClick={() => setError(null)} className="ml-2 text-red-800 underline">
-              닫기
-            </button>
-          </div>
-        )}
-
-        {/* Inactive Sessions Section */}
+        {/* System Usage Summary */}
         <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900">비활성 세션 로그 관리</h3>
-          <p className="mb-4 text-sm text-gray-500">종료된 세션의 사용량 로그를 확인하고 삭제할 수 있습니다.</p>
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">전체 시스템 사용량</h3>
+          <UsageOverviewCards
+            totalCost={getTotalPrice()}
+            totalRequests={getTotalRequests()}
+            byType={usageByTypeStats}
+            loading={statsLoading}
+            onTotalClick={() => {
+              setTrendModalType(null)
+              setTrendModalOpen(true)
+            }}
+            onTypeClick={(usageType) => {
+              setTrendModalType(usageType)
+              setTrendModalOpen(true)
+            }}
+          />
+        </div>
 
-          {inactiveLoading ? (
+        {/* User Ranking */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">사용자별 사용량 순위 (Top 20)</h3>
+          {statsLoading ? (
             <div className="py-8 text-center text-gray-500">로딩 중...</div>
-          ) : inactiveSessions.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">비활성 세션이 없습니다.</div>
+          ) : userRankingData.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">사용량 데이터가 없습니다.</div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-gray-200">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      세션명
+                      순위
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      기간
+                      사용자
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      강사
+                      세션
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                      작업
+                      요청 수
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                      비용
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {inactiveSessions.map((session) => (
-                    <tr key={session.id} className="hover:bg-gray-50">
+                  {userRankingData.map((user, index) => (
+                    <tr key={user.accountId} className="hover:bg-gray-50">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">{index + 1}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                        {session.session_name}
+                        {user.displayName}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                        {new Date(session.start_date).toLocaleDateString()} ~{' '}
-                        {session.end_date ? new Date(session.end_date).toLocaleDateString() : '-'}
+                      <td className="px-4 py-3 text-sm text-gray-500">{user.sessions || '-'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
+                        {user.totalRequests.toLocaleString()}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">{session.instructor_name}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleExportSession(session)}
-                            disabled={exportingSessionId === session.id}
-                            className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:bg-gray-400"
-                          >
-                            {exportingSessionId === session.id ? '내보내기 중...' : '내보내기'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSessionLogs(session.id, session.session_name)}
-                            disabled={deletingSessionId === session.id}
-                            className="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:bg-gray-400"
-                          >
-                            {deletingSessionId === session.id ? '삭제 중...' : '로그 삭제'}
-                          </button>
-                        </div>
+                      <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-gray-900">
+                        ${user.totalCost.toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -256,32 +240,16 @@ export default function UsageAnalyticsPage() {
             </div>
           )}
         </div>
-
-        {/* System Maintenance Section */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900">시스템 관리</h3>
-          <div className="space-y-4">
-            <div className="flex items-start justify-between rounded-lg bg-gray-50 p-4">
-              <div>
-                <h4 className="font-medium text-gray-900">만료된 로그 일괄 정리</h4>
-                <p className="mt-1 text-sm text-gray-500">보관 기한이 지난 모든 사용량 로그를 일괄 삭제합니다.</p>
-              </div>
-              <button
-                onClick={handleCleanup}
-                disabled={cleanupLoading}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:bg-gray-400"
-              >
-                {cleanupLoading ? '삭제 중...' : '일괄 정리'}
-              </button>
-            </div>
-            {cleanupResult !== null && (
-              <div className="rounded-md bg-green-50 p-3 text-sm text-green-800">
-                {cleanupResult.deleted}개의 로그가 삭제되었습니다.
-              </div>
-            )}
-          </div>
-        </div>
       </div>
+
+      {/* Trend Modal */}
+      <TrendModal
+        isOpen={trendModalOpen}
+        onClose={() => setTrendModalOpen(false)}
+        title={trendModalType ? `${trendModalType.toUpperCase()} 일별 추이` : '총 비용 일별 추이'}
+        data={stackedTrendData}
+        usageType={trendModalType ?? undefined}
+      />
     </div>
   )
 }

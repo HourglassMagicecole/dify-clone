@@ -178,6 +178,7 @@ def create_session():
                         "max_students": session.max_students,
                         "force_status": session.force_status,
                         "is_currently_active": is_session_currently_active(session),
+                        "is_default": session.is_default,
                         "description": session.description,
                         "created_at": session.created_at.replace(tzinfo=UTC).isoformat(),
                     },
@@ -245,6 +246,7 @@ def list_sessions():
                     "max_students": session.max_students,
                     "force_status": session.force_status,
                     "is_currently_active": is_session_currently_active(session),
+                    "is_default": session.is_default,
                     "description": session.description,
                     "created_at": session.created_at.replace(tzinfo=UTC).isoformat(),
                 }
@@ -303,6 +305,7 @@ def get_session(session_id: str):
                     "max_students": session.max_students,
                     "force_status": session.force_status,
                     "is_currently_active": is_session_currently_active(session),
+                    "is_default": session.is_default,
                     "description": session.description,
                     "created_at": session.created_at.replace(tzinfo=UTC).isoformat(),
                     "updated_at": session.updated_at.replace(tzinfo=UTC).isoformat(),
@@ -433,12 +436,17 @@ def delete_session(session_id: str):
     from tasks.education.delete_session_task import delete_session_with_resources_task
 
     try:
-        # Verify session exists and is not default
+        # Verify session exists and is not default/active
         service = EduSessionService()
         session = service.get_session(session_id)
 
         if session.is_default:
             return jsonify({"result": "error", "message": "Default session cannot be deleted"}), 400
+
+        if session.is_currently_active:
+            return jsonify(
+                {"result": "error", "message": "Active session cannot be deleted. Deactivate it first."}
+            ), 400
 
         # Start async deletion task
         task = delete_session_with_resources_task.delay(

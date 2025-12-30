@@ -140,5 +140,19 @@
   "cannot_deactivate_current_session": "현재 사용 중인 세션은 비활성화할 수 없습니다",
   "cannot_set_future_start_for_current_session": "현재 세션의 시작일을 미래로 설정할 수 없습니다",
   "cannot_set_past_end_for_current_session": "현재 세션의 종료일을 과거로 설정할 수 없습니다",
-  "cannot_delete_current_session": "현재 사용 중인 세션은 삭제할 수 없습니다. 다른 세션으로 전환 후 삭제하세요."
+  "cannot_delete_current_session": "현재 사용 중인 세션은 삭제할 수 없습니다. 다른 세션으로 전환 후 삭제하세요.",
+  "cannot_delete_active_session": "활성 상태인 세션은 삭제할 수 없습니다. 먼저 비활성화하세요.",
+  "cannot_delete_default_session": "기본 세션은 삭제할 수 없습니다.",
+  "usage_log_management": "사용량 로그 관리",
+  "usage_log_management_desc": "이 세션의 API 사용량 로그를 내보내거나 삭제할 수 있습니다.",
+  "export_logs": "로그 내보내기",
+  "delete_logs": "로그 삭제",
+  "exporting": "내보내기 중...",
+  "deleting": "삭제 중...",
+  "export_success": "로그 내보내기 완료",
+  "export_failed": "로그 내보내기 실패",
+  "usage_data_load_failed": "사용량 데이터 로드 실패",
+  "confirm_delete_logs": "\"{{sessionName}}\" 세션의 모든 사용량 로그를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.",
+  "logs_deleted": "{{count}}개의 로그가 삭제되었습니다.",
+  "cannot_delete_active_session_logs": "활성 세션의 로그는 삭제할 수 없습니다."
 }

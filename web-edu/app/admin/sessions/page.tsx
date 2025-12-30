@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { sessionAPI } from '@/service/session-api'
 import { CreateSessionModal } from '@/components/session/CreateSessionModal'
-import { SessionDeleteDialog } from '@/components/session/SessionDeleteDialog'
 import { useSession } from '@/context/SessionContext'
 import { useAuth } from '@/hooks/useAuth'
 import type { Session } from '@/types/session'
@@ -19,7 +18,6 @@ export default function SessionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null)
 
   // 필터 상태 (Owner만 사용)
   const [creatorFilter, setCreatorFilter] = useState<string>('all')
@@ -44,15 +42,6 @@ export default function SessionsPage() {
     loadSessions()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  const handleDelete = (session: Session) => {
-    setSessionToDelete(session)
-  }
-
-  const handleDeleteComplete = async () => {
-    setSessionToDelete(null)
-    await Promise.all([loadSessions(), refreshSessionContext()])
-  }
 
   // 필터링된 세션 목록 (early return 이전에 useMemo 호출 - React Hooks 규칙)
   const filteredSessions = React.useMemo(() => {
@@ -193,18 +182,12 @@ export default function SessionsPage() {
                     <p className="text-sm text-gray-700 mb-3 line-clamp-2">{session.description}</p>
                   )}
 
-                  <div className="flex gap-2 mt-auto">
+                  <div className="mt-auto">
                     <button
                       onClick={() => router.push(`/admin/sessions/${session.id}`)}
-                      className="flex-1 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      className="w-full px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
                       {t('view_details')}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(session)}
-                      className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                    >
-                      {t('delete')}
                     </button>
                   </div>
                 </div>
@@ -218,15 +201,6 @@ export default function SessionsPage() {
           onSuccess={async () => {
             await Promise.all([loadSessions(), refreshSessionContext()])
           }}
-        />
-      )}
-
-      {sessionToDelete && (
-        <SessionDeleteDialog
-          isOpen={!!sessionToDelete}
-          session={sessionToDelete}
-          onClose={() => setSessionToDelete(null)}
-          onDeleteComplete={handleDeleteComplete}
         />
       )}
     </div>

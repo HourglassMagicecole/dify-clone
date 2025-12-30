@@ -34,6 +34,8 @@ export interface UserUsage {
   request_count: number
   total_tokens: number
   total_price: string
+  session_id?: string
+  session_name?: string
 }
 
 export interface ModelUsage {
@@ -210,6 +212,24 @@ export async function getMyDailyUsage(sessionId?: string, days: number = 30): Pr
 }
 
 // ============================================================
+// Message Cost API
+// ============================================================
+
+export interface MessageCost {
+  total_price: string
+  currency: string
+  usage_count: number
+}
+
+/**
+ * Get total usage cost for a specific message.
+ * Used for displaying execution cost in Agent results.
+ */
+export async function getMessageUsageCost(messageId: string): Promise<ApiResponse<MessageCost>> {
+  return apiClient.get<MessageCost>(`/console/api/edu/usage-analytics/messages/${messageId}/cost`)
+}
+
+// ============================================================
 // Owner Maintenance APIs
 // ============================================================
 
@@ -235,4 +255,63 @@ export interface DeleteSessionLogsResult {
  */
 export async function deleteSessionUsageLogs(sessionId: string): Promise<ApiResponse<DeleteSessionLogsResult>> {
   return apiClient.delete<DeleteSessionLogsResult>(`/console/api/edu/usage-analytics/sessions/${sessionId}/logs`)
+}
+
+// ============================================================
+// System-wide APIs (Owner only)
+// ============================================================
+
+/**
+ * Get system-wide usage summary (Owner only).
+ */
+export async function getSystemUsageSummary(
+  startDate?: string,
+  endDate?: string,
+): Promise<ApiResponse<UsageSummary[]>> {
+  const params = new URLSearchParams()
+  if (startDate) params.append('start_date', startDate)
+  if (endDate) params.append('end_date', endDate)
+
+  const queryString = params.toString()
+  const endpoint = `/console/api/edu/usage-analytics/system/summary${queryString ? `?${queryString}` : ''}`
+
+  return apiClient.get<UsageSummary[]>(endpoint)
+}
+
+/**
+ * Get system-wide daily usage trend (Owner only).
+ */
+export async function getSystemDailyTrend(
+  startDate?: string,
+  endDate?: string,
+  usageType?: string,
+): Promise<ApiResponse<DailyUsage[]>> {
+  const params = new URLSearchParams()
+  if (startDate) params.append('start_date', startDate)
+  if (endDate) params.append('end_date', endDate)
+  if (usageType) params.append('usage_type', usageType)
+
+  const queryString = params.toString()
+  const endpoint = `/console/api/edu/usage-analytics/system/daily-trend${queryString ? `?${queryString}` : ''}`
+
+  return apiClient.get<DailyUsage[]>(endpoint)
+}
+
+/**
+ * Get system-wide per-user usage breakdown (Owner only).
+ */
+export async function getSystemUserBreakdown(
+  startDate?: string,
+  endDate?: string,
+  usageType?: string,
+): Promise<ApiResponse<UserUsage[]>> {
+  const params = new URLSearchParams()
+  if (startDate) params.append('start_date', startDate)
+  if (endDate) params.append('end_date', endDate)
+  if (usageType) params.append('usage_type', usageType)
+
+  const queryString = params.toString()
+  const endpoint = `/console/api/edu/usage-analytics/system/user-breakdown${queryString ? `?${queryString}` : ''}`
+
+  return apiClient.get<UserUsage[]>(endpoint)
 }

@@ -300,6 +300,68 @@ def get_my_daily_usage():
     )
 
 
+@bp.route("/messages/<message_id>/cost", methods=["GET"])
+@jwt_required
+def get_message_usage_cost(message_id: str):
+    """
+    Get total usage cost for a specific message.
+
+    This endpoint aggregates all ApiUsageLog entries for a given message_id
+    and returns the total cost. Used for displaying execution cost in Agent results.
+
+    Returns:
+        total_price: Total cost in USD
+        currency: Currency code (USD)
+        usage_count: Number of API calls
+    """
+    from decimal import Decimal
+
+    from sqlalchemy import func
+
+    # Get tenant_id from TenantAccountJoin (jwt_required doesn't set current_tenant_id)
+    account = request.user
+    tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account.id, current=True).first()
+    if not tenant_join:
+        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account.id).first()
+    tenant_id = tenant_join.tenant_id if tenant_join else None
+
+    logger.info("get_message_usage_cost called: message_id=%s, tenant_id=%s", message_id, tenant_id)
+
+    try:
+        # Aggregate usage for this message
+        result = (
+            db.session.query(
+                func.sum(ApiUsageLog.total_price).label("total_price"),
+                func.count(ApiUsageLog.id).label("usage_count"),
+            )
+            .filter(
+                ApiUsageLog.tenant_id == tenant_id,
+                ApiUsageLog.message_id == message_id,
+            )
+            .first()
+        )
+
+        total_price = result.total_price if result and result.total_price else Decimal(0)
+        usage_count = result.usage_count if result else 0
+
+        logger.info("get_message_usage_cost result: total_price=%s, usage_count=%s", total_price, usage_count)
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": {
+                    "total_price": str(total_price),
+                    "currency": "USD",
+                    "usage_count": usage_count,
+                },
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Failed to get message usage cost for message_id=%s", message_id)
+        return jsonify({"result": "fail", "message": str(e)}), 500
+
+
 @bp.route("/sessions/<session_id>/users/<account_id>/logs", methods=["GET"])
 @jwt_required
 def get_user_usage_logs(session_id: str, account_id: str):
@@ -444,6 +506,12 @@ def delete_session_usage_logs(session_id: str):
     if not is_owner and not is_instructor:
         return jsonify({"result": "fail", "message": "Permission denied"}), 403
 
+    # Check if session is active
+    if session.is_currently_active:
+        return jsonify(
+            {"result": "fail", "message": "Active session logs cannot be deleted. Deactivate it first."}
+        ), 400
+
     try:
         stmt = delete(ApiUsageLog).where(
             ApiUsageLog.session_id == session_id,
@@ -473,3 +541,142 @@ def delete_session_usage_logs(session_id: str):
         db.session.rollback()
         logger.exception("Failed to delete session usage logs")
         return jsonify({"result": "fail", "message": str(e)}), 500
+
+
+# ============================================================
+# System-wide APIs (Owner only)
+# ============================================================
+
+
+@bp.route("/system/summary", methods=["GET"])
+@jwt_required
+@owner_required
+def get_system_usage_summary():
+    """
+    Get system-wide usage summary (Owner only).
+
+    Query params:
+        start_date: Start date (YYYY-MM-DD, optional)
+        end_date: End date (YYYY-MM-DD, optional)
+    """
+    tenant_id = request.tenant_id
+
+    start_date = _parse_date(request.args.get("start_date"))
+    end_date = _parse_date(request.args.get("end_date"))
+
+    summaries = UsageAnalyticsService.get_session_usage_summary(
+        session=db.session,  # type: ignore[arg-type]
+        tenant_id=tenant_id,
+        edu_session_id=None,  # None for system-wide
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return jsonify(
+        {
+            "result": "success",
+            "data": [
+                {
+                    "usage_type": s.usage_type,
+                    "request_count": s.request_count,
+                    "total_input_tokens": s.total_input_tokens,
+                    "total_output_tokens": s.total_output_tokens,
+                    "total_tokens": s.total_tokens,
+                    "total_price": str(s.total_price),
+                    "currency": s.currency,
+                }
+                for s in summaries
+            ],
+        }
+    )
+
+
+@bp.route("/system/daily-trend", methods=["GET"])
+@jwt_required
+@owner_required
+def get_system_daily_trend():
+    """
+    Get system-wide daily usage trend (Owner only).
+
+    Query params:
+        start_date: Start date (YYYY-MM-DD, optional)
+        end_date: End date (YYYY-MM-DD, optional)
+        usage_type: Filter by usage type (optional)
+    """
+    tenant_id = request.tenant_id
+
+    start_date = _parse_date(request.args.get("start_date"))
+    end_date = _parse_date(request.args.get("end_date"))
+    usage_type = request.args.get("usage_type")
+
+    trend = UsageAnalyticsService.get_daily_usage_trend(
+        session=db.session,  # type: ignore[arg-type]
+        tenant_id=tenant_id,
+        edu_session_id=None,  # None for system-wide
+        start_date=start_date,
+        end_date=end_date,
+        usage_type=usage_type,
+    )
+
+    return jsonify(
+        {
+            "result": "success",
+            "data": [
+                {
+                    "date": d.date.isoformat(),
+                    "usage_type": d.usage_type,
+                    "request_count": d.request_count,
+                    "total_tokens": d.total_tokens,
+                    "total_price": str(d.total_price),
+                }
+                for d in trend
+            ],
+        }
+    )
+
+
+@bp.route("/system/user-breakdown", methods=["GET"])
+@jwt_required
+@owner_required
+def get_system_user_breakdown():
+    """
+    Get system-wide per-user usage breakdown (Owner only).
+
+    Query params:
+        start_date: Start date (YYYY-MM-DD, optional)
+        end_date: End date (YYYY-MM-DD, optional)
+        usage_type: Filter by usage type (optional)
+    """
+    tenant_id = request.tenant_id
+
+    start_date = _parse_date(request.args.get("start_date"))
+    end_date = _parse_date(request.args.get("end_date"))
+    usage_type = request.args.get("usage_type")
+
+    breakdown = UsageAnalyticsService.get_user_usage_breakdown(
+        session=db.session,  # type: ignore[arg-type]
+        tenant_id=tenant_id,
+        edu_session_id=None,  # None for system-wide
+        start_date=start_date,
+        end_date=end_date,
+        usage_type=usage_type,
+    )
+
+    return jsonify(
+        {
+            "result": "success",
+            "data": [
+                {
+                    "account_id": u.account_id,
+                    "account_name": u.account_name,
+                    "usage_type": u.usage_type,
+                    "request_count": u.request_count,
+                    "total_tokens": u.total_tokens,
+                    "total_price": str(u.total_price),
+                    "session_id": u.session_id,
+                    "session_name": u.session_name,
+                }
+                for u in breakdown
+            ],
+        }
+    )

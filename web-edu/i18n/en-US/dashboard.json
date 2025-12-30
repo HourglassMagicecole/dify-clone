@@ -3,7 +3,8 @@
   "subtitle": "View your learning progress and resources",
   "resourceSummary": {
     "agents": "Agents",
-    "datasets": "Datasets"
+    "datasets": "Datasets",
+    "members": "Members"
   },
   "recentActivity": {
     "title": "Recent Activity",

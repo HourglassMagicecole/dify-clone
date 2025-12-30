@@ -974,6 +974,12 @@ export class AgentAPIService {
                           ? Number(data.created_at) * 1000 // Convert seconds to milliseconds
                           : Number(data.created_at)) // Already in milliseconds
                       : Date.now(),
+                    // Backend may send updated_at in seconds, normalize to milliseconds
+                    updated_at: data.updated_at
+                      ? (Number(data.updated_at) < 10000000000
+                          ? Number(data.updated_at) * 1000 // Convert seconds to milliseconds
+                          : Number(data.updated_at)) // Already in milliseconds
+                      : undefined,
                   }
 
                   // Prevent duplicates: update existing thought or add new one
@@ -1007,6 +1013,10 @@ export class AgentAPIService {
               case 'message_end':
                 // Final event with metadata - marks successful completion
                 receivedMessageEnd = true
+                // Get message_id from message_end event (fallback if not set earlier)
+                if (data.id && !messageId) {
+                  messageId = String(data.id)
+                }
                 if (data.metadata) {
                   const metadata = data.metadata as Record<string, unknown>
                   const usage = metadata.usage as Record<string, unknown> | undefined

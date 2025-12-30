@@ -48,6 +48,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
     agentThoughts: [],
     tokenUsage: null,
     executionTime: null,
+    messageId: null,
   })
 
   // Load agent data on mount
@@ -200,13 +201,13 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             // Update state with final results
             // Use prev to preserve real-time agentThoughts instead of overwriting
             _setExecutionState((prev) => {
-              // Calculate total tool execution time from agent thoughts
-              const toolTime = prev.agentThoughts.reduce((sum, t) => {
-                if (t.updated_at && t.created_at) {
-                  return sum + (t.updated_at - t.created_at)
-                }
-                return sum
-              }, 0)
+              // Get LLM time from backend (in seconds, convert to ms)
+              const llmTime = response.data.metadata.usage.latency
+                ? response.data.metadata.usage.latency * 1000
+                : 0
+
+              // Tool time = Total time - LLM time (more accurate than summing individual thoughts)
+              const toolTime = Math.max(0, totalTime - llmTime)
 
               return {
                 status: 'success',
@@ -217,11 +218,10 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
                 tokenUsage: response.data.metadata.usage,
                 executionTime: {
                   total: totalTime,
-                  llm: response.data.metadata.usage.latency
-                    ? response.data.metadata.usage.latency * 1000
-                    : 0,
-                  tool: toolTime, // Calculated from agent_thoughts
+                  llm: llmTime,
+                  tool: toolTime,
                 },
+                messageId: response.data.id || null, // For cost lookup
               }
             })
 
@@ -377,6 +377,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
                   tokenUsage={executionState.tokenUsage}
                   executionTime={executionState.executionTime}
                   agentThoughts={executionState.agentThoughts}
+                  messageId={executionState.messageId}
                   onRetry={handleRetry}
                   isRetrying={executionState.status === 'running'}
                 />

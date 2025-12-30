@@ -36,7 +36,7 @@ export function UserAvatar({
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full flex items-center justify-center bg-primary-500 text-white font-semibold overflow-hidden relative ${className}`}
+      className={`${sizeClasses[size]} rounded-full flex items-center justify-center bg-blue-600 text-white font-semibold overflow-hidden relative ring-2 ring-blue-200 ${className}`}
       title={name}
     >
       {avatarUrl ? (

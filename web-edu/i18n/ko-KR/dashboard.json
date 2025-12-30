@@ -3,7 +3,8 @@
   "subtitle": "내 학습 현황과 리소스를 확인하세요",
   "resourceSummary": {
     "agents": "Agents",
-    "datasets": "Datasets"
+    "datasets": "Datasets",
+    "members": "등록 멤버"
   },
   "recentActivity": {
     "title": "최근 활동",

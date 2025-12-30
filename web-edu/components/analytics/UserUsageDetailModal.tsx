@@ -5,7 +5,7 @@ import { Modal } from '@/components/common/Modal'
 import { ExportButton } from './ExportButton'
 import { getUserUsageLogs, UsageLogEntry } from '@/service/usage-analytics-api'
 
-interface UsageByType {
+export interface UsageByType {
   usageType: string
   requestCount: number
   totalTokens: number
@@ -343,11 +343,6 @@ export function UserUsageDetailModal({
             )}
           </div>
         )}
-
-        {/* Note */}
-        <div className="rounded-lg bg-yellow-50 p-3 text-sm text-yellow-800">
-          <strong>참고:</strong> 상세 사용 로그는 세션 종료 후 14일간 보관됩니다.
-        </div>
       </div>
     </Modal>
   )

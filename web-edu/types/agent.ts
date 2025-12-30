@@ -484,6 +484,7 @@ export interface ExecutionState {
   agentThoughts: AgentThought[]       // Agent reasoning steps
   tokenUsage: TokenUsage | null       // Token usage
   executionTime: ExecutionTime | null // Execution time
+  messageId: string | null            // Message ID for cost lookup
 }
 
 /**

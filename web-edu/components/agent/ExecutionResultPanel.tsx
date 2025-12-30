@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import type { TokenUsage, ExecutionTime, AgentThought } from '@/types/agent'
 import type { MessageFile } from '@/types/chat'
+import { getMessageUsageCost } from '@/service/usage-analytics-api'
 
 /**
  * Execution result panel props
@@ -19,26 +20,9 @@ export interface ExecutionResultPanelProps {
   tokenUsage: TokenUsage | null
   executionTime: ExecutionTime | null
   agentThoughts?: AgentThought[]
+  messageId?: string | null
   onRetry: () => void
   isRetrying?: boolean
-}
-
-/**
- * Calculate cost based on token usage (GPT-4 pricing as reference)
- */
-function calculateCost(usage: TokenUsage): number {
-  if (usage.cost !== undefined) {
-    return usage.cost
-  }
-
-  // GPT-4 pricing (example)
-  const PROMPT_PRICE_PER_1K = 0.03 // $0.03 per 1K prompt tokens
-  const COMPLETION_PRICE_PER_1K = 0.06 // $0.06 per 1K completion tokens
-
-  return (
-    (usage.prompt_tokens / 1000) * PROMPT_PRICE_PER_1K
-    + (usage.completion_tokens / 1000) * COMPLETION_PRICE_PER_1K
-  )
 }
 
 /**
@@ -46,7 +30,7 @@ function calculateCost(usage: TokenUsage): number {
  */
 function formatTime(ms: number): string {
   if (ms < 1000) {
-    return `${ms}ms`
+    return `${ms.toFixed(2)}ms`
   }
   return `${(ms / 1000).toFixed(2)}s`
 }
@@ -73,12 +57,66 @@ export function ExecutionResultPanel({
   tokenUsage,
   executionTime,
   agentThoughts = [],
+  messageId,
   onRetry,
   isRetrying = false,
 }: ExecutionResultPanelProps) {
   const { t } = useTranslation('agent')
   const [isCopied, setIsCopied] = useState(false)
   const [showDebugModal, setShowDebugModal] = useState(false)
+
+  // Cost loading state
+  const [cost, setCost] = useState<string | null>(null)
+  const [costLoading, setCostLoading] = useState(false)
+
+  // Fetch cost when messageId is available
+  useEffect(() => {
+    if (!messageId) {
+      setCost(null)
+      return
+    }
+
+    let cancelled = false
+    const fetchCostWithRetry = async (retries = 3, delay = 2000) => {
+      setCostLoading(true)
+      try {
+        for (let attempt = 0; attempt < retries && !cancelled; attempt++) {
+          // Wait before each attempt to allow backend to process the usage log
+          await new Promise(resolve => setTimeout(resolve, delay))
+
+          const response = await getMessageUsageCost(messageId)
+          if (!cancelled && response.result === 'success' && response.data) {
+            const price = parseFloat(response.data.total_price)
+            // If price is 0 and we have retries left, try again
+            if (price === 0 && attempt < retries - 1) {
+              continue
+            }
+            setCost(price > 0 ? `$${price.toFixed(4)}` : '$0.0000')
+            return
+          }
+        }
+        // All retries exhausted with 0 cost
+        if (!cancelled) {
+          setCost('$0.0000')
+        }
+      } catch (error) {
+        console.error('Failed to fetch message cost:', error)
+        if (!cancelled) {
+          setCost(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setCostLoading(false)
+        }
+      }
+    }
+
+    fetchCostWithRetry()
+
+    return () => {
+      cancelled = true
+    }
+  }, [messageId])
 
   // Extract all message_files from agent_thoughts
   // Method 1: Direct message_files field (standard way)
@@ -344,41 +382,39 @@ export function ExecutionResultPanel({
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                   {t('execute.result.metrics.tokens', { defaultValue: '토큰' })}
                 </p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                <p className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                   {formatNumber(tokenUsage.total_tokens)}
                 </p>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
-                  <p>
-                    {t('execute.result.metrics.promptTokens', { defaultValue: 'P' })}
-                    :
-                    {' '}
-                    {formatNumber(tokenUsage.prompt_tokens)}
-                  </p>
-                  <p>
-                    {t('execute.result.metrics.completionTokens', { defaultValue: 'C' })}
-                    :
-                    {' '}
-                    {formatNumber(tokenUsage.completion_tokens)}
-                  </p>
+                <div className="space-y-2">
+                  {/* Input Tokens */}
+                  <div className="bg-white/50 dark:bg-gray-800/50 rounded p-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {t('execute.result.metrics.inputTokens', { defaultValue: '입력 (Prompt)' })}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {formatNumber(tokenUsage.prompt_tokens)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('execute.result.metrics.inputTokensDesc', { defaultValue: '사용자 입력, 시스템 프롬프트, 도구 정의, 대화 컨텍스트 등' })}
+                    </p>
+                  </div>
+                  {/* Output Tokens */}
+                  <div className="bg-white/50 dark:bg-gray-800/50 rounded p-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {t('execute.result.metrics.outputTokens', { defaultValue: '출력 (Completion)' })}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {formatNumber(tokenUsage.completion_tokens)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('execute.result.metrics.outputTokensDesc', { defaultValue: 'LLM이 생성한 응답, 도구 호출, 최종 답변 등' })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Cost */}
-            {tokenUsage && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                  {t('execute.result.metrics.cost', { defaultValue: '비용' })}
-                </p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  $
-                  {calculateCost(tokenUsage).toFixed(4)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  GPT-4
-                  {' '}
-                  {t('execute.result.metrics.pricing', { defaultValue: '기준' })}
-                </p>
               </div>
             )}
 
@@ -386,27 +422,70 @@ export function ExecutionResultPanel({
             {executionTime && (
               <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                  {t('execute.result.metrics.time', { defaultValue: '시간' })}
+                  {t('execute.result.metrics.time', { defaultValue: '실행 시간' })}
                 </p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                <p className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                   {formatTime(executionTime.total)}
                 </p>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
-                  <p>
-                    {t('execute.result.metrics.llmTime', { defaultValue: 'LLM' })}
-                    :
-                    {' '}
-                    {formatTime(executionTime.llm)}
-                  </p>
-                  <p>
-                    {t('execute.result.metrics.toolTime', { defaultValue: 'Tool' })}
-                    :
-                    {' '}
-                    {formatTime(executionTime.tool)}
-                  </p>
+                <div className="space-y-2">
+                  {/* LLM Time */}
+                  <div className="bg-white/50 dark:bg-gray-800/50 rounded p-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {t('execute.result.metrics.llmTime', { defaultValue: 'LLM' })}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {formatTime(executionTime.llm)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('execute.result.metrics.llmTimeDesc', { defaultValue: '모델 응답 대기 시간' })}
+                    </p>
+                  </div>
+                  {/* Tool Time */}
+                  <div className="bg-white/50 dark:bg-gray-800/50 rounded p-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {t('execute.result.metrics.toolTime', { defaultValue: 'Tool' })}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {formatTime(executionTime.tool)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('execute.result.metrics.toolTimeDesc', { defaultValue: '도구 실행 시간' })}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* Cost */}
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                {t('execute.result.metrics.cost', { defaultValue: '비용' })}
+              </p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                {costLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm font-normal text-gray-500">
+                      {t('execute.result.metrics.costLoading', { defaultValue: '계산 중...' })}
+                    </span>
+                  </span>
+                ) : cost !== null ? (
+                  cost
+                ) : (
+                  <span className="text-gray-400">-</span>
+                )}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t('execute.result.metrics.costDesc', { defaultValue: 'API 사용 비용 (가격 설정 반영)' })}
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -442,7 +521,7 @@ export function ExecutionResultPanel({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  <span>{t('execute.result.retrying', { defaultValue: '재시도 중...' })}</span>
+                  <span>{t('execute.result.running', { defaultValue: '작성중...' })}</span>
                 </>
               )
             : (

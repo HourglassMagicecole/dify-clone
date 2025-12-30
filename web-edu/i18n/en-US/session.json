@@ -139,5 +139,19 @@
   "cannot_deactivate_current_session": "Cannot deactivate the current session",
   "cannot_set_future_start_for_current_session": "Cannot set start date to future for current session",
   "cannot_set_past_end_for_current_session": "Cannot set end date to past for current session",
-  "cannot_delete_current_session": "Cannot delete the current session. Switch to another session first."
+  "cannot_delete_current_session": "Cannot delete the current session. Switch to another session first.",
+  "cannot_delete_active_session": "Cannot delete an active session. Deactivate it first.",
+  "cannot_delete_default_session": "Default session cannot be deleted.",
+  "usage_log_management": "Usage Log Management",
+  "usage_log_management_desc": "Export or delete API usage logs for this session.",
+  "export_logs": "Export Logs",
+  "delete_logs": "Delete Logs",
+  "exporting": "Exporting...",
+  "deleting": "Deleting...",
+  "export_success": "Logs exported successfully",
+  "export_failed": "Failed to export logs",
+  "usage_data_load_failed": "Failed to load usage data",
+  "confirm_delete_logs": "Delete all usage logs for \"{{sessionName}}\"?\n\nThis action cannot be undone.",
+  "logs_deleted": "{{count}} logs deleted.",
+  "cannot_delete_active_session_logs": "Cannot delete logs of an active session."
 }

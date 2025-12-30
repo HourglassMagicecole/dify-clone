@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from extensions.ext_database import db
 from models import Account, App
+from models.education import ApiUsageLog
 from models.education.resource_tag import SessionResourceTag
 from models.education.session import EducationSession
 from services.app_service import AppService
@@ -30,9 +31,8 @@ def delete_session_with_resources_task(
     This task:
     1. Deletes all apps created by members in this session
     2. Deletes all datasets created by members in this session
-    3. Deletes the session (members are deleted via CASCADE)
-
-    Note: LLM usage logs are preserved for audit/billing purposes.
+    3. Deletes usage logs for this session
+    4. Deletes the session (members are deleted via CASCADE)
 
     Args:
         self: Celery task instance (bound)
@@ -60,6 +60,7 @@ def delete_session_with_resources_task(
         "status": "completed",
         "deleted_apps": 0,
         "deleted_datasets": 0,
+        "deleted_usage_logs": 0,
         "session_deleted": False,
         "errors": [],
     }
@@ -113,7 +114,7 @@ def delete_session_with_resources_task(
         result["errors"].extend(dataset_errors)
         current += len(dataset_ids)
 
-        # Phase 3: Delete session (members are deleted via CASCADE)
+        # Phase 3: Delete usage logs
         self.update_state(
             state="PROGRESS",
             meta={
@@ -121,6 +122,24 @@ def delete_session_with_resources_task(
                 "total": total_items,
                 "deleted_apps": deleted_apps,
                 "deleted_datasets": deleted_datasets,
+                "deleted_usage_logs": 0,
+                "session_deleted": False,
+                "phase": "deleting_usage_logs",
+            },
+        )
+
+        deleted_usage_logs = _delete_usage_logs(session_id)
+        result["deleted_usage_logs"] = deleted_usage_logs
+
+        # Phase 4: Delete session (members are deleted via CASCADE)
+        self.update_state(
+            state="PROGRESS",
+            meta={
+                "current": current,
+                "total": total_items,
+                "deleted_apps": deleted_apps,
+                "deleted_datasets": deleted_datasets,
+                "deleted_usage_logs": deleted_usage_logs,
                 "session_deleted": False,
                 "phase": "deleting_session",
             },
@@ -133,7 +152,8 @@ def delete_session_with_resources_task(
         logger.info(
             click.style(
                 f"Session deletion completed: session={session_id}, "
-                f"apps={deleted_apps}, datasets={deleted_datasets}, deleted={session_deleted}, "
+                f"apps={deleted_apps}, datasets={deleted_datasets}, "
+                f"usage_logs={deleted_usage_logs}, deleted={session_deleted}, "
                 f"latency={end_at - start_at:.2f}s",
                 fg="green",
             )
@@ -258,6 +278,29 @@ def _delete_datasets(
             errors.append(error_msg)
 
     return deleted, errors
+
+
+def _delete_usage_logs(session_id: str) -> int:
+    """
+    Delete all usage logs for a session.
+
+    Args:
+        session_id: The session UUID
+
+    Returns:
+        Number of logs deleted
+    """
+    try:
+        deleted_count = (
+            db.session.query(ApiUsageLog).filter(ApiUsageLog.session_id == session_id).delete(synchronize_session=False)
+        )
+        db.session.commit()
+        logger.info(click.style(f"Deleted {deleted_count} usage logs for session {session_id}", fg="green"))
+        return deleted_count
+    except Exception:
+        db.session.rollback()
+        logger.exception(click.style(f"Failed to delete usage logs for session {session_id}", fg="red"))
+        return 0
 
 
 def _delete_session(session_id: str) -> bool:

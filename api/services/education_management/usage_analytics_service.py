@@ -51,6 +51,8 @@ class UserUsageData:
     request_count: int
     total_tokens: int
     total_price: Decimal
+    session_id: str | None = None
+    session_name: str | None = None
 
 
 @dataclass
@@ -99,37 +101,38 @@ class UsageAnalyticsService:
     def get_session_usage_summary(
         session: Session,
         tenant_id: str,
-        edu_session_id: str,
+        edu_session_id: str | None = None,
         start_date: date | None = None,
         end_date: date | None = None,
     ) -> list[UsageSummaryData]:
         """
-        Get usage summary for an education session.
+        Get usage summary for an education session or entire system.
 
         Args:
             session: SQLAlchemy session
             tenant_id: Tenant ID
-            edu_session_id: Education session ID
+            edu_session_id: Education session ID (None for system-wide)
             start_date: Start date filter (optional)
             end_date: End date filter (optional)
 
         Returns:
             List of usage summaries by type
         """
-        # Note: tenant_id filter removed to match dashboard_service behavior
-        stmt = (
-            select(
-                ApiUsageLog.usage_type,
-                func.count(ApiUsageLog.id).label("request_count"),
-                func.sum(ApiUsageLog.input_tokens).label("total_input_tokens"),
-                func.sum(ApiUsageLog.output_tokens).label("total_output_tokens"),
-                func.sum(ApiUsageLog.total_tokens).label("total_tokens"),
-                func.sum(ApiUsageLog.total_price).label("total_price"),
-                ApiUsageLog.currency,
-            )
-            .where(ApiUsageLog.session_id == edu_session_id)
-            .group_by(ApiUsageLog.usage_type, ApiUsageLog.currency)
-        )
+        stmt = select(
+            ApiUsageLog.usage_type,
+            func.count(ApiUsageLog.id).label("request_count"),
+            func.sum(ApiUsageLog.input_tokens).label("total_input_tokens"),
+            func.sum(ApiUsageLog.output_tokens).label("total_output_tokens"),
+            func.sum(ApiUsageLog.total_tokens).label("total_tokens"),
+            func.sum(ApiUsageLog.total_price).label("total_price"),
+            ApiUsageLog.currency,
+        ).group_by(ApiUsageLog.usage_type, ApiUsageLog.currency)
+
+        # Filter by session if specified, otherwise by tenant
+        if edu_session_id:
+            stmt = stmt.where(ApiUsageLog.session_id == edu_session_id)
+        else:
+            stmt = stmt.where(ApiUsageLog.tenant_id == tenant_id)
 
         if start_date:
             stmt = stmt.where(ApiUsageLog.created_at >= datetime.combine(start_date, datetime.min.time()))
@@ -155,18 +158,18 @@ class UsageAnalyticsService:
     def get_daily_usage_trend(
         session: Session,
         tenant_id: str,
-        edu_session_id: str,
-        start_date: date,
-        end_date: date,
+        edu_session_id: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
         usage_type: str | None = None,
     ) -> list[DailyUsageData]:
         """
-        Get daily usage trend for an education session.
+        Get daily usage trend for an education session or entire system.
 
         Args:
             session: SQLAlchemy session
             tenant_id: Tenant ID
-            edu_session_id: Education session ID
+            edu_session_id: Education session ID (None for system-wide)
             start_date: Start date
             end_date: End date
             usage_type: Filter by usage type (optional)
@@ -174,7 +177,6 @@ class UsageAnalyticsService:
         Returns:
             List of daily usage data
         """
-        # Note: tenant_id filter removed to match dashboard_service behavior
         stmt = (
             select(
                 func.date(ApiUsageLog.created_at).label("date"),
@@ -183,14 +185,20 @@ class UsageAnalyticsService:
                 func.sum(ApiUsageLog.total_tokens).label("total_tokens"),
                 func.sum(ApiUsageLog.total_price).label("total_price"),
             )
-            .where(
-                ApiUsageLog.session_id == edu_session_id,
-                ApiUsageLog.created_at >= datetime.combine(start_date, datetime.min.time()),
-                ApiUsageLog.created_at <= datetime.combine(end_date, datetime.max.time()),
-            )
             .group_by(func.date(ApiUsageLog.created_at), ApiUsageLog.usage_type)
             .order_by(func.date(ApiUsageLog.created_at))
         )
+
+        # Filter by session if specified, otherwise by tenant
+        if edu_session_id:
+            stmt = stmt.where(ApiUsageLog.session_id == edu_session_id)
+        else:
+            stmt = stmt.where(ApiUsageLog.tenant_id == tenant_id)
+
+        if start_date:
+            stmt = stmt.where(ApiUsageLog.created_at >= datetime.combine(start_date, datetime.min.time()))
+        if end_date:
+            stmt = stmt.where(ApiUsageLog.created_at <= datetime.combine(end_date, datetime.max.time()))
 
         if usage_type:
             stmt = stmt.where(ApiUsageLog.usage_type == usage_type)
@@ -212,18 +220,18 @@ class UsageAnalyticsService:
     def get_user_usage_breakdown(
         session: Session,
         tenant_id: str,
-        edu_session_id: str,
+        edu_session_id: str | None = None,
         start_date: date | None = None,
         end_date: date | None = None,
         usage_type: str | None = None,
     ) -> list[UserUsageData]:
         """
-        Get per-user usage breakdown for an education session.
+        Get per-user usage breakdown for an education session or entire system.
 
         Args:
             session: SQLAlchemy session
             tenant_id: Tenant ID
-            edu_session_id: Education session ID
+            edu_session_id: Education session ID (None for system-wide)
             start_date: Start date filter (optional)
             end_date: End date filter (optional)
             usage_type: Filter by usage type (optional)
@@ -231,9 +239,11 @@ class UsageAnalyticsService:
         Returns:
             List of user usage data
         """
-        # Note: tenant_id filter removed to match dashboard_service behavior
+        from models.education import EducationSession
+
         # Join with Account table to get user names
         # Include records with null account_id as "미분류"
+        # For system-wide, also join with EducationSession to get session names
         stmt = (
             select(
                 ApiUsageLog.account_id,
@@ -242,12 +252,26 @@ class UsageAnalyticsService:
                 func.count(ApiUsageLog.id).label("request_count"),
                 func.sum(ApiUsageLog.total_tokens).label("total_tokens"),
                 func.sum(ApiUsageLog.total_price).label("total_price"),
+                ApiUsageLog.session_id,
+                EducationSession.session_name.label("session_name"),
             )
             .outerjoin(Account, ApiUsageLog.account_id == Account.id)
-            .where(ApiUsageLog.session_id == edu_session_id)
-            .group_by(ApiUsageLog.account_id, Account.name, ApiUsageLog.usage_type)
+            .outerjoin(EducationSession, ApiUsageLog.session_id == EducationSession.id)
+            .group_by(
+                ApiUsageLog.account_id,
+                Account.name,
+                ApiUsageLog.usage_type,
+                ApiUsageLog.session_id,
+                EducationSession.session_name,
+            )
             .order_by(func.sum(ApiUsageLog.total_price).desc())
         )
+
+        # Filter by session if specified, otherwise by tenant
+        if edu_session_id:
+            stmt = stmt.where(ApiUsageLog.session_id == edu_session_id)
+        else:
+            stmt = stmt.where(ApiUsageLog.tenant_id == tenant_id)
 
         if start_date:
             stmt = stmt.where(ApiUsageLog.created_at >= datetime.combine(start_date, datetime.min.time()))
@@ -266,6 +290,8 @@ class UsageAnalyticsService:
                 request_count=row.request_count,
                 total_tokens=row.total_tokens or 0,
                 total_price=row.total_price or Decimal(0),
+                session_id=row.session_id,
+                session_name=row.session_name,
             )
             for row in results
         ]
