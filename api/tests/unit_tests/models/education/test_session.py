@@ -35,7 +35,7 @@ def test_education_session_attributes():
     start_date = datetime(2025, 1, 1)
     end_date = datetime(2025, 6, 30)
     max_students = 30
-    is_active = True
+    force_status = True
     description = "Test description"
 
     # Act
@@ -48,7 +48,7 @@ def test_education_session_attributes():
         start_date=start_date,
         end_date=end_date,
         max_students=max_students,
-        is_active=is_active,
+        force_status=force_status,
         description=description,
     )
 
@@ -61,7 +61,7 @@ def test_education_session_attributes():
     assert session.start_date == start_date
     assert session.end_date == end_date
     assert session.max_students == max_students
-    assert session.is_active == is_active
+    assert session.force_status == force_status
     assert session.description == description
 
 
@@ -83,9 +83,9 @@ def test_education_session_nullable_end_date():
         start_date=datetime(2025, 1, 1),
         end_date=None,  # Nullable
         max_students=50,
-        is_active=True,
     )
 
     # Assert
     assert session.end_date is None
     assert session.description is None
+    assert session.force_status is None  # Default is None (auto date-based)

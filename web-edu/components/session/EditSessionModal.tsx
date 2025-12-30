@@ -13,7 +13,8 @@ interface EditSessionModalProps {
 
 export const EditSessionModal: React.FC<EditSessionModalProps> = ({ session, onClose }) => {
   const { t } = useTranslation('session')
-  const { refreshSessions } = useSession()
+  const { currentSession, refreshSessions } = useSession()
+  const isCurrentSession = currentSession?.id === session.id
   const [formData, setFormData] = useState<UpdateSessionRequest>({
     session_name: session.session_name,
     start_date: session.start_date,
@@ -25,10 +26,54 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ session, onC
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 현재 세션일 때 비활성화 조건 검사
+  const wouldDeactivateCurrentSession = (): string | null => {
+    if (!isCurrentSession) return null
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // force_status가 false면 비활성화
+    if (formData.force_status === false) {
+      return t('cannot_deactivate_current_session')
+    }
+
+    // force_status가 auto일 때 날짜 체크
+    if (formData.force_status === null) {
+      // start_date가 미래면 비활성화
+      if (formData.start_date) {
+        const startDate = new Date(formData.start_date)
+        startDate.setHours(0, 0, 0, 0)
+        if (startDate > today) {
+          return t('cannot_set_future_start_for_current_session')
+        }
+      }
+
+      // end_date가 과거면 비활성화
+      if (formData.end_date) {
+        const endDate = new Date(formData.end_date)
+        endDate.setHours(23, 59, 59, 999)
+        if (endDate < today) {
+          return t('cannot_set_past_end_for_current_session')
+        }
+      }
+    }
+
+    return null
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setError(null)
+
+    // 현재 세션 비활성화 방지 검사
+    const deactivationError = wouldDeactivateCurrentSession()
+    if (deactivationError) {
+      setError(deactivationError)
+      setIsSubmitting(false)
+      return
+    }
 
     try {
       // Convert dates to ISO 8601 with user's local timezone
@@ -154,9 +199,14 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ session, onC
             >
               <option value="auto">{t('auto_by_date')}</option>
               <option value="force_active">{t('force_active')}</option>
-              <option value="force_inactive">{t('force_inactive')}</option>
+              <option value="force_inactive" disabled={isCurrentSession}>
+                {t('force_inactive')}{isCurrentSession ? ` (${t('current_session')})` : ''}
+              </option>
             </select>
             <p className="text-xs text-gray-500 mt-1">{t('activation_hint')}</p>
+            {isCurrentSession && (
+              <p className="text-xs text-amber-600 mt-1">{t('current_session_warning')}</p>
+            )}
           </div>
 
           <div className="mb-4">

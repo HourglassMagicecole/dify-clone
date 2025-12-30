@@ -95,8 +95,7 @@ def get_user_active_session(account_id: str) -> Optional[EducationSession]:
             .where(
                 EducationSessionMember.account_id == account_id,
                 EducationSessionMember.status == "active",
-                EducationSession.is_active == True,
-                build_session_active_condition(),
+                build_session_active_condition() == True,
             )
             .order_by(EducationSession.created_at.desc())
             .limit(1)

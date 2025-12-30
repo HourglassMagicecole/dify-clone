@@ -1,12 +1,14 @@
 """Education session service for managing sessions."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
+from configs import dify_config
 from extensions.ext_database import db
 from models.account import Account, TenantAccountJoin, TenantAccountRole
+from models.education import ApiUsageLog
 from models.education.session import EducationSession
 from models.education.session_member import MemberStatus
 
@@ -65,7 +67,6 @@ class EduSessionService:
             start_date=start_date,
             end_date=end_date,
             max_students=max_students,
-            is_active=True,
             description=description,
         )
 
@@ -160,13 +161,11 @@ class EduSessionService:
             # Owner는 모든 세션 조회 (필터 없음)
 
         # Filter by is_active if specified
-        # When is_active=True, also apply date-based activation check
+        # Uses force_status + date-based activation check
         if is_active is not None:
-            query = query.where(EducationSession.is_active == is_active)
-            if is_active:
-                from services.edu.session_helper import build_session_active_condition
+            from services.edu.session_helper import build_session_active_condition
 
-                query = query.where(build_session_active_condition())
+            query = query.where(build_session_active_condition() == is_active)
 
         # Filter by instructor_account_id if specified
         # (Owner가 특정 관리자의 세션만 보고 싶을 때 사용)
@@ -230,13 +229,11 @@ class EduSessionService:
         )
 
         # Filter by is_active if specified
-        # When is_active=True, also apply date-based activation check
+        # Uses force_status + date-based activation check
         if is_active is not None:
-            query = query.where(EducationSession.is_active == is_active)
-            if is_active:
-                from services.edu.session_helper import build_session_active_condition
+            from services.edu.session_helper import build_session_active_condition
 
-                query = query.where(build_session_active_condition())
+            query = query.where(build_session_active_condition() == is_active)
 
         # Order by created_at descending
         query = query.order_by(EducationSession.created_at.desc())
@@ -265,7 +262,6 @@ class EduSessionService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         max_students: Optional[int] = None,
-        is_active: Optional[bool] = None,
         force_status: Optional[bool] = UNSET,  # Use UNSET to distinguish None from not-provided
         description: Optional[str] = None,
     ) -> EducationSession:
@@ -278,7 +274,6 @@ class EduSessionService:
             start_date: New start date (optional)
             end_date: New end date (optional)
             max_students: New max students (optional)
-            is_active: New active status (optional)
             force_status: Override date-based activation (optional)
                 - None: auto (date-based)
                 - True: force active
@@ -301,10 +296,14 @@ class EduSessionService:
             session.start_date = start_date
         if end_date is not None:
             session.end_date = end_date
+            # Task 18.6: Set retention_until for all logs in this session
+            review_period = dify_config.USAGE_LOG_REVIEW_PERIOD_DAYS
+            retention_date = end_date.date() + timedelta(days=review_period)
+            db.session.execute(
+                update(ApiUsageLog).where(ApiUsageLog.session_id == session_id).values(retention_until=retention_date)
+            )
         if max_students is not None:
             session.max_students = max_students
-        if is_active is not None:
-            session.is_active = is_active
         # Default session must always be active (force_status=True cannot be changed)
         if force_status is not UNSET and not session.is_default:
             session.force_status = force_status
@@ -331,11 +330,25 @@ class EduSessionService:
         Note:
             Related session members will be deleted automatically (CASCADE).
             Default sessions (is_default=True) cannot be deleted.
+            Task 18.7: Before deletion, sets retention_until for logs without it.
         """
         session = self.get_session(session_id)
 
         if session.is_default:
             raise ValueError("Default session cannot be deleted")
+
+        # Task 18.7: Set retention_until for logs that don't have it yet
+        review_period = dify_config.USAGE_LOG_REVIEW_PERIOD_DAYS
+        end_date = session.end_date.date() if session.end_date else date.today()
+        retention_date = end_date + timedelta(days=review_period)
+        db.session.execute(
+            update(ApiUsageLog)
+            .where(
+                ApiUsageLog.session_id == session_id,
+                ApiUsageLog.retention_until.is_(None),
+            )
+            .values(retention_until=retention_date)
+        )
 
         db.session.delete(session)
         db.session.commit()

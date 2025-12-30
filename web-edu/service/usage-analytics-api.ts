@@ -208,3 +208,31 @@ export async function getMyDailyUsage(sessionId?: string, days: number = 30): Pr
 
   return apiClient.get<DailyUsage[]>(endpoint)
 }
+
+// ============================================================
+// Owner Maintenance APIs
+// ============================================================
+
+export interface CleanupResult {
+  deleted_count: number
+}
+
+/**
+ * Manually trigger cleanup of old usage logs (Owner only).
+ * Deletes logs where retention_until < today.
+ */
+export async function cleanupOldUsageLogs(): Promise<ApiResponse<CleanupResult>> {
+  return apiClient.post<CleanupResult>('/console/api/edu/usage-analytics/cleanup', {})
+}
+
+export interface DeleteSessionLogsResult {
+  deleted_count: number
+}
+
+/**
+ * Delete all usage logs for a specific education session.
+ * Only the session instructor (Admin) or Owner can delete logs.
+ */
+export async function deleteSessionUsageLogs(sessionId: string): Promise<ApiResponse<DeleteSessionLogsResult>> {
+  return apiClient.delete<DeleteSessionLogsResult>(`/console/api/edu/usage-analytics/sessions/${sessionId}/logs`)
+}

@@ -104,7 +104,6 @@ class UpdateSessionRequest(BaseModel):
     start_date: str | None = Field(None, description="ISO 8601 format")
     end_date: str | None = Field(None, description="ISO 8601 format")
     max_students: int | None = Field(None, ge=1, le=1000)
-    is_active: bool | None = None
     force_status: bool | None = Field(
         default=None,
         description="Override date-based activation: null=auto, true=force active, false=force inactive",
@@ -177,7 +176,6 @@ def create_session():
                         "start_date": session.start_date.replace(tzinfo=UTC).isoformat(),
                         "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                         "max_students": session.max_students,
-                        "is_active": session.is_active,
                         "force_status": session.force_status,
                         "is_currently_active": is_session_currently_active(session),
                         "description": session.description,
@@ -245,7 +243,6 @@ def list_sessions():
                     "start_date": session.start_date.replace(tzinfo=UTC).isoformat(),
                     "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                     "max_students": session.max_students,
-                    "is_active": session.is_active,
                     "force_status": session.force_status,
                     "is_currently_active": is_session_currently_active(session),
                     "description": session.description,
@@ -304,7 +301,6 @@ def get_session(session_id: str):
                     "start_date": session.start_date.replace(tzinfo=UTC).isoformat(),
                     "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                     "max_students": session.max_students,
-                    "is_active": session.is_active,
                     "force_status": session.force_status,
                     "is_currently_active": is_session_currently_active(session),
                     "description": session.description,
@@ -381,7 +377,6 @@ def update_session(session_id: str):
             start_date=start_date,
             end_date=end_date,
             max_students=data.max_students,
-            is_active=data.is_active,
             force_status=force_status_value,
             description=data.description,
         )
@@ -396,7 +391,6 @@ def update_session(session_id: str):
                     "start_date": session.start_date.replace(tzinfo=UTC).isoformat(),
                     "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                     "max_students": session.max_students,
-                    "is_active": session.is_active,
                     "force_status": session.force_status,
                     "is_currently_active": is_session_currently_active(session),
                     "description": session.description,

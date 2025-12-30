@@ -110,34 +110,48 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
   }, [authLoading, user, refreshSessions])
 
-  // currentSession이 삭제된 경우 초기화
+  // filteredSessions가 변경될 때 currentSession 재설정 (Owner용)
   useEffect(() => {
-    if (currentSession && sessions.length > 0) {
-      const sessionExists = sessions.some(s => s.id === currentSession.id)
-      if (!sessionExists) {
-        // 현재 세션이 삭제됨 - 초기화
-        setCurrentSession(null)
-        localStorage.removeItem('lastSessionId')
-      }
+    if (sessions.length === 0 || user?.actualRole !== 'owner') return
+
+    // filteredSessions에 세션이 있는데 currentSession이 없거나 목록에 없으면 첫 번째 선택
+    if (filteredSessions.length > 0) {
+      setCurrentSession(prev => {
+        if (!prev || !filteredSessions.find(s => s.id === prev.id)) {
+          localStorage.setItem('lastSessionId', filteredSessions[0]!.id)
+          return filteredSessions[0]!
+        }
+        return prev
+      })
+    } else {
+      setCurrentSession(prev => {
+        if (prev) {
+          localStorage.removeItem('lastSessionId')
+          return null
+        }
+        return prev
+      })
     }
-  }, [currentSession, sessions])
+  }, [sessions.length, filteredSessions, selectedAdminId, user?.actualRole])
 
   // 세션 초기화: 역할별 초기 세션 선택
   useEffect(() => {
-    if (!authLoading && user && sessions.length > 0 && !currentSession) {
+    if (!authLoading && user && sessions.length > 0) {
       if (user.actualRole === 'owner') {
         // Owner: 2-tier selection - 자신을 기본 Admin으로 선택
         if (!selectedAdminId) {
           setSelectedAdminId(user.id)
         }
-        // 자신의 첫 번째 세션 선택
-        const ownerSessions = sessions.filter((s) => s.instructor_account_id === user.id)
-        if (ownerSessions.length > 0) {
-          setCurrentSession(ownerSessions[0]!)
-          localStorage.setItem('lastSessionId', ownerSessions[0]!.id)
+        // currentSession이 없을 때만 첫 번째 세션 선택
+        if (!currentSession) {
+          const ownerSessions = sessions.filter((s) => s.instructor_account_id === user.id)
+          if (ownerSessions.length > 0) {
+            setCurrentSession(ownerSessions[0]!)
+            localStorage.setItem('lastSessionId', ownerSessions[0]!.id)
+          }
         }
       }
-      else if (user.actualRole === 'admin') {
+      else if (user.actualRole === 'admin' && !currentSession) {
         // Admin: 자신의 첫 번째 세션 선택
         const adminSessions = sessions.filter((s) => s.instructor_account_id === user.id)
         if (adminSessions.length > 0) {
@@ -145,7 +159,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
           localStorage.setItem('lastSessionId', adminSessions[0]!.id)
         }
       }
-      else {
+      else if (!currentSession) {
         // Student: localStorage 복원 또는 첫 번째 세션
         const lastSessionId = localStorage.getItem('lastSessionId')
         if (lastSessionId && sessions.find((s) => s.id === lastSessionId)) {

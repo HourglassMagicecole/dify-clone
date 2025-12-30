@@ -133,5 +133,11 @@
   "deleting_session": "Deleting session...",
   "phase_deleting_session": "Deleting session",
   "session_delete_completed": "Session Deleted",
-  "session_delete_failed": "Session Deletion Failed"
+  "session_delete_failed": "Session Deletion Failed",
+  "current_session": "Current Session",
+  "current_session_warning": "Current session cannot be deactivated. Switch to another session first.",
+  "cannot_deactivate_current_session": "Cannot deactivate the current session",
+  "cannot_set_future_start_for_current_session": "Cannot set start date to future for current session",
+  "cannot_set_past_end_for_current_session": "Cannot set end date to past for current session",
+  "cannot_delete_current_session": "Cannot delete the current session. Switch to another session first."
 }

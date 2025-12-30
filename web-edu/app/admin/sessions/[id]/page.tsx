@@ -19,8 +19,9 @@ export default function SessionDetailPage() {
   const router = useRouter()
   const { t } = useTranslation('session')
   const { t: tCommon } = useTranslation('common')
-  const { refreshSessions: refreshSessionContext } = useSession()
+  const { currentSession, refreshSessions: refreshSessionContext } = useSession()
   const sessionId = params.id as string
+  const isCurrentSession = currentSession?.id === sessionId
 
   const [session, setSession] = useState<Session | null>(null)
   const [members, setMembers] = useState<SessionMember[]>([])
@@ -121,7 +122,16 @@ export default function SessionDetailPage() {
           >
             {t('edit_session')}
           </button>
-          <button onClick={handleDelete} className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700">
+          <button
+            onClick={handleDelete}
+            disabled={isCurrentSession}
+            title={isCurrentSession ? t('cannot_delete_current_session') : undefined}
+            className={`rounded px-4 py-2 text-white ${
+              isCurrentSession
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
             {t('delete_session')}
           </button>
         </div>

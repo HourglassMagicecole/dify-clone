@@ -23,7 +23,6 @@ class EducationSession(Base):
         start_date: Session start date
         end_date: Session end date (optional)
         max_students: Maximum number of students (default: 50)
-        is_active: Whether the session is active
         force_status: Override date-based activation (None=auto, True=force active, False=force inactive)
         is_default: Whether this is the default session (cannot be deleted)
         description: Session description (optional)
@@ -47,7 +46,6 @@ class EducationSession(Base):
     start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     end_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     max_students: Mapped[int] = mapped_column(Integer, default=50, nullable=False, server_default=sa.text("50"))
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default=sa.text("true"))
     force_status: Mapped[bool | None] = mapped_column(
         Boolean,
         nullable=True,

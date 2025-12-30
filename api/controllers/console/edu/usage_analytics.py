@@ -3,13 +3,19 @@ Usage Analytics API
 API endpoints for usage analytics and cost reporting.
 """
 
+import logging
 from datetime import date, datetime
 
 from flask import Blueprint, jsonify, request
+from sqlalchemy import delete
 
-from controllers.console.edu.auth_decorators import jwt_required
+from controllers.console.edu.auth_decorators import jwt_required, owner_required
 from extensions.ext_database import db
+from models.account import TenantAccountJoin, TenantAccountRole
+from models.education import ApiUsageLog
 from services.education_management.usage_analytics_service import UsageAnalyticsService
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("usage_analytics", __name__, url_prefix="/console/api/edu/usage-analytics")
 
@@ -351,3 +357,119 @@ def get_user_usage_logs(session_id: str, account_id: str):
             },
         }
     )
+
+
+# ============================================================
+# Owner-Only Maintenance APIs
+# ============================================================
+
+
+@bp.route("/cleanup", methods=["POST"])
+@jwt_required
+@owner_required
+def cleanup_old_usage_logs():
+    """
+    Manually trigger cleanup of old usage logs (Owner only).
+
+    Deletes logs where retention_until < today.
+    This is the same logic as the scheduled Celery cleanup task.
+
+    Returns:
+        deleted_count: Number of logs deleted
+    """
+    today = date.today()
+
+    try:
+        stmt = delete(ApiUsageLog).where(
+            ApiUsageLog.retention_until.isnot(None),
+            ApiUsageLog.retention_until < today,
+        )
+
+        result = db.session.execute(stmt)
+        deleted_count = result.rowcount
+        db.session.commit()
+
+        logger.info("Manual cleanup completed: deleted %d old usage logs", deleted_count)
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": {
+                    "deleted_count": deleted_count,
+                },
+            }
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception("Failed to cleanup old usage logs")
+        return jsonify({"result": "fail", "message": str(e)}), 500
+
+
+@bp.route("/sessions/<session_id>/logs", methods=["DELETE"])
+@jwt_required
+def delete_session_usage_logs(session_id: str):
+    """
+    Delete all usage logs for a specific education session.
+
+    Only the session instructor (Admin) or Owner can delete logs.
+    This allows administrators to clean up logs after reviewing usage data.
+
+    Returns:
+        deleted_count: Number of logs deleted
+    """
+    from models.education import EducationSession
+
+    account = request.user
+    account_id = account.id
+
+    # Verify session exists
+    session = db.session.query(EducationSession).filter(EducationSession.id == session_id).first()
+
+    if not session:
+        return jsonify({"result": "fail", "message": "Session not found"}), 404
+
+    # Check permission: must be session instructor or owner
+    # Get role from TenantAccountJoin (same as owner_required)
+    tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id, current=True).first()
+    if not tenant_join:
+        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id).first()
+
+    is_owner = False
+    if tenant_join:
+        role = TenantAccountRole(tenant_join.role)
+        is_owner = role == TenantAccountRole.OWNER
+    is_instructor = session.instructor_account_id == account_id
+
+    if not is_owner and not is_instructor:
+        return jsonify({"result": "fail", "message": "Permission denied"}), 403
+
+    try:
+        stmt = delete(ApiUsageLog).where(
+            ApiUsageLog.session_id == session_id,
+        )
+
+        result = db.session.execute(stmt)
+        deleted_count = result.rowcount
+        db.session.commit()
+
+        logger.info(
+            "Deleted %d usage logs for session %s by user %s",
+            deleted_count,
+            session_id,
+            account_id,
+        )
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": {
+                    "deleted_count": deleted_count,
+                },
+            }
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception("Failed to delete session usage logs")
+        return jsonify({"result": "fail", "message": str(e)}), 500

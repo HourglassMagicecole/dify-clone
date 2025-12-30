@@ -982,11 +982,15 @@ class CeleryScheduleTasksConfig(BaseSettings):
     )
     ENABLE_API_USAGE_AGGREGATION_TASK: bool = Field(
         description="Enable API usage aggregation task for education sessions",
-        default=True,
+        default=False,
     )
     ENABLE_API_USAGE_CLEANUP_TASK: bool = Field(
         description="Enable API usage log cleanup task",
-        default=True,
+        default=False,
+    )
+    USAGE_LOG_REVIEW_PERIOD_DAYS: int = Field(
+        description="Days to retain usage logs after session ends/deletes",
+        default=3,
     )
 
 

@@ -134,5 +134,11 @@
   "deleting_session": "세션 삭제 중...",
   "phase_deleting_session": "세션 삭제 중",
   "session_delete_completed": "세션 삭제 완료",
-  "session_delete_failed": "세션 삭제 실패"
+  "session_delete_failed": "세션 삭제 실패",
+  "current_session": "현재 세션",
+  "current_session_warning": "현재 사용 중인 세션은 비활성화할 수 없습니다. 다른 세션으로 전환 후 수정하세요.",
+  "cannot_deactivate_current_session": "현재 사용 중인 세션은 비활성화할 수 없습니다",
+  "cannot_set_future_start_for_current_session": "현재 세션의 시작일을 미래로 설정할 수 없습니다",
+  "cannot_set_past_end_for_current_session": "현재 세션의 종료일을 과거로 설정할 수 없습니다",
+  "cannot_delete_current_session": "현재 사용 중인 세션은 삭제할 수 없습니다. 다른 세션으로 전환 후 삭제하세요."
 }

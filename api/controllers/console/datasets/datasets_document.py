@@ -414,8 +414,7 @@ class DatasetInitApi(Resource):
         # Step 1: Check if session exists and is active
         session_stmt = select(EducationSession).where(
             EducationSession.id == provided_session_id,
-            EducationSession.is_active == True,
-            build_session_active_condition(),
+            build_session_active_condition() == True,
         )
         active_session = db.session.scalar(session_stmt)
 
