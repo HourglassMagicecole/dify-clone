@@ -132,8 +132,22 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       return
     }
 
-    // localStorage에 없거나 못 찾은 경우: filteredSessions 기반 로직
-    if (filteredSessions.length > 0) {
+    // localStorage에 없거나 못 찾은 경우: 자기 세션에서 첫 번째 선택
+    const ownSessions = sessions.filter(s => s.instructor_account_id === user?.id)
+    if (ownSessions.length > 0) {
+      // selectedAdminId를 자신으로 설정
+      if (selectedAdminId !== user?.id) {
+        setSelectedAdminId(user!.id)
+      }
+      setCurrentSession(prev => {
+        if (!prev || !ownSessions.find(s => s.id === prev.id)) {
+          localStorage.setItem('lastSessionId', ownSessions[0]!.id)
+          return ownSessions[0]!
+        }
+        return prev
+      })
+    } else if (filteredSessions.length > 0) {
+      // 자기 세션이 없으면 filteredSessions에서 선택
       setCurrentSession(prev => {
         if (!prev || !filteredSessions.find(s => s.id === prev.id)) {
           localStorage.setItem('lastSessionId', filteredSessions[0]!.id)
@@ -150,7 +164,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
         return prev
       })
     }
-  }, [sessions, filteredSessions, selectedAdminId, user?.actualRole])
+  }, [sessions, filteredSessions, selectedAdminId, user?.actualRole, user?.id])
 
   // 세션 초기화: 역할별 초기 세션 선택
   useEffect(() => {
@@ -158,8 +172,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       const lastSessionId = localStorage.getItem('lastSessionId')
 
       if (user.actualRole === 'owner') {
-        // Owner: 세션 초기화는 위의 useEffect(113번)에서 처리
-        // 여기서는 아무것도 하지 않음 (중복 실행 방지)
+        // Owner: selectedAdminId 초기화만 수행 (세션 초기화는 113번 useEffect에서 처리)
+        if (!selectedAdminId) {
+          setSelectedAdminId(user.id)
+        }
       }
       else if (user.actualRole === 'admin' && !currentSession) {
         // Admin: localStorage 복원 또는 첫 번째 세션
