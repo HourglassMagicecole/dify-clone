@@ -30,6 +30,48 @@ def _parse_date(date_str: str | None) -> date | None:
         return None
 
 
+def _verify_session_access(session_id: str) -> tuple[bool, str | None, object | None]:
+    """
+    Verify that the current user has access to the specified education session.
+
+    Access is granted if the user is:
+    - The tenant owner (TenantAccountRole.OWNER)
+    - The session instructor (session.instructor_account_id == account_id)
+
+    Returns:
+        tuple: (has_access, error_message, session_object)
+            - has_access: True if access is granted
+            - error_message: Error message if access denied, None otherwise
+            - session_object: The EducationSession object if found, None otherwise
+    """
+    from models.education import EducationSession
+
+    account = request.user
+    account_id = account.id
+
+    # Verify session exists
+    session = db.session.query(EducationSession).filter(EducationSession.id == session_id).first()
+
+    if not session:
+        return False, "Session not found", None
+
+    # Check permission: must be session instructor or owner
+    tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id, current=True).first()
+    if not tenant_join:
+        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id).first()
+
+    is_owner = False
+    if tenant_join:
+        role = TenantAccountRole(tenant_join.role)
+        is_owner = role == TenantAccountRole.OWNER
+    is_instructor = session.instructor_account_id == account_id
+
+    if not is_owner and not is_instructor:
+        return False, "Permission denied", session
+
+    return True, None, session
+
+
 # ============================================================
 # Admin APIs (require admin role)
 # ============================================================
@@ -45,6 +87,12 @@ def get_session_usage_summary(session_id: str):
         start_date: Start date (YYYY-MM-DD, optional)
         end_date: End date (YYYY-MM-DD, optional)
     """
+    # Verify session access (owner or instructor)
+    has_access, error_message, _ = _verify_session_access(session_id)
+    if not has_access:
+        status_code = 404 if error_message == "Session not found" else 403
+        return jsonify({"result": "fail", "message": error_message}), status_code
+
     tenant_id = request.user.current_tenant_id
 
     start_date = _parse_date(request.args.get("start_date"))
@@ -88,6 +136,12 @@ def get_session_daily_trend(session_id: str):
         end_date: End date (YYYY-MM-DD, required)
         usage_type: Filter by usage type (optional)
     """
+    # Verify session access (owner or instructor)
+    has_access, error_message, _ = _verify_session_access(session_id)
+    if not has_access:
+        status_code = 404 if error_message == "Session not found" else 403
+        return jsonify({"result": "fail", "message": error_message}), status_code
+
     tenant_id = request.user.current_tenant_id
 
     start_date = _parse_date(request.args.get("start_date"))
@@ -134,6 +188,12 @@ def get_session_user_breakdown(session_id: str):
         end_date: End date (YYYY-MM-DD, optional)
         usage_type: Filter by usage type (optional)
     """
+    # Verify session access (owner or instructor)
+    has_access, error_message, _ = _verify_session_access(session_id)
+    if not has_access:
+        status_code = 404 if error_message == "Session not found" else 403
+        return jsonify({"result": "fail", "message": error_message}), status_code
+
     tenant_id = request.user.current_tenant_id
 
     start_date = _parse_date(request.args.get("start_date"))
@@ -177,6 +237,12 @@ def get_session_model_breakdown(session_id: str):
         start_date: Start date (YYYY-MM-DD, optional)
         end_date: End date (YYYY-MM-DD, optional)
     """
+    # Verify session access (owner or instructor)
+    has_access, error_message, _ = _verify_session_access(session_id)
+    if not has_access:
+        status_code = 404 if error_message == "Session not found" else 403
+        return jsonify({"result": "fail", "message": error_message}), status_code
+
     tenant_id = request.user.current_tenant_id
 
     start_date = _parse_date(request.args.get("start_date"))
@@ -375,6 +441,12 @@ def get_user_usage_logs(session_id: str, account_id: str):
         limit: Maximum number of records (default: 1000)
         offset: Number of records to skip (default: 0)
     """
+    # Verify session access (owner or instructor)
+    has_access, error_message, _ = _verify_session_access(session_id)
+    if not has_access:
+        status_code = 404 if error_message == "Session not found" else 403
+        return jsonify({"result": "fail", "message": error_message}), status_code
+
     start_date = _parse_date(request.args.get("start_date"))
     end_date = _parse_date(request.args.get("end_date"))
     usage_type = request.args.get("usage_type")

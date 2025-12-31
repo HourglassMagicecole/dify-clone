@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from flask import Blueprint, jsonify, request
 
-from controllers.console.edu.auth_decorators import jwt_required
+from controllers.console.edu.auth_decorators import jwt_required, owner_required
 from core.model_runtime.entities.model_entities import ModelType
 from core.provider_manager import ProviderManager
 from extensions.ext_database import db
@@ -100,6 +100,7 @@ def _get_model_status_map(tenant_id: str | None) -> dict[str, str]:
 
 @bp.route("", methods=["GET"])
 @jwt_required
+@owner_required
 def list_price_configs():
     """
     List price configurations.
@@ -170,6 +171,7 @@ def list_price_configs():
 
 @bp.route("/<config_id>", methods=["GET"])
 @jwt_required
+@owner_required
 def get_price_config(config_id: str):
     """Get a specific price configuration."""
     tenant_id = request.user.current_tenant_id
@@ -188,6 +190,7 @@ def get_price_config(config_id: str):
 
 @bp.route("", methods=["POST"])
 @jwt_required
+@owner_required
 def create_price_config():
     """
     Create a new price configuration.
@@ -250,6 +253,7 @@ def create_price_config():
 
 @bp.route("/<config_id>", methods=["PUT"])
 @jwt_required
+@owner_required
 def update_price_config(config_id: str):
     """
     Update a price configuration.
@@ -292,6 +296,7 @@ def update_price_config(config_id: str):
 
 @bp.route("/<config_id>", methods=["DELETE"])
 @jwt_required
+@owner_required
 def delete_price_config(config_id: str):
     """Delete a price configuration."""
     tenant_id = request.user.current_tenant_id
