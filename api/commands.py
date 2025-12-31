@@ -1904,7 +1904,6 @@ def init_tenant(email: str, password: str, name: str) -> None:
                 start_date=now,
                 end_date=now + timedelta(days=365),
                 max_students=50,
-                is_active=True,
                 force_status=True,  # Always active
                 is_default=True,  # Cannot be deleted
                 description="Default education session created during initial setup",
