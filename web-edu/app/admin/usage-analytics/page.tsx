@@ -13,6 +13,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { DateRangePicker, DateRange } from '@/components/common/DateRangePicker'
 import { UsageOverviewCards, TrendModal, StackedTrendDataPoint } from '@/components/analytics'
+import { QuotaWarningsSection } from '@/components/analytics/QuotaWarningsSection'
 
 /**
  * 시스템 사용량 페이지 (Owner 전용)
@@ -171,6 +172,9 @@ export default function UsageAnalyticsPage() {
       )}
 
       <div className="space-y-6">
+        {/* Quota Warnings Section */}
+        <QuotaWarningsSection />
+
         {/* System Usage Summary */}
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="mb-4 text-lg font-semibold text-gray-900">전체 시스템 사용량</h3>

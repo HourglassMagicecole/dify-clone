@@ -115,3 +115,11 @@ class InvokeRateLimitError(BaseHTTPException):
     error_code = "rate_limit_error"
     description = "Rate Limit Error"
     code = 429
+
+
+class EducationQuotaExceededError(BaseHTTPException):
+    """Raised when education session quota is exceeded."""
+
+    error_code = "education_quota_exceeded"
+    description = "Usage quota exceeded. Please contact your instructor."
+    code = 429

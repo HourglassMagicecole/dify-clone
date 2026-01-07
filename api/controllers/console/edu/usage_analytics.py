@@ -4,12 +4,13 @@ API endpoints for usage analytics and cost reporting.
 """
 
 import logging
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy import delete
 
 from controllers.console.edu.auth_decorators import jwt_required, owner_required
+from controllers.console.edu.session import is_session_currently_active
 from extensions.ext_database import db
 from models.account import TenantAccountJoin, TenantAccountRole
 from models.education import ApiUsageLog
@@ -432,7 +433,8 @@ def get_message_usage_cost(message_id: str):
 @jwt_required
 def get_user_usage_logs(session_id: str, account_id: str):
     """
-    Get detailed usage logs for a specific user in an education session (Admin only).
+    Get detailed usage logs for a specific user in an education session.
+    Accessible by: Admin/Instructor OR the user viewing their own logs.
 
     Query params:
         start_date: Start date (YYYY-MM-DD, optional)
@@ -441,11 +443,14 @@ def get_user_usage_logs(session_id: str, account_id: str):
         limit: Maximum number of records (default: 1000)
         offset: Number of records to skip (default: 0)
     """
-    # Verify session access (owner or instructor)
-    has_access, error_message, _ = _verify_session_access(session_id)
-    if not has_access:
-        status_code = 404 if error_message == "Session not found" else 403
-        return jsonify({"result": "fail", "message": error_message}), status_code
+    # Allow users to view their own logs
+    is_own_logs = str(request.user.id) == account_id
+    if not is_own_logs:
+        # Verify session access (owner or instructor) for viewing other users' logs
+        has_access, error_message, _ = _verify_session_access(session_id)
+        if not has_access:
+            status_code = 404 if error_message == "Session not found" else 403
+            return jsonify({"result": "fail", "message": error_message}), status_code
 
     start_date = _parse_date(request.args.get("start_date"))
     end_date = _parse_date(request.args.get("end_date"))
@@ -579,7 +584,7 @@ def delete_session_usage_logs(session_id: str):
         return jsonify({"result": "fail", "message": "Permission denied"}), 403
 
     # Check if session is active
-    if session.is_currently_active:
+    if is_session_currently_active(session):
         return jsonify(
             {"result": "fail", "message": "Active session logs cannot be deleted. Deactivate it first."}
         ), 400
@@ -752,3 +757,131 @@ def get_system_user_breakdown():
             ],
         }
     )
+
+
+# ============================================================
+# Quota APIs (Story 4.1B)
+# ============================================================
+
+
+@bp.route("/my-usage/quotas", methods=["GET"])
+@jwt_required
+def get_my_quotas():
+    """
+    Get current user's quota status (AC: 16-18).
+
+    Query params:
+        session_id: Education session ID (optional, uses current session if not provided)
+
+    Returns:
+        quotas: List of user's quota statuses per provider
+    """
+
+    from services.education_management.quota_service import QuotaService
+
+    account_id = request.user.id
+    session_id = request.args.get("session_id")
+
+    # If no session_id provided, try to get user's current active session
+    if not session_id:
+        from models.education import EducationSessionMember
+
+        # Find an active session where user is a member
+        member = (
+            db.session.query(EducationSessionMember).filter(EducationSessionMember.account_id == account_id).first()
+        )
+        if member:
+            session_id = member.session_id
+
+    if not session_id:
+        return jsonify(
+            {
+                "result": "success",
+                "data": {"quotas": []},
+            }
+        )
+
+    try:
+        user_quotas = QuotaService.get_user_quotas(db.session, session_id, account_id)  # type: ignore[arg-type]
+
+        # Calculate reset time based on period
+        def get_reset_at(quota):
+            if quota.period == "daily":
+                # Next midnight
+                now = datetime.now(UTC)
+                tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+                return tomorrow.isoformat() + "Z"
+            elif quota.period == "monthly":
+                # First day of next month
+                now = datetime.now(UTC)
+                if now.month == 12:
+                    next_month = now.replace(
+                        year=now.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+                    )
+                else:
+                    next_month = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                return next_month.isoformat() + "Z"
+            else:  # session
+                return None
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": {
+                    "quotas": [
+                        {
+                            "model_provider": q.model_provider,
+                            "current_usage": str(q.current_usage),
+                            "quota_limit": str(q.quota_limit),
+                            "usage_percentage": round(q.usage_percentage, 2),
+                            "is_warning": q.is_warning,
+                            "is_blocked": q.is_blocked,
+                            "period": q.period,
+                            "reset_at": get_reset_at(q),
+                        }
+                        for q in user_quotas
+                    ],
+                },
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Failed to get user quotas")
+        return jsonify({"result": "fail", "message": str(e)}), 500
+
+
+@bp.route("/system/quota-warnings", methods=["GET"])
+@jwt_required
+@owner_required
+def get_all_quota_warnings():
+    """
+    Get all quota warnings across all sessions (Owner only - AC: 9).
+
+    Returns a list of all session and user quotas that are either:
+    - In warning state (usage >= warning_threshold%)
+    - Blocked (usage >= 100%)
+
+    Returns:
+        warnings: List of warning entries sorted by severity
+    """
+    from services.education_management.quota_enforcement_service import QuotaEnforcementService
+
+    tenant_id = request.tenant_id
+
+    try:
+        warnings = QuotaEnforcementService.get_all_warnings(db.session, tenant_id)  # type: ignore[arg-type]
+
+        return jsonify(
+            {
+                "result": "success",
+                "data": {
+                    "warnings": warnings,
+                    "total_blocked": sum(1 for w in warnings if w["is_blocked"]),
+                    "total_warning": sum(1 for w in warnings if w["is_warning"] and not w["is_blocked"]),
+                },
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Failed to get quota warnings")
+        return jsonify({"result": "fail", "message": str(e)}), 500

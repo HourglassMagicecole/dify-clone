@@ -21,7 +21,7 @@
   "fileUploadHelp": "You can upload image, pdf, txt, docx files (max 10MB)",
   "processingStepsAccessible": "AI processing steps",
   "exportSuccess": "Conversation exported successfully",
-  "rateLimitExceeded": "Too many requests. Please try again later",
+  "rateLimitExceeded": "Usage quota exceeded. Please contact your instructor.",
   "loadingAgent": "Loading Agent...",
   "loadingConversations": "Loading conversations...",
   "sendingMessage": "Sending message...",

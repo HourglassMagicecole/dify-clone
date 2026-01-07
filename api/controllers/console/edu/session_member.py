@@ -3,11 +3,11 @@
 from datetime import UTC
 
 from flask import Blueprint, jsonify, request
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from controllers.console.edu import require_admin
 from extensions.ext_database import db
-from models.education import MemberStatus
+from models.education import EducationSession, MemberStatus
 from services.edu_session_member_service import EduSessionMemberService
 
 bp = Blueprint("edu_session_member", __name__, url_prefix="/console/api/edu/sessions")
@@ -103,10 +103,16 @@ def add_session_member(session_id: str):
 
         account_id = data["account_id"]
 
+        # Get tenant_id from session for auto quota apply
+        session = db.session.get(EducationSession, session_id)
+        tenant_id = session.tenant_id if session else None
+
         member = EduSessionMemberService.add_member(
             session_id=session_id,
             account_id=account_id,
             db_session=db.session,  # type: ignore[arg-type]
+            tenant_id=tenant_id,
+            created_by=current_user.id,
         )
 
         member_data = {

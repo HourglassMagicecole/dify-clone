@@ -11,6 +11,7 @@
 export * from './api-key'
 export * from './auth'
 export * from './errors'
+export * from './quota'
 export * from './session'
 export * from './tool'
 export * from './user'

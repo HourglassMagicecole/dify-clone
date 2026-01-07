@@ -19,10 +19,12 @@ import { EditSessionModal } from '@/components/session/EditSessionModal'
 import { SessionResourceSection } from '@/components/session/SessionResourceSection'
 import { ResourceDeleteDialog } from '@/components/session/ResourceDeleteDialog'
 import { SessionDeleteDialog } from '@/components/session/SessionDeleteDialog'
+import { QuotaSettingsTab } from '@/components/session/QuotaSettingsTab'
+import { SessionQuotaWarningBanner } from '@/components/session/SessionQuotaWarningBanner'
 import { useSession } from '@/context/SessionContext'
 import type { Session, SessionMember } from '@/types/session'
 
-type TabType = 'members' | 'resources'
+type TabType = 'members' | 'resources' | 'quotas'
 
 export default function SessionDetailPage() {
   const params = useParams()
@@ -286,6 +288,12 @@ export default function SessionDetailPage() {
         )}
       </div>
 
+      {/* Quota Warning Banner */}
+      <SessionQuotaWarningBanner
+        sessionId={sessionId}
+        onNavigateToQuotas={() => setActiveTab('quotas')}
+      />
+
       {/* Usage Log Management */}
       <div className="mb-6 rounded-lg border border-gray-300 bg-white p-4">
         <div className="flex items-center justify-between">
@@ -348,6 +356,16 @@ export default function SessionDetailPage() {
           >
             {t('resources_tab')}
           </button>
+          <button
+            onClick={() => setActiveTab('quotas')}
+            className={`px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'quotas'
+                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            {t('quotas_tab')}
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -371,6 +389,10 @@ export default function SessionDetailPage() {
                 setShowDeleteResourceDialog(true)
               }}
             />
+          )}
+
+          {activeTab === 'quotas' && (
+            <QuotaSettingsTab sessionId={sessionId} />
           )}
         </div>
       </div>

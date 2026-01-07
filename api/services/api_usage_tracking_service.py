@@ -214,12 +214,43 @@ class ApiUsageTrackingService:
                 new_session.refresh(usage_log)
 
             logger.info(
-                "Recorded %s usage: app=%s, tokens=%d, price=%s",
+                "Recorded %s usage: app=%s, session=%s, tokens=%d, price=%s",
                 usage_type,
                 app_id,
+                session_id,
                 input_tokens + output_tokens,
                 total_price,
             )
+
+            # Update quota usage if session_id and price are available
+            if session_id and total_price and total_price > Decimal(0):
+                try:
+                    from services.education_management.quota_enforcement_service import QuotaEnforcementService
+
+                    # Extract simple provider name
+                    simple_provider = (
+                        model_provider.split("/")[-1]
+                        if model_provider and "/" in model_provider
+                        else (model_provider or "unknown")
+                    )
+
+                    with SASession(db.engine) as quota_session:
+                        QuotaEnforcementService.increment_usage(
+                            db_session=quota_session,
+                            session_id=session_id,
+                            account_id=resolved_account_id or "",
+                            model_provider=simple_provider,
+                            amount=total_price,
+                        )
+                        logger.info(
+                            "Incremented quota usage: session=%s, account=%s, provider=%s, amount=%s",
+                            session_id,
+                            resolved_account_id,
+                            simple_provider,
+                            total_price,
+                        )
+                except Exception:
+                    logger.exception("Failed to increment quota usage")
 
             return usage_log
 

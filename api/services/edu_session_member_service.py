@@ -13,14 +13,25 @@ class EduSessionMemberService:
     """Service for managing education session members."""
 
     @staticmethod
-    def add_member(session_id: str, account_id: str, db_session: Session) -> EducationSessionMember:
+    def add_member(
+        session_id: str,
+        account_id: str,
+        db_session: Session,
+        tenant_id: str | None = None,
+        created_by: str | None = None,
+    ) -> EducationSessionMember:
         """
         Add a member to a session.
+
+        If tenant_id and created_by are provided, default quotas will be applied
+        automatically to the new member.
 
         Args:
             session_id: The session ID
             account_id: The account ID to add
             db_session: Database session
+            tenant_id: Tenant ID (optional, for auto quota apply)
+            created_by: Creator account ID (optional, for auto quota apply)
 
         Returns:
             EducationSessionMember: The created or existing member
@@ -45,6 +56,11 @@ class EduSessionMemberService:
                     existing_member.status = MemberStatus.ACTIVE.value
                     existing_member.updated_at = datetime.now(UTC)
                     db_session.commit()
+                    # Apply default quotas to reactivated member
+                    if tenant_id and created_by:
+                        EduSessionMemberService._apply_default_quotas(
+                            db_session, tenant_id, session_id, account_id, created_by
+                        )
                 return existing_member
 
             # Create new member
@@ -55,6 +71,10 @@ class EduSessionMemberService:
             db_session.add(new_member)
             db_session.commit()
 
+            # Apply default quotas to new member
+            if tenant_id and created_by:
+                EduSessionMemberService._apply_default_quotas(db_session, tenant_id, session_id, account_id, created_by)
+
             return new_member
 
         except IntegrityError as e:
@@ -64,6 +84,44 @@ class EduSessionMemberService:
         except SQLAlchemyError as e:
             db_session.rollback()
             raise RuntimeError(f"Database error while adding member: {e}") from e
+
+    @staticmethod
+    def _apply_default_quotas(
+        db_session: Session,
+        tenant_id: str,
+        session_id: str,
+        account_id: str,
+        created_by: str,
+    ) -> None:
+        """
+        Apply default quota configs to a member.
+
+        Args:
+            db_session: Database session
+            tenant_id: Tenant ID
+            session_id: Session ID
+            account_id: Member account ID
+            created_by: Creator account ID
+        """
+        try:
+            from services.education_management.quota_service import QuotaService
+
+            QuotaService.apply_default_quotas_to_member(
+                db_session=db_session,
+                tenant_id=tenant_id,
+                session_id=session_id,
+                account_id=account_id,
+                created_by=created_by,
+            )
+        except Exception:
+            # Log but don't fail member addition if quota apply fails
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "Failed to apply default quotas to member: session=%s, account=%s",
+                session_id,
+                account_id,
+            )
 
     @staticmethod
     def remove_member(session_id: str, account_id: str, db_session: Session) -> bool:

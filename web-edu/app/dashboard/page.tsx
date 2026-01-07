@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import useSWR from 'swr'
 import { useAuth } from '@/hooks/useAuth'
@@ -19,8 +20,10 @@ import {
 } from '@/service/usage-analytics-api'
 import { exportSessionUsageToXlsx } from '@/utils/export-xlsx'
 import { ContextBanner } from '@/components/dashboard/ContextBanner'
+import { SessionQuotaWarningBanner } from '@/components/session/SessionQuotaWarningBanner'
 import { ResourceSummaryCard, EmptyResourceState } from '@/components/dashboard/ResourceSummaryCard'
 import { QuickStartButtons } from '@/components/dashboard/QuickStartButtons'
+import { QuotaStatusCard } from '@/components/common/QuotaStatusCard'
 import { DateRangePicker, DateRange } from '@/components/common/DateRangePicker'
 import {
   UsageOverviewCards,
@@ -151,6 +154,13 @@ export default function UnifiedDashboard() {
         </div>
       )}
 
+      {/* 내 사용량 한도 상태 */}
+      {currentSession && (
+        <div className="mb-6">
+          <QuotaStatusCard sessionId={currentSession.id} />
+        </div>
+      )}
+
       {/* 리소스 요약 카드 */}
       <div className="mb-8">
         {showLoading ? (
@@ -192,6 +202,8 @@ function AdminDashboard({
   dashboardData: Awaited<ReturnType<typeof DashboardAPI.getDashboardData>> | undefined
   isLoading: boolean
 }) {
+  const router = useRouter()
+
   // Date range state (default: last 30 days)
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const getDateString = (date: Date): string => date.toISOString().split('T')[0] ?? ''
@@ -406,6 +418,11 @@ function AdminDashboard({
       {/* 사용자별 사용량 */}
       <section className="mb-8">
         <h3 className="text-lg font-bold text-gray-900 mb-4">사용자별 사용량</h3>
+        {/* Quota Warning Banner */}
+        <SessionQuotaWarningBanner
+          sessionId={currentSession.id}
+          onNavigateToQuotas={() => router.push(`/admin/sessions/${currentSession.id}?tab=quotas`)}
+        />
         <div className="bg-white rounded-lg shadow p-6">
           <TopUsersTable
             users={userTableData}

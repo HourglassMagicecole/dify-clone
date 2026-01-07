@@ -287,6 +287,11 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                     )
                     for tool_call in tool_calls
                 ]
+                # Also set content if response exists (LLM may generate text along with tool calls)
+                # This fixes Anthropic API error: "all messages must have non-empty content
+                # except for the optional final assistant message"
+                if response:
+                    assistant_message.content = response
             else:
                 logger.warning("[LLM Response] No tool calls in LLM response. Response text: %s...", response[:200])
                 assistant_message.content = response

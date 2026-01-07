@@ -483,17 +483,25 @@ class BaseAgentRunner(AppRunner):
                                 )
                             )
 
+                        # Anthropic API requires non-empty content for non-final assistant messages
+                        # Use thought if available, otherwise use tool names as fallback
+                        thought_content = agent_thought.thought
+                        if not thought_content:
+                            thought_content = f"Calling: {', '.join(tools)}"
+
                         result.extend(
                             [
                                 AssistantPromptMessage(
-                                    content=agent_thought.thought,
+                                    content=thought_content,
                                     tool_calls=tool_calls,
                                 ),
                                 *tool_call_response,
                             ]
                         )
                     if not tools:
-                        result.append(AssistantPromptMessage(content=agent_thought.thought))
+                        # Only add message if thought is not empty
+                        if agent_thought.thought:
+                            result.append(AssistantPromptMessage(content=agent_thought.thought))
             else:
                 if message.answer:
                     result.append(AssistantPromptMessage(content=message.answer))

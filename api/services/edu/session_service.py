@@ -393,13 +393,21 @@ class EduSessionService:
 
         return result
 
-    def add_session_member(self, session_id: str, account_id: str) -> bool:
+    def add_session_member(
+        self,
+        session_id: str,
+        account_id: str,
+        tenant_id: str | None = None,
+        created_by: str | None = None,
+    ) -> bool:
         """
         Add a member to a session.
 
         Args:
             session_id: Session ID
             account_id: Account ID to add
+            tenant_id: Tenant ID (optional, for auto quota apply)
+            created_by: Creator account ID (optional, for auto quota apply)
 
         Returns:
             True if added
@@ -412,8 +420,14 @@ class EduSessionService:
         # Verify session exists
         self.get_session(session_id)
 
-        # Add member
-        EduSessionMemberService.add_member(session_id, account_id, db.session)  # type: ignore[arg-type]
+        # Add member (with optional auto quota apply)
+        EduSessionMemberService.add_member(
+            session_id,
+            account_id,
+            db.session,  # type: ignore[arg-type]
+            tenant_id=tenant_id,
+            created_by=created_by,
+        )
 
         return True
 

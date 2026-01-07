@@ -89,6 +89,7 @@
   "noSessionsAdmin": "No active sessions available",
   "members_tab": "Members",
   "resources_tab": "Resources",
+  "quotas_tab": "Quotas",
   "search_members_placeholder": "Search by name or email...",
   "showing": "Showing",
   "force_active": "Force Active",

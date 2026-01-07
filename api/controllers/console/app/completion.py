@@ -10,6 +10,7 @@ from controllers.console.app.error import (
     AppUnavailableError,
     CompletionRequestError,
     ConversationCompletedError,
+    EducationQuotaExceededError,
     ProviderModelCurrentlyNotSupportError,
     ProviderNotInitializeError,
     ProviderQuotaExceededError,
@@ -30,7 +31,7 @@ from libs import helper
 from libs.helper import uuid_value
 from libs.login import current_user, login_required
 from models import Account
-from models.model import AppMode
+from models.model import AppMode, EndUser
 from services.app_generate_service import AppGenerateService
 from services.errors.llm import InvokeRateLimitError
 
@@ -75,6 +76,9 @@ class CompletionMessageApi(Resource):
 
         streaming = args["response_mode"] != "blocking"
         args["auto_generate_name"] = False
+
+        # Check education quota before LLM call
+        _check_education_quota(app_model, current_user, args)
 
         try:
             if not isinstance(current_user, Account):
@@ -176,6 +180,9 @@ class ChatMessageApi(Resource):
         if external_trace_id:
             args["external_trace_id"] = external_trace_id
 
+        # Check education quota before LLM call
+        _check_education_quota(app_model, current_user, args)
+
         try:
             if not isinstance(current_user, Account):
                 raise ValueError("current_user must be an Account or EndUser instance")
@@ -227,3 +234,99 @@ class ChatMessageStopApi(Resource):
         AppQueueManager.set_stop_flag(task_id, InvokeFrom.DEBUGGER, current_user.id)
 
         return {"result": "success"}, 200
+
+
+def _check_education_quota(app_model, user: Account | EndUser | None, args: dict) -> None:
+    """
+    Check education quota before LLM/image generation call.
+
+    Args:
+        app_model: The application model
+        user: Current user account
+        args: Request arguments containing model_config
+
+    Raises:
+        EducationQuotaExceededError: If quota is exceeded
+    """
+    # Skip if user is not an Account (EndUser or None)
+    if not isinstance(user, Account):
+        return
+
+    from extensions.ext_database import db
+    from models.education import SessionResourceTag
+    from services.education_management.quota_enforcement_service import QuotaEnforcementService
+
+    # Get session_id from SessionResourceTag
+    resource_tag = (
+        db.session.query(SessionResourceTag)
+        .filter(
+            SessionResourceTag.resource_type == "app",
+            SessionResourceTag.resource_id == str(app_model.id),
+        )
+        .first()
+    )
+
+    if not resource_tag:
+        # No session tag means no quota enforcement
+        return
+
+    session_id = str(resource_tag.session_id)
+    tenant_id = str(app_model.tenant_id)
+    account_id = str(user.id)
+
+    # Extract model provider from model_config or app_model
+    model_config = args.get("model_config", {})
+    model_info = model_config.get("model", {})
+    model_provider = model_info.get("provider", "")
+
+    # If provider not in args, try app_model's config
+    if not model_provider:
+        app_config = app_model.app_model_config
+        if app_config:
+            # Try model_dict first (Agent mode stores provider in model JSON field)
+            model_dict = app_config.model_dict
+            model_provider = model_dict.get("provider", "") or app_config.provider or ""
+
+    # Simplify provider name (e.g., "langgenius/openai/openai" -> "openai")
+    if model_provider and "/" in model_provider:
+        model_provider = model_provider.split("/")[-1]
+
+    # If provider still unknown, skip quota check (can't enforce without knowing provider)
+    if not model_provider:
+        logger.warning("Could not determine model provider, skipping quota check")
+        return
+
+    logger.info("Quota check using provider: %s", model_provider)
+
+    # Check quota
+    result = QuotaEnforcementService.check_quota(
+        db_session=db.session,  # type: ignore[arg-type]
+        tenant_id=tenant_id,
+        session_id=session_id,
+        account_id=account_id,
+        model_provider=model_provider,
+    )
+
+    logger.info(
+        "Quota check result: session=%s, account=%s, provider=%s, allowed=%s, blocked_by=%s, "
+        "session_usage=%s, session_limit=%s, user_usage=%s, user_limit=%s",
+        session_id,
+        account_id,
+        model_provider,
+        result.allowed,
+        result.blocked_by,
+        result.session_usage,
+        result.session_limit,
+        result.user_usage,
+        result.user_limit,
+    )
+
+    if not result.allowed:
+        logger.warning(
+            "Education quota exceeded: session=%s, account=%s, provider=%s, blocked_by=%s",
+            session_id,
+            account_id,
+            model_provider,
+            result.blocked_by,
+        )
+        raise EducationQuotaExceededError(result.message or "Usage quota exceeded.")

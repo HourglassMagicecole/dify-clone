@@ -7,9 +7,12 @@ from models.education.api_usage_summary import ApiUsageSummary
 from models.education.monitoring import SessionMonitoring
 from models.education.resource_tag import SessionResourceTag
 from models.education.session import EducationSession
+from models.education.session_default_user_quota import SessionDefaultUserQuota
 from models.education.session_member import EducationSessionMember, MemberStatus
+from models.education.session_quota import SessionQuota
 from models.education.user_role import EduUserRole
 from models.education.user_tool_config import UserToolConfig
+from models.education.user_usage_quota import UserUsageQuota
 
 __all__ = [
     "AdminAPIKeyConfig",
@@ -20,7 +23,10 @@ __all__ = [
     "EducationSession",
     "EducationSessionMember",
     "MemberStatus",
+    "SessionDefaultUserQuota",
     "SessionMonitoring",
+    "SessionQuota",
     "SessionResourceTag",
     "UserToolConfig",
+    "UserUsageQuota",
 ]
