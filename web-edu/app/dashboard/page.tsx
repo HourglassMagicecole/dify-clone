@@ -80,7 +80,6 @@ export default function UnifiedDashboard() {
   // 데이터 페칭 (Owner는 selectedAdminId도 전달)
   // Owner가 "전체 관리자" 선택 시 (selectedAdminId = null) session_id를 전달하지 않음
   const { data, error, isLoading } = useSWR(swrKey, fetcher, {
-    refreshInterval: 30000,
     revalidateOnFocus: true,
     dedupingInterval: 0, // 중복 제거 비활성화 (즉시 재요청)
     revalidateOnMount: true, // 마운트 시 항상 재검증

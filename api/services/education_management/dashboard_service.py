@@ -49,14 +49,6 @@ class DashboardService:
             SQLAlchemyError: 데이터베이스 조회 실패 시
         """
         try:
-            logger.info(
-                "Fetching dashboard data for user: %s (role: %s, session: %s, admin: %s)",
-                account_id,
-                role,
-                session_id or "all",
-                admin_id or "all",
-            )
-
             # 역할에 따른 scope 결정
             # Owner와 Admin: 세션의 모든 리소스 조회 (system scope)
             # Student: 본인 리소스만 조회 (my_resources scope)
@@ -66,12 +58,6 @@ class DashboardService:
 
             # 1. 리소스 요약 집계 (역할별 필터링)
             resource_summary = self._get_resource_summary(account_id, scope, session_id=session_id, admin_id=admin_id)
-            logger.info(
-                "Resource summary for (session=%s, admin=%s): %s",
-                session_id or "all",
-                admin_id or "all",
-                resource_summary,
-            )
 
             # 2. 최근 활동 조회 (역할별 필터링)
             recent_activities = self._get_recent_activities(
@@ -82,7 +68,6 @@ class DashboardService:
             # 3. API 사용량 조회
             api_usage = self._get_api_usage(account_id, session_id=session_id)
 
-            logger.info("Dashboard data fetched successfully for user: %s (scope: %s)", account_id, scope)
             return {
                 "scope": scope,
                 "resourceSummary": resource_summary,
@@ -145,14 +130,7 @@ class DashboardService:
                     if session_id:
                         agents_query = agents_query.filter(SessionResourceTag.session_id == session_id)
 
-                    logger.info(
-                        "Agents query for admin=%s, session=%s: %s",
-                        admin_id,
-                        session_id or "all",
-                        str(agents_query),
-                    )
                     agents_count = agents_query.scalar() or 0
-                    logger.info("Agents count result: %d", agents_count)
 
                     workflows_query = (
                         db.session.query(func.count(SessionResourceTag.id.distinct()))
@@ -572,14 +550,6 @@ class DashboardService:
                 total_tokens=total_tokens,
                 estimated_cost=total_cost,
                 daily_usage=daily_usage,
-            )
-
-            logger.info(
-                "API usage fetched for session=%s: calls=%d, tokens=%d, cost=%.4f",
-                session_id or "all",
-                total_calls,
-                total_tokens,
-                float(total_cost),
             )
 
             return summary.to_dict()
