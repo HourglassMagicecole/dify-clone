@@ -35,7 +35,7 @@
     "sessions": "Sessions",
     "users": "User Management",
     "session_usage": "Session Usage",
-    "system_usage": "System Usage",
+    "system_usage": "Total API Usage",
     "usage_analytics": "Usage Analytics",
     "all_usage_analytics": "All Usage",
     "price_configs": "Price Settings",

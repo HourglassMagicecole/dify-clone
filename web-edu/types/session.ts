@@ -13,6 +13,7 @@ export interface Session {
   start_date: string // ISO 8601
   end_date?: string // ISO 8601
   max_students: number
+  member_count?: number // Current number of members in the session
   force_status: boolean | null // null=auto (date-based), true=force active, false=force inactive
   is_currently_active: boolean // Calculated: actual active status based on force_status and dates
   is_default: boolean // Default session cannot be deleted

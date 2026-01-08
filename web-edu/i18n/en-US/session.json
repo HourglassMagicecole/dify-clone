@@ -6,6 +6,7 @@
   "start_date": "Start Date",
   "end_date": "End Date",
   "max_students": "Max Students",
+  "students": "Users",
   "description": "Description",
   "optional": "Optional",
   "required": "Required",

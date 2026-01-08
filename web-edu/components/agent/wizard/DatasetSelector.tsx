@@ -113,7 +113,7 @@ export function DatasetSelector({
           id: dataset.id,
           name: dataset.name,
           retrieval_model_dict: dataset.retrieval_model_dict,
-        } : null
+        } as SelectedDataset : null
       })
       .filter((d): d is SelectedDataset => d !== null)
   }

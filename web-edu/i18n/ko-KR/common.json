@@ -35,7 +35,7 @@
     "sessions": "세션 관리",
     "users": "사용자 관리",
     "session_usage": "세션 사용량",
-    "system_usage": "시스템 사용량",
+    "system_usage": "토탈 API 사용량",
     "usage_analytics": "사용량 분석",
     "all_usage_analytics": "전체 사용량",
     "price_configs": "가격 설정",

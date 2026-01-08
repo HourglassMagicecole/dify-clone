@@ -158,7 +158,7 @@ export default function UsageAnalyticsPage() {
     <div className="p-6">
       {/* Page Title */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">시스템 사용량</h1>
+        <h1 className="text-2xl font-bold text-gray-900">토탈 API 사용량</h1>
         <DateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
 
@@ -177,7 +177,7 @@ export default function UsageAnalyticsPage() {
 
         {/* System Usage Summary */}
         <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900">전체 시스템 사용량</h3>
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">사용량 개요</h3>
           <UsageOverviewCards
             totalCost={getTotalPrice()}
             totalRequests={getTotalRequests()}

@@ -35,7 +35,6 @@ export function AdminDropdown({ isOwner }: AdminDropdownProps) {
     { href: '/admin/usage-analytics', label: t('nav.system_usage'), showFor: 'owner' as const },
     { href: '/admin/api-keys', label: t('nav.api_keys'), showFor: 'owner' as const },
     { href: '/owner/price-configs', label: t('nav.price_configs'), showFor: 'owner' as const },
-    { href: '/owner/monitoring', label: t('nav.monitoring'), showFor: 'owner' as const },
   ]
 
   const visibleItems = menuItems.filter(

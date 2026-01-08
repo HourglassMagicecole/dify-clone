@@ -57,12 +57,6 @@ export default function HomePage() {
           >
             {t('signin')}
           </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-lg border border-indigo-600 px-6 py-3 text-indigo-600 hover:bg-indigo-50"
-          >
-            {t('dashboard')}
-          </Link>
         </div>
       </div>
     </div>

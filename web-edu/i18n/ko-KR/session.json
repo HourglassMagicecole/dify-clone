@@ -6,6 +6,7 @@
   "start_date": "시작일",
   "end_date": "종료일",
   "max_students": "최대 학생 수",
+  "students": "사용자",
   "description": "설명",
   "optional": "선택사항",
   "required": "필수",

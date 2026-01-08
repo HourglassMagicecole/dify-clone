@@ -40,6 +40,15 @@ export default function SessionsPage() {
 
   useEffect(() => {
     loadSessions()
+
+    // 페이지가 다시 표시될 때 데이터 새로고침
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadSessions()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -171,9 +180,11 @@ export default function SessionsPage() {
                       </div>
                     )}
                     <div>
-                      {t('max_students')}
+                      {t('students')}
                       :
                       {' '}
+                      {session.member_count ?? 0}
+                      {' / '}
                       {session.max_students}
                     </div>
                   </div>

@@ -60,6 +60,10 @@ export interface ProviderWithModels {
   }
   supported_model_types: ModelType[]
   models: ProviderModel[]
+  // Dify API: 프로바이더 설정 상태
+  custom_configuration?: {
+    status: 'active' | 'no-configure'
+  }
   // EduAI 확장: 프로바이더 전체 활성화 상태
   all_enabled?: boolean
 }

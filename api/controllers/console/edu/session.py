@@ -244,6 +244,7 @@ def list_sessions():
                     "start_date": session.start_date.replace(tzinfo=UTC).isoformat(),
                     "end_date": session.end_date.replace(tzinfo=UTC).isoformat() if session.end_date else None,
                     "max_students": session.max_students,
+                    "member_count": sum(1 for m in session.members if m.status == "active") if session.members else 0,
                     "force_status": session.force_status,
                     "is_currently_active": is_session_currently_active(session),
                     "is_default": session.is_default,

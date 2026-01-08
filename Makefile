@@ -35,7 +35,6 @@ docker-up: init-docker-env
 	@echo "📝 Next steps:"
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
 	@echo "   - Access EduAI: http://localhost"
-	@echo "   - Access Dify (test): http://localhost:8080"
 	@echo "   - Access API: http://localhost/v1"
 
 # Rebuild Docker images without cache (slower but ensures fresh build)
@@ -48,7 +47,6 @@ docker-rebuild: init-docker-env
 	@echo "📝 Next steps:"
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
 	@echo "   - Access EduAI: http://localhost"
-	@echo "   - Access Dify (test): http://localhost:8080"
 
 # Stop Docker production environment
 docker-down:
