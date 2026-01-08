@@ -26,6 +26,17 @@ import type { Dataset } from '@/types/dataset'
 export interface SelectedDataset {
   id: string
   name: string
+  retrieval_model_dict?: {
+    search_method: 'semantic_search' | 'full_text_search' | 'hybrid_search'
+    reranking_enable: boolean
+    reranking_model?: {
+      reranking_provider_name: string
+      reranking_model_name: string
+    }
+    top_k: number
+    score_threshold_enabled: boolean
+    score_threshold?: number
+  }
 }
 
 interface DatasetSelectorProps {
@@ -98,7 +109,11 @@ export function DatasetSelector({
     return ids
       .map(id => {
         const dataset = datasets.find(d => d.id === id)
-        return dataset ? { id: dataset.id, name: dataset.name } : null
+        return dataset ? {
+          id: dataset.id,
+          name: dataset.name,
+          retrieval_model_dict: dataset.retrieval_model_dict,
+        } : null
       })
       .filter((d): d is SelectedDataset => d !== null)
   }
@@ -153,7 +168,7 @@ export function DatasetSelector({
           {t('datasetSelector.createFirst', 'Create a knowledge base first to connect it to your agent.')}
         </p>
         <Link
-          href="/rags/create"
+          href="/datasets/create"
           className="mt-4 inline-flex items-center text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
         >
           {t('datasetSelector.createLink', 'Create Knowledge Base')}
@@ -234,6 +249,20 @@ export function DatasetSelector({
                       {t('datasetSelector.docCount', '{{count}} documents', { count: dataset.document_count })} ·{' '}
                       {t('datasetSelector.wordCount', '{{count}} words', { count: dataset.word_count })}
                     </p>
+                    {/* Retrieval settings (shown when selected) */}
+                    {isSelected && dataset.retrieval_model_dict && (
+                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span>
+                          {t('retrievalSettings.topK', '상위 결과')}: <span className="font-medium text-gray-700 dark:text-gray-300">{dataset.retrieval_model_dict.top_k}</span>
+                        </span>
+                        <span>
+                          {t('retrievalSettings.scoreThreshold', '유사도 기준')}: <span className="font-medium text-gray-700 dark:text-gray-300">{dataset.retrieval_model_dict.score_threshold_enabled ? (dataset.retrieval_model_dict.score_threshold ?? 0.5).toFixed(1) : 'OFF'}</span>
+                        </span>
+                        <span>
+                          {t('retrievalSettings.reranking', '리랭킹')}: <span className={`font-medium ${dataset.retrieval_model_dict.reranking_enable ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>{dataset.retrieval_model_dict.reranking_enable ? 'ON' : 'OFF'}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </label>
               )

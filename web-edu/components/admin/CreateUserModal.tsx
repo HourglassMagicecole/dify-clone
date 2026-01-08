@@ -87,14 +87,21 @@ export function CreateUserModal({
       onClose()
     }
     catch (err) {
-      console.error('Failed to create user:', err)
-      // API 에러 메시지 추출
-      const error = err as { response?: { data?: { message?: string } }; message?: string }
-      if (error?.response?.data?.message) {
-        setError(error.response.data.message)
+      // API 에러 코드 기반 i18n 메시지 표시
+      const errorWithCode = err as { code?: string; message?: string }
+      if (errorWithCode.code) {
+        const i18nKey = `userManagement.errors.${errorWithCode.code}`
+        const translatedMsg = t(i18nKey)
+        // i18n 키가 그대로 반환되면 fallback 메시지 사용
+        if (translatedMsg === i18nKey) {
+          setError(errorWithCode.message || t('userManagement.createModal.errorDefault'))
+        }
+        else {
+          setError(translatedMsg)
+        }
       }
-      else if (error?.message) {
-        setError(error.message)
+      else if (err instanceof Error) {
+        setError(err.message)
       }
       else {
         setError(t('userManagement.createModal.errorDefault'))

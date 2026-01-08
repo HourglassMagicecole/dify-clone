@@ -20,6 +20,7 @@ interface DatasetRetrievalSettingsProps {
   settings: DatasetRetrievalConfig
   onSettingsChange: (settings: DatasetRetrievalConfig) => void
   disabled?: boolean
+  readOnly?: boolean
 }
 
 export const DEFAULT_RETRIEVAL_SETTINGS: DatasetRetrievalConfig = {
@@ -34,12 +35,15 @@ export function DatasetRetrievalSettings({
   settings,
   onSettingsChange,
   disabled = false,
+  readOnly = false,
 }: DatasetRetrievalSettingsProps): React.ReactElement {
   const { t } = useTranslation('agent')
   const [rerankingAvailable, setRerankingAvailable] = useState(false)
 
-  // Check if reranking model is configured
+  // Check if reranking model is configured (only when not readOnly)
   useEffect(() => {
+    if (readOnly) return
+
     const checkRerankingModel = async () => {
       try {
         const response = await datasetAPI.getModelList('rerank')
@@ -54,7 +58,7 @@ export function DatasetRetrievalSettings({
       }
     }
     checkRerankingModel()
-  }, [])
+  }, [readOnly])
 
   // Tooltip component for reuse
   const Tooltip = ({ text }: { text: string }) => (
@@ -65,6 +69,47 @@ export function DatasetRetrievalSettings({
       </span>
     </span>
   )
+
+  // Read-only display mode
+  if (readOnly) {
+    return (
+      <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+        <div className="flex flex-wrap items-center gap-6 text-sm">
+          {/* Top-K */}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 dark:text-gray-400">
+              {t('retrievalSettings.topK', '상위 결과')}:
+            </span>
+            <span className="font-medium text-gray-900 dark:text-white">
+              {settings.top_k}
+            </span>
+          </div>
+
+          {/* Score Threshold */}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 dark:text-gray-400">
+              {t('retrievalSettings.scoreThreshold', '유사도 기준')}:
+            </span>
+            <span className="font-medium text-gray-900 dark:text-white">
+              {settings.score_threshold_enabled
+                ? (settings.score_threshold ?? 0.5).toFixed(1)
+                : 'OFF'}
+            </span>
+          </div>
+
+          {/* Reranking */}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 dark:text-gray-400">
+              {t('retrievalSettings.reranking', '리랭킹')}:
+            </span>
+            <span className={`font-medium ${settings.reranking_enable ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+              {settings.reranking_enable ? 'ON' : 'OFF'}
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">

@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { listTools, getToolDetail } from '@/service/tool-api'
 import ToolConfigModal from './ToolConfigModal'
 import { DatasetSelector } from './DatasetSelector'
-import { DatasetRetrievalSettings, DEFAULT_RETRIEVAL_SETTINGS } from './DatasetRetrievalSettings'
+import { DEFAULT_RETRIEVAL_SETTINGS } from './DatasetRetrievalSettings'
 import type { Tool, ToolProvider } from '@/types/tool'
 import type { SelectedTool, AgentDatasetConfig, DatasetRetrievalConfig } from '@/types/agent'
 
@@ -723,7 +723,7 @@ export default function Step4ToolsConfig() {
         {/* RAG Settings (shown when enabled) */}
         {ragEnabled && agentOwnerId && (
           <div className="space-y-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            {/* Dataset Selector */}
+            {/* Dataset Selector - retrieval settings shown inside each selected item */}
             <DatasetSelector
               selectedDatasetIds={selectedDatasetIds}
               onSelectionChange={(ids, datasets) => {
@@ -734,17 +734,20 @@ export default function Step4ToolsConfig() {
                     return acc
                   }, {} as Record<string, string>)
                 )
+                // 첫 번째 선택된 dataset의 retrieval 설정을 사용
+                const firstDataset = datasets[0]
+                if (firstDataset?.retrieval_model_dict) {
+                  setRetrievalSettings({
+                    search_method: firstDataset.retrieval_model_dict.search_method,
+                    reranking_enable: firstDataset.retrieval_model_dict.reranking_enable,
+                    top_k: firstDataset.retrieval_model_dict.top_k,
+                    score_threshold_enabled: firstDataset.retrieval_model_dict.score_threshold_enabled,
+                    score_threshold: firstDataset.retrieval_model_dict.score_threshold,
+                  })
+                }
               }}
               agentOwnerId={agentOwnerId}
             />
-
-            {/* Retrieval Settings (shown when datasets selected) */}
-            {selectedDatasetIds.length > 0 && (
-              <DatasetRetrievalSettings
-                settings={retrievalSettings}
-                onSettingsChange={setRetrievalSettings}
-              />
-            )}
           </div>
         )}
       </div>

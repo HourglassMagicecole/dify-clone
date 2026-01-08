@@ -8,6 +8,19 @@ import type {
 } from '@/types/user-management'
 import { getAccessToken } from '@/utils/storage'
 
+/**
+ * API 에러 클래스 (error code 포함)
+ */
+export class APIError extends Error {
+  code: string
+
+  constructor(message: string, code: string = 'UNKNOWN_ERROR') {
+    super(message)
+    this.name = 'APIError'
+    this.code = code
+  }
+}
+
 const BASE_URL = '/console/api/edu/users'
 
 /**
@@ -58,7 +71,7 @@ export class UserManagementAPI {
     })
     if (!response.ok) {
       const error = await response.json()
-      throw new Error(error.message || 'Failed to create user')
+      throw new APIError(error.message || 'Failed to create user', error.code || 'UNKNOWN_ERROR')
     }
     const result = await response.json()
     return result.data
@@ -76,7 +89,7 @@ export class UserManagementAPI {
     })
     if (!response.ok) {
       const error = await response.json()
-      throw new Error(error.message || 'Failed to update user')
+      throw new APIError(error.message || 'Failed to update user', error.code || 'UNKNOWN_ERROR')
     }
     const result = await response.json()
     return result.data
@@ -93,7 +106,7 @@ export class UserManagementAPI {
     })
     if (!response.ok) {
       const error = await response.json()
-      throw new Error(error.message || 'Failed to delete user')
+      throw new APIError(error.message || 'Failed to delete user', error.code || 'UNKNOWN_ERROR')
     }
   }
 

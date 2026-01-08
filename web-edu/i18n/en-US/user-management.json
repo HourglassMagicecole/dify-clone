@@ -103,6 +103,18 @@
       "ownerRoleCannotBeChanged": "Owner role cannot be changed",
       "cannotDeleteYourself": "Cannot delete your own account",
       "onlyOwnerCanChangeRoleStatus": "Only owner can change user role or status"
+    },
+    "errors": {
+      "EMAIL_ALREADY_EXISTS": "This email is already in use",
+      "CANNOT_CREATE_OWNER": "Cannot create user with owner role",
+      "ADMIN_CANNOT_CREATE_ADMIN": "Admins can only create student users",
+      "CREATOR_REQUIRED": "Creator account information is required",
+      "OWNER_EDIT_RESTRICTED": "Owner account can only be edited by the owner",
+      "OWNER_DELETE_RESTRICTED": "Owner account cannot be deleted",
+      "CANNOT_DELETE_SELF": "Cannot delete your own account",
+      "OWNER_ONLY_CHANGE": "Only owner can change role and status",
+      "VALIDATION_ERROR": "Invalid input",
+      "INTERNAL_ERROR": "Server error occurred. Please try again later"
     }
   }
 }

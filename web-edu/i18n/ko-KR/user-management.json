@@ -103,6 +103,18 @@
       "ownerRoleCannotBeChanged": "소유자 역할은 변경할 수 없습니다",
       "cannotDeleteYourself": "자기 자신의 계정은 삭제할 수 없습니다",
       "onlyOwnerCanChangeRoleStatus": "소유자만 역할과 상태를 변경할 수 있습니다"
+    },
+    "errors": {
+      "EMAIL_ALREADY_EXISTS": "이미 사용 중인 이메일입니다",
+      "CANNOT_CREATE_OWNER": "소유자 역할로 사용자를 생성할 수 없습니다",
+      "ADMIN_CANNOT_CREATE_ADMIN": "관리자는 학생 역할만 생성할 수 있습니다",
+      "CREATOR_REQUIRED": "생성자 계정 정보가 필요합니다",
+      "OWNER_EDIT_RESTRICTED": "소유자 계정은 본인만 수정할 수 있습니다",
+      "OWNER_DELETE_RESTRICTED": "소유자 계정은 삭제할 수 없습니다",
+      "CANNOT_DELETE_SELF": "자기 자신의 계정은 삭제할 수 없습니다",
+      "OWNER_ONLY_CHANGE": "소유자만 역할과 상태를 변경할 수 있습니다",
+      "VALIDATION_ERROR": "입력값이 올바르지 않습니다",
+      "INTERNAL_ERROR": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요"
     }
   }
 }

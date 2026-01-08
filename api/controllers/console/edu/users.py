@@ -15,6 +15,34 @@ from services.education_management.user_management_service import UserManagement
 
 bp = Blueprint("edu_users", __name__, url_prefix="/console/api/edu/users")
 
+
+def _get_error_code(message: str) -> str:
+    """에러 메시지에서 에러 코드 추출.
+
+    Args:
+        message: 에러 메시지
+
+    Returns:
+        에러 코드 문자열
+    """
+    error_patterns = {
+        "Email already exists": "EMAIL_ALREADY_EXISTS",
+        "Cannot create user with 'owner' role": "CANNOT_CREATE_OWNER",
+        "Admin users can only create 'student' role": "ADMIN_CANNOT_CREATE_ADMIN",
+        "creator_account is required": "CREATOR_REQUIRED",
+        "Owner account can only be edited by the owner": "OWNER_EDIT_RESTRICTED",
+        "Owner account cannot be deleted": "OWNER_DELETE_RESTRICTED",
+        "Cannot delete yourself": "CANNOT_DELETE_SELF",
+        "Only owner can change": "OWNER_ONLY_CHANGE",
+    }
+
+    for pattern, code in error_patterns.items():
+        if pattern in message:
+            return code
+
+    return "VALIDATION_ERROR"
+
+
 # File upload constraints
 MAX_CSV_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 MAX_CSV_ROWS = 1000
@@ -116,9 +144,10 @@ def create_user():
 
         return jsonify({"result": "success", "data": user}), 201
     except ValueError as e:
-        return jsonify({"result": "error", "message": str(e)}), 400
+        error_msg = str(e)
+        return jsonify({"result": "error", "code": _get_error_code(error_msg), "message": error_msg}), 400
     except Exception as e:
-        return jsonify({"result": "error", "message": f"Failed to create user: {e!s}"}), 500
+        return jsonify({"result": "error", "code": "INTERNAL_ERROR", "message": f"Failed to create user: {e!s}"}), 500
 
 
 @bp.route("/<user_id>", methods=["GET"])
@@ -179,9 +208,10 @@ def update_user(user_id: str):
 
         return jsonify({"result": "success", "data": user})
     except ValueError as e:
-        return jsonify({"result": "error", "message": str(e)}), 403
+        error_msg = str(e)
+        return jsonify({"result": "error", "code": _get_error_code(error_msg), "message": error_msg}), 403
     except Exception as e:
-        return jsonify({"result": "error", "message": f"Failed to update user: {e!s}"}), 500
+        return jsonify({"result": "error", "code": "INTERNAL_ERROR", "message": f"Failed to update user: {e!s}"}), 500
 
 
 @bp.route("/<user_id>", methods=["DELETE"])
@@ -212,9 +242,10 @@ def delete_user(user_id: str):
 
         return jsonify({"result": "success", "message": "User deleted successfully"})
     except ValueError as e:
-        return jsonify({"result": "error", "message": str(e)}), 403
+        error_msg = str(e)
+        return jsonify({"result": "error", "code": _get_error_code(error_msg), "message": error_msg}), 403
     except Exception as e:
-        return jsonify({"result": "error", "message": f"Failed to delete user: {e!s}"}), 500
+        return jsonify({"result": "error", "code": "INTERNAL_ERROR", "message": f"Failed to delete user: {e!s}"}), 500
 
 
 @bp.route("/bulk", methods=["POST"])
