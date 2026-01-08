@@ -91,34 +91,6 @@ class FunctionCallAgentRunner(BaseAgentRunner):
             prompt_messages = self._organize_prompt_messages()
             self.recalc_llm_max_tokens(self.model_config, prompt_messages)
 
-            # Log prompt messages summary
-            logger.info("[LLM Invocation] Prompt messages count: %s", len(prompt_messages))
-            for i, msg in enumerate(prompt_messages):
-                msg_type = msg.__class__.__name__
-                content_preview = str(msg.content)[:200] if hasattr(msg, "content") and msg.content else "(empty)"
-
-                # For AssistantPromptMessage, also show tool_calls info
-                if isinstance(msg, AssistantPromptMessage) and hasattr(msg, "tool_calls") and msg.tool_calls:
-                    tool_names = [tc.function.name for tc in msg.tool_calls if hasattr(tc, "function")]
-                    logger.info(
-                        "[LLM Invocation] Message %s [%s]: content=%s, tool_calls=%s",
-                        i,
-                        msg_type,
-                        content_preview[:50] if content_preview != "(empty)" else "(empty)",
-                        tool_names,
-                    )
-                else:
-                    logger.info("[LLM Invocation] Message %s [%s]: %s...", i, msg_type, content_preview)
-
-            # Log tool information before invoking LLM
-            logger.info("[LLM Invocation] Invoking LLM with %s tools", len(prompt_messages_tools))
-            if prompt_messages_tools:
-                logger.info(
-                    "[LLM Invocation] Tool names being passed to LLM: %s", [t.name for t in prompt_messages_tools]
-                )
-            else:
-                logger.warning("[LLM Invocation] WARNING: No tools being passed to LLM!")
-
             # Filter model parameters based on provider constraints
             filtered_parameters = dict(app_generate_entity.model_conf.parameters)
 
@@ -126,10 +98,6 @@ class FunctionCallAgentRunner(BaseAgentRunner):
             if model_instance.provider == "anthropic":
                 if "temperature" in filtered_parameters and "top_p" in filtered_parameters:
                     # Prefer temperature over top_p (remove top_p)
-                    logger.info(
-                        "[Parameter Filter] Anthropic model detected: "
-                        "removing 'top_p' to avoid conflict with 'temperature'"
-                    )
                     del filtered_parameters["top_p"]
 
             # invoke model
@@ -162,12 +130,6 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                     if self.check_tool_calls(chunk):
                         function_call_state = True
                         extracted_tool_calls = self.extract_tool_calls(chunk) or []
-                        if extracted_tool_calls and not tool_call_detected:
-                            logger.info(
-                                "[LLM Response] Tool calls detected in LLM response: %s calls",
-                                len(extracted_tool_calls),
-                            )
-                            logger.info("[LLM Response] Tool call details: %s", extracted_tool_calls)
                         tool_calls.extend(extracted_tool_calls)
                         # Remove duplicates while preserving order
                         unique_tool_names = list(dict.fromkeys([tool_call[1] for tool_call in tool_calls]))
@@ -276,7 +238,6 @@ class FunctionCallAgentRunner(BaseAgentRunner):
 
             assistant_message = AssistantPromptMessage(content="", tool_calls=[])
             if tool_calls:
-                logger.info("[LLM Response] Processing %s tool calls", len(tool_calls))
                 assistant_message.tool_calls = [
                     AssistantPromptMessage.ToolCall(
                         id=tool_call[0],
@@ -293,7 +254,6 @@ class FunctionCallAgentRunner(BaseAgentRunner):
                 if response:
                     assistant_message.content = response
             else:
-                logger.warning("[LLM Response] No tool calls in LLM response. Response text: %s...", response[:200])
                 assistant_message.content = response
 
             self._current_thoughts.append(assistant_message)

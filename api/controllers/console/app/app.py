@@ -108,25 +108,9 @@ class AppListApi(Resource):
             if not current_user.is_admin_or_owner:
                 # Student: filter by account_id
                 args["edu_account_id"] = current_user.id
-                logger.info(
-                    "Student filter: session_id=%s, edu_account_id=%s",
-                    args.get("session_id"),
-                    current_user.id,
-                )
             elif args.get("admin_id"):
                 # Owner with admin_id: filter by specific admin
                 args["edu_account_id"] = args.get("admin_id")
-                logger.info(
-                    "Owner filter: session_id=%s, admin_id=%s",
-                    args.get("session_id"),
-                    args.get("admin_id"),
-                )
-            else:
-                # Administrator/Owner without admin_id: see all resources in session
-                logger.info(
-                    "Admin/Owner filter: session_id=%s (all resources)",
-                    args.get("session_id"),
-                )
 
         # get app list
         app_service = AppService()
@@ -243,11 +227,6 @@ class AppListApi(Resource):
                 resource_type="app",
                 resource_id=app.id,
                 account_id=current_user.id,
-            )
-            logger.info(
-                "Added SessionResourceTag for app %s in session %s",
-                app.id,
-                active_session.id,
             )
         except Exception as e:
             # Log error but don't fail app creation (tag can be added later)
@@ -451,12 +430,6 @@ class AppCopyApi(Resource):
                         resource_type="app",
                         resource_id=str(app.id),
                         account_id=current_user.id,
-                    )
-                    logger.info(
-                        "Copied SessionResourceTag for duplicated app %s from original %s in session %s",
-                        app.id,
-                        app_model.id,
-                        tag.session_id,
                     )
             except Exception as e:
                 logger.error(

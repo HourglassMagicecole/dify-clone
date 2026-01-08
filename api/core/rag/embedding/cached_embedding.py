@@ -44,13 +44,6 @@ class CacheEmbedding(Embeddings):
 
     def _record_embedding_usage(self, input_tokens: int) -> None:
         """Record embedding usage if context is available."""
-        logger.info(
-            "Recording embedding usage: tenant_id=%s, app_id=%s, account_id=%s, tokens=%d",
-            self._tenant_id,
-            self._app_id,
-            self._account_id,
-            input_tokens,
-        )
         # Only require tenant_id; app_id is optional (may not exist during indexing)
         if not self._tenant_id:
             logger.warning("Skipping embedding usage - no tenant_id")
@@ -87,7 +80,6 @@ class CacheEmbedding(Embeddings):
                 session_id=session_id,
                 invoke_source=self._invoke_source,
             )
-            logger.info("Embedding usage recorded: %s", result)
         except Exception:
             logger.exception("Failed to record embedding usage")
 
@@ -154,18 +146,11 @@ class CacheEmbedding(Embeddings):
                             logger.exception("Failed transform embedding")
 
                 # Record embedding usage if context available
-                logger.info(
-                    "Embedding completed: total_tokens=%d, queue_size=%d, tenant_id=%s",
-                    total_tokens,
-                    len(embedding_queue_texts),
-                    self._tenant_id,
-                )
                 if total_tokens > 0:
                     self._record_embedding_usage(total_tokens)
                 elif len(embedding_queue_texts) > 0:
                     # Some models don't report token usage, estimate based on text length
                     estimated_tokens = sum(len(t) // 4 for t in embedding_queue_texts)
-                    logger.info("Estimating tokens from text length: %d", estimated_tokens)
                     if estimated_tokens > 0:
                         self._record_embedding_usage(estimated_tokens)
 

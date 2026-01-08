@@ -198,12 +198,6 @@ class ConversationService:
     @classmethod
     def delete(cls, app_model: App, conversation_id: str, user: Union[Account, EndUser] | None):
         try:
-            logger.info(
-                "Initiating conversation deletion for app_name %s, conversation_id: %s",
-                app_model.name,
-                conversation_id,
-            )
-
             db.session.query(Conversation).where(Conversation.id == conversation_id).delete(synchronize_session=False)
             db.session.commit()
 

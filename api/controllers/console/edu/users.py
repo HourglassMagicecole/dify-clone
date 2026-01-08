@@ -288,12 +288,6 @@ def bulk_create_users():
         # CSV 파일 읽기 (여러 인코딩 시도)
         file_content = file.read()
 
-        # Debug logging
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.info("CSV file uploaded: filename=%s, size=%d bytes", file.filename, len(file_content))
-
         # 파일 크기 검증 (10MB)
         if len(file_content) > MAX_CSV_FILE_SIZE:
             return (
@@ -304,21 +298,17 @@ def bulk_create_users():
             )
 
         csv_content = None
-        used_encoding = None
 
         # UTF-8, UTF-8-SIG(BOM), EUC-KR, CP949 순서로 시도
         for encoding in ["utf-8", "utf-8-sig", "euc-kr", "cp949"]:
             try:
                 csv_content = file_content.decode(encoding)
-                used_encoding = encoding
                 break
             except (UnicodeDecodeError, LookupError):
                 continue
 
         if csv_content is None:
             return jsonify({"result": "error", "message": "Unable to decode CSV file. Please use UTF-8 encoding."}), 400
-
-        logger.info("CSV decoded with %s. Content preview (first 200 chars): %s", used_encoding, csv_content[:200])
 
         # CSV 행 개수 검증 (1000 rows max)
         row_count = csv_content.count("\n")
@@ -371,14 +361,6 @@ def get_bulk_create_status(task_id: str):
         # Get task result
         task = AsyncResult(task_id, app=celery_app)
 
-        # Debug logging
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.info("Checking task %s: state=%s", task_id, task.state)
-        logger.info("Task result type: %s, result: %s", type(task.result), task.result)
-        logger.info("Task info type: %s, info: %s", type(task.info), task.info)
-
         if task.state == "PENDING":
             response = {"task_id": task_id, "status": "PENDING", "progress": None}
         elif task.state == "PROGRESS":
@@ -388,7 +370,6 @@ def get_bulk_create_status(task_id: str):
         else:  # FAILURE
             response = {"task_id": task_id, "status": "FAILURE", "error": str(task.info)}
 
-        logger.info("Returning response: %s", response)
         return jsonify({"result": "success", "data": response})
     except Exception as e:
         import logging

@@ -213,15 +213,6 @@ class ApiUsageTrackingService:
                 # Refresh to get the generated id
                 new_session.refresh(usage_log)
 
-            logger.info(
-                "Recorded %s usage: app=%s, session=%s, tokens=%d, price=%s",
-                usage_type,
-                app_id,
-                session_id,
-                input_tokens + output_tokens,
-                total_price,
-            )
-
             # Update quota usage if session_id and price are available
             if session_id and total_price and total_price > Decimal(0):
                 try:
@@ -241,13 +232,6 @@ class ApiUsageTrackingService:
                             account_id=resolved_account_id or "",
                             model_provider=simple_provider,
                             amount=total_price,
-                        )
-                        logger.info(
-                            "Incremented quota usage: session=%s, account=%s, provider=%s, amount=%s",
-                            session_id,
-                            resolved_account_id,
-                            simple_provider,
-                            total_price,
                         )
                 except Exception:
                     logger.exception("Failed to increment quota usage")
@@ -787,28 +771,10 @@ class ApiUsageTrackingService:
                 # 1. Try tenant-specific price first
                 result = fresh_session.execute(build_query(tenant_id)).scalar_one_or_none()
                 if result:
-                    logger.info("Found tenant-specific price config: %s", result.id)
                     return result
 
                 # 2. Fall back to default price (tenant_id = NULL)
                 default_result = fresh_session.execute(build_query(None)).scalar_one_or_none()
-                if default_result:
-                    logger.info(
-                        "Found default price config: %s, output_price=%s",
-                        default_result.id,
-                        default_result.output_price,
-                    )
-                else:
-                    logger.info(
-                        "No price config found for %s/%s type=%s quality=%s res=%s in=%s out=%s",
-                        provider,
-                        model_id,
-                        usage_type,
-                        quality,
-                        resolution,
-                        input_modality,
-                        output_modality,
-                    )
                 return default_result
         except Exception:
             logger.exception("Failed to get admin price config")

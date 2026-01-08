@@ -167,12 +167,6 @@ class CompletionAppRunner(AppRunner):
             # Agent mode: use agent runner
             agent_entity = app_config.agent
 
-            logger.info("[Agent Execution] Agent mode enabled for app %s", app_config.app_id)
-            logger.info("[Agent Execution] Agent entity: %s", agent_entity)
-            logger.info("[Agent Execution] Agent tools count: %s", len(agent_entity.tools) if agent_entity.tools else 0)
-            if agent_entity.tools:
-                logger.info("[Agent Execution] Agent tools: %s", [t.tool_name for t in agent_entity.tools])
-
             # Init model instance
             model_instance = ModelInstance(
                 provider_model_bundle=application_generate_entity.model_conf.provider_model_bundle,
@@ -185,14 +179,8 @@ class CompletionAppRunner(AppRunner):
             if not model_schema:
                 raise ValueError("Model schema not found")
 
-            logger.info("[Agent Execution] Model: %s", model_instance.model)
-            logger.info("[Agent Execution] Model features: %s", model_schema.features)
-
             if {ModelFeature.MULTI_TOOL_CALL, ModelFeature.TOOL_CALL}.intersection(model_schema.features or []):
                 agent_entity.strategy = AgentEntity.Strategy.FUNCTION_CALLING
-                logger.info("[Agent Execution] Strategy set to FUNCTION_CALLING based on model features")
-            else:
-                logger.info("[Agent Execution] Strategy remains: %s", agent_entity.strategy)
 
             # Select appropriate agent runner based on LLM mode
             if agent_entity.strategy == AgentEntity.Strategy.CHAIN_OF_THOUGHT:
@@ -203,45 +191,12 @@ class CompletionAppRunner(AppRunner):
             else:
                 raise ValueError(f"Invalid agent strategy: {agent_entity.strategy}")
 
-            logger.info("[Agent Execution] Selected runner: %s", runner_cls.__name__)
-
             # Re-query message to get fresh instance (required by agent runner)
             msg_stmt = select(Message).where(Message.id == message.id)
             message_result = db.session.scalar(msg_stmt)
             if message_result is None:
                 raise ValueError("Message not found")
             db.session.close()
-
-            # Log prompt_messages before passing to agent runner
-            logger.info("[Agent Execution] Files count: %s", len(files))
-            for i, file in enumerate(files):
-                logger.info(
-                    "[Agent Execution] File %s: type=%s, url=%s",
-                    i,
-                    file.type,
-                    file.remote_url if hasattr(file, "remote_url") else "N/A",
-                )
-
-            logger.info("[Agent Execution] Prompt messages being passed to agent runner: %s", len(prompt_messages))
-            for i, msg in enumerate(prompt_messages):
-                if hasattr(msg, "content"):
-                    if isinstance(msg.content, list):
-                        logger.info(
-                            "[Agent Execution] Prompt message %s [%s]: %s items",
-                            i,
-                            msg.__class__.__name__,
-                            len(msg.content),
-                        )
-                        for j, item in enumerate(msg.content):
-                            logger.info("[Agent Execution]   Item %s: %s", j, type(item).__name__)
-                    else:
-                        content_preview = str(msg.content)[:200] if msg.content else "(empty)"
-                        logger.info(
-                            "[Agent Execution] Prompt message %s [%s]: %s...",
-                            i,
-                            msg.__class__.__name__,
-                            content_preview,
-                        )
 
             # Initialize agent runner
             # Note: Completion mode doesn't have conversation or memory
@@ -262,18 +217,12 @@ class CompletionAppRunner(AppRunner):
                 model_instance=model_instance,
             )
 
-            logger.info("[Agent Execution] Runner initialized successfully")
-            logger.info("[Agent Execution] Starting agent run with query: %s", query)
-            logger.info("[Agent Execution] Inputs: %s", inputs)
-
             # Run agent
             invoke_result = runner.run(
                 message=message,
                 query=query or "",
                 inputs=inputs,
             )
-
-            logger.info("[Agent Execution] Agent run completed")
 
             # Handle invoke result (with agent=True flag)
             self._handle_invoke_result(

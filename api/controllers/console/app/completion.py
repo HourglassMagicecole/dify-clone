@@ -296,8 +296,6 @@ def _check_education_quota(app_model, user: Account | EndUser | None, args: dict
         logger.warning("Could not determine model provider, skipping quota check")
         return
 
-    logger.info("Quota check using provider: %s", model_provider)
-
     # Check quota
     result = QuotaEnforcementService.check_quota(
         db_session=db.session,  # type: ignore[arg-type]
@@ -305,20 +303,6 @@ def _check_education_quota(app_model, user: Account | EndUser | None, args: dict
         session_id=session_id,
         account_id=account_id,
         model_provider=model_provider,
-    )
-
-    logger.info(
-        "Quota check result: session=%s, account=%s, provider=%s, allowed=%s, blocked_by=%s, "
-        "session_usage=%s, session_limit=%s, user_usage=%s, user_limit=%s",
-        session_id,
-        account_id,
-        model_provider,
-        result.allowed,
-        result.blocked_by,
-        result.session_usage,
-        result.session_limit,
-        result.user_usage,
-        result.user_limit,
     )
 
     if not result.allowed:

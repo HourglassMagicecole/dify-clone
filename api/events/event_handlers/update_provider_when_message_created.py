@@ -112,7 +112,6 @@ def handle(sender: Message, **kwargs):
         values=_ProviderUpdateValues(last_used=current_time),
         description="basic_last_used_update",
     )
-    logger.info("provider used, tenant_id=%s, provider_name=%s", tenant_id, provider_name)
     updates_to_perform.append(basic_update)
 
     # 2. Check if we need to deduct quota (system provider only)
@@ -154,18 +153,6 @@ def handle(sender: Message, **kwargs):
     start_time = time_module.perf_counter()
     try:
         _execute_provider_updates(updates_to_perform)
-
-        # Log successful completion with timing
-        duration = time_module.perf_counter() - start_time
-
-        logger.info(
-            "Provider updates completed successfully. Updates: %s, Duration: %s s, Tenant: %s, Provider: %s",
-            len(updates_to_perform),
-            duration,
-            tenant_id,
-            provider_name,
-        )
-
     except Exception:
         # Log failure with timing and context
         duration = time_module.perf_counter() - start_time

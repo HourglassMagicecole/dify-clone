@@ -392,8 +392,6 @@ def get_message_usage_cost(message_id: str):
         tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account.id).first()
     tenant_id = tenant_join.tenant_id if tenant_join else None
 
-    logger.info("get_message_usage_cost called: message_id=%s, tenant_id=%s", message_id, tenant_id)
-
     try:
         # Aggregate usage for this message
         result = (
@@ -410,8 +408,6 @@ def get_message_usage_cost(message_id: str):
 
         total_price = result.total_price if result and result.total_price else Decimal(0)
         usage_count = result.usage_count if result else 0
-
-        logger.info("get_message_usage_cost result: total_price=%s, usage_count=%s", total_price, usage_count)
 
         return jsonify(
             {

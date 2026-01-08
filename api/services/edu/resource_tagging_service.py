@@ -39,14 +39,6 @@ class ResourceTaggingService:
         Raises:
             ResourceAlreadyTaggedError: If the same tag already exists
         """
-        logger.info(
-            "Adding tag: session_id=%s, resource_type=%s, resource_id=%s, account_id=%s",
-            session_id,
-            resource_type,
-            resource_id,
-            account_id,
-        )
-
         # Check if tag already exists
         existing_tag_stmt = select(SessionResourceTag).where(
             SessionResourceTag.session_id == session_id,
@@ -74,7 +66,6 @@ class ResourceTaggingService:
         db.session.add(new_tag)
         db.session.commit()
 
-        logger.info("Tag added successfully: tag_id=%s", new_tag.id)
         return new_tag
 
     def remove_tag(self, tag_id: str) -> None:
@@ -87,8 +78,6 @@ class ResourceTaggingService:
         Raises:
             ResourceTagNotFoundError: If tag does not exist
         """
-        logger.info("Removing tag: tag_id=%s", tag_id)
-
         stmt = select(SessionResourceTag).where(SessionResourceTag.id == tag_id)
         tag = db.session.scalar(stmt)
 
@@ -98,8 +87,6 @@ class ResourceTaggingService:
 
         db.session.delete(tag)
         db.session.commit()
-
-        logger.info("Tag removed successfully: tag_id=%s", tag_id)
 
     def get_tags_by_resource(
         self,

@@ -468,8 +468,6 @@ class DatasetInitApi(Resource):
         except ModelCurrentlyNotSupportError:
             raise ProviderModelCurrentlyNotSupportError()
 
-        logger.info("Dataset created via /init: %s (ID: %s, User: %s)", dataset.name, dataset.id, current_user.id)
-
         # Add session resource tag (session is validated above, so active_session is guaranteed)
         try:
             resource_tagging_service = ResourceTaggingService()
@@ -478,11 +476,6 @@ class DatasetInitApi(Resource):
                 resource_type="dataset",
                 resource_id=dataset.id,
                 account_id=current_user.id,
-            )
-            logger.info(
-                "Added SessionResourceTag for dataset %s in session %s",
-                dataset.id,
-                active_session.id,
             )
         except Exception as e:
             # Log error but don't fail dataset creation (tag can be added later)
