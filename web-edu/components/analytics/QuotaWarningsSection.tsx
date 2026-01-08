@@ -17,7 +17,7 @@ export function QuotaWarningsSection() {
   const { data, isLoading, error } = useSWR(
     'all-quota-warnings',
     () => quotaAPI.getAllQuotaWarnings(),
-    { refreshInterval: 30000 },
+    { revalidateOnFocus: true },
   )
 
   const handleUnblock = async (warning: AllQuotaWarning) => {

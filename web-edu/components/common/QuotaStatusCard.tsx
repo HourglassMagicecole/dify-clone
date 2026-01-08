@@ -15,7 +15,7 @@ export function QuotaStatusCard({ sessionId }: QuotaStatusCardProps) {
   const { data: quotas, isLoading, error } = useSWR(
     ['my-quotas', sessionId],
     () => quotaAPI.getMyQuotas(sessionId),
-    { refreshInterval: 60000 }, // Refresh every minute
+    { revalidateOnFocus: true },
   )
 
   if (isLoading) {

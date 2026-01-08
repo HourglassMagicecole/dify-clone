@@ -15,7 +15,7 @@ export function SessionQuotaWarningBanner({ sessionId, onNavigateToQuotas }: Ses
   const { data: warnings } = useSWR(
     ['quota-warnings', sessionId],
     () => quotaAPI.getQuotaWarnings(sessionId),
-    { refreshInterval: 30000 }, // Refresh every 30 seconds
+    { revalidateOnFocus: true },
   )
 
   // Don't show if no warnings

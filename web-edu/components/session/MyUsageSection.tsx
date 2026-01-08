@@ -83,7 +83,7 @@ export function MyUsageSection({ sessionId }: MyUsageSectionProps) {
   const { data: quotas } = useSWR(
     sessionId ? ['my-quotas', sessionId] : null,
     () => quotaAPI.getMyQuotas(sessionId),
-    { refreshInterval: 60000 },
+    { revalidateOnFocus: true },
   )
 
   // Load usage summary
