@@ -35,32 +35,36 @@ if [[ "${MIGRATION_ENABLED}" == "true" ]]; then
   fi
 fi
 
-# Initialize Tenant Owner if environment variables are set
-# Security Note: Remove or comment out INITIAL_ADMIN_* environment variables
-# after first deployment to avoid password exposure in docker-compose.yaml or .env files
-if [ ! -z "$INITIAL_ADMIN_EMAIL" ] && [ ! -z "$INITIAL_ADMIN_PASSWORD" ]; then
-    echo "Checking initial admin setup..."
-    if flask init-tenant \
-        --email "$INITIAL_ADMIN_EMAIL" \
-        --password "$INITIAL_ADMIN_PASSWORD" \
-        --name "${INITIAL_ADMIN_NAME:-Admin}" 2>/dev/null; then
-        echo "✅ Initial admin account created successfully"
-        echo "   Email: $INITIAL_ADMIN_EMAIL"
-        echo "   Name: ${INITIAL_ADMIN_NAME:-Admin}"
+# Initialize Tenant Owner and install plugins only in API mode
+# This prevents race conditions when multiple containers start simultaneously
+if [[ "${MODE}" == "api" ]] || [[ -z "${MODE}" ]]; then
+    # Initialize Tenant Owner if environment variables are set
+    # Security Note: Remove or comment out INITIAL_ADMIN_* environment variables
+    # after first deployment to avoid password exposure in docker-compose.yaml or .env files
+    if [ ! -z "$INITIAL_ADMIN_EMAIL" ] && [ ! -z "$INITIAL_ADMIN_PASSWORD" ]; then
+        echo "Checking initial admin setup..."
+        if flask init-tenant \
+            --email "$INITIAL_ADMIN_EMAIL" \
+            --password "$INITIAL_ADMIN_PASSWORD" \
+            --name "${INITIAL_ADMIN_NAME:-Admin}" 2>/dev/null; then
+            echo "✅ Initial admin account created successfully"
+            echo "   Email: $INITIAL_ADMIN_EMAIL"
+            echo "   Name: ${INITIAL_ADMIN_NAME:-Admin}"
+        else
+            echo "ℹ️  Initial admin already exists (skipped)"
+        fi
     else
-        echo "ℹ️  Initial admin already exists (skipped)"
+        echo "ℹ️  INITIAL_ADMIN_EMAIL not set, skipping automatic tenant setup."
     fi
-else
-    echo "ℹ️  INITIAL_ADMIN_EMAIL not set, skipping automatic tenant setup."
-fi
 
-# Install model provider plugins (OpenAI, Anthropic, Cohere, Gemini)
-# These are required for EduAI Console API Key management
-echo "🔌 Installing model provider plugins..."
-if flask provider install-plugins 2>/dev/null; then
-    echo "✅ Provider plugins installed"
-else
-    echo "⚠️  Plugin installation failed or already installed (will auto-install on first API Key creation)"
+    # Install model provider plugins (OpenAI, Anthropic, Cohere, Gemini)
+    # These are required for EduAI Console API Key management
+    echo "🔌 Installing model provider plugins..."
+    if flask provider install-plugins 2>/dev/null; then
+        echo "✅ Provider plugins installed"
+    else
+        echo "⚠️  Plugin installation failed or already installed (will auto-install on first API Key creation)"
+    fi
 fi
 
 if [[ "${MODE}" == "worker" ]]; then
