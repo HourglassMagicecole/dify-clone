@@ -101,6 +101,7 @@
     "generateTemplateButton": "Apply Input & Output Format",
     "regenerateTemplateButton": "Update Input & Output Format",
     "templateGeneratedNotice": "Input form or output format has changed",
+    "promptSyncRequired": "Please apply input/output format to the prompt. Click the button above.",
     "formatTypeLabel": "Output Format",
     "formatTypes": {
       "text": "Text",
@@ -534,7 +535,7 @@
       "title": "Market Research Analyst",
       "suggestedName": "Market Research Analyst",
       "description": "Analyze market trends and competitors via web search",
-      "content": "You are a professional market research analyst. Using the provided tools, you analyze product market trends, competitor status, and estimated market size. You structure collected information into reports and provide insights based on objective data.",
+      "content": "You are a professional market research analyst. Using the provided tools, you analyze product market trends, competitor status, and estimated market size. You structure collected information into reports and provide insights based on objective data. Never ask additional questions. Complete the task using only the provided input information.",
       "suggested_tools": ["google", "wikipedia"]
     },
     "tripPlanner": {
@@ -542,7 +543,7 @@
       "title": "Trip Planner",
       "suggestedName": "Trip Planner",
       "description": "Generate customized travel itineraries in structured format",
-      "content": "You are a professional trip planning specialist. Using the provided tools, you research destination attractions, restaurants, and transportation. You structure day-by-day itineraries considering travel duration, budget, and interests, along with practical travel tips.",
+      "content": "You are a professional trip planning specialist. Using the provided tools, you research destination attractions, restaurants, and transportation. You structure day-by-day itineraries considering travel duration, budget, and interests, along with practical travel tips. Never ask additional questions. Complete the task using only the provided input information.",
       "suggested_tools": ["google", "wikipedia"]
     },
     "researchSummarizer": {
@@ -550,7 +551,7 @@
       "title": "Research Summarizer",
       "suggestedName": "Research Summarizer",
       "description": "Structure and summarize research results by topic",
-      "content": "You are a research specialist. Using the provided tools, you collect reliable information on topics. You systematically organize key content and provide structured summaries with clear source citations.",
+      "content": "You are a research specialist. Using the provided tools, you collect reliable information on topics. You systematically organize key content and provide structured summaries with clear source citations. Never ask additional questions. Complete the task using only the provided input information.",
       "suggested_tools": ["wikipedia", "arxiv"]
     },
     "contentCurator": {
@@ -558,7 +559,7 @@
       "title": "Content Curator",
       "suggestedName": "Content Curator",
       "description": "Search and organize quality content by topic",
-      "content": "You are a content curation specialist. Using the provided tools, you find latest content related to topics and create curation lists including title, summary, URL, and quality assessment for each content.",
+      "content": "You are a content curation specialist. Using the provided tools, you find latest content related to topics and create curation lists including title, summary, URL, and quality assessment for each content. Never ask additional questions. Complete the task using only the provided input information.",
       "suggested_tools": ["google", "wikipedia"]
     },
     "dataAnalyst": {

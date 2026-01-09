@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
@@ -23,7 +23,7 @@ import { Modal } from '@/components/common/Modal'
  */
 export default function Step2PromptSettings() {
   const { t } = useTranslation('agent')
-  const { promptSettings, setPromptSettings, basicSettings, nextStep, previousStep } = useAgentWizard()
+  const { promptSettings, setPromptSettings, basicSettings, nextStep, previousStep, isEditMode } = useAgentWizard()
 
   const {
     control,
@@ -60,6 +60,35 @@ export default function Step2PromptSettings() {
   // Track if template has been generated
   const [hasGeneratedTemplate, setHasGeneratedTemplate] = useState(false)
 
+  // Track if input/output format needs to be synced to prompt
+  const [needsPromptSync, setNeedsPromptSync] = useState(false)
+
+  // Store initial values for edit mode comparison (to detect actual changes)
+  const initialInputFormRef = useRef<string | null>(null)
+  const initialOutputFormatRef = useRef<string | null>(null)
+  const isInitializedRef = useRef(false)
+
+  // Initialize refs with initial values once data is loaded
+  useEffect(() => {
+    if (!isInitializedRef.current && isCompletionMode) {
+      // Wait for data to be loaded (either empty for new or populated for edit)
+      initialInputFormRef.current = JSON.stringify(userInputFormFields)
+      initialOutputFormatRef.current = JSON.stringify(outputFormat)
+      isInitializedRef.current = true
+    }
+  }, [isCompletionMode, userInputFormFields, outputFormat])
+
+  // Initialize hasGeneratedTemplate in edit mode if prompt already has input/output sections
+  useEffect(() => {
+    if (isEditMode && isCompletionMode && promptSettings?.pre_prompt) {
+      const hasInputSection = promptSettings.pre_prompt.includes('## 입력 정보')
+      const hasOutputSection = promptSettings.pre_prompt.includes('## 출력 형식')
+      if (hasInputSection || hasOutputSection) {
+        setHasGeneratedTemplate(true)
+      }
+    }
+  }, [isEditMode, isCompletionMode, promptSettings?.pre_prompt])
+
   // Preview modal state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
@@ -75,6 +104,60 @@ export default function Step2PromptSettings() {
 
   const prePromptValue = watch('pre_prompt')
   const openingStatementValue = watch('opening_statement')
+
+  /**
+   * Check if input/output format is properly reflected in the prompt
+   * Returns true if sync is needed (not reflected or outdated)
+   */
+  const checkPromptSyncNeeded = (): boolean => {
+    if (!isCompletionMode) return false
+
+    // In edit mode, check if there's an actual change from initial values
+    if (isEditMode && isInitializedRef.current) {
+      const currentInputForm = JSON.stringify(userInputFormFields)
+      const currentOutputFormat = JSON.stringify(outputFormat)
+      const inputChanged = initialInputFormRef.current !== currentInputForm
+
+      // For outputFormat, undefined → default value is NOT a real change
+      const DEFAULT_OUTPUT_FORMAT = '{"format_type":"text","text_format":"markdown"}'
+      const initialOutput = initialOutputFormatRef.current
+      const outputChanged = (() => {
+        // If initial was undefined/null and current is default, not a real change
+        // Note: JSON.stringify(undefined) returns undefined (not string), so check both
+        if ((initialOutput === undefined || initialOutput === null || initialOutput === 'undefined') && currentOutputFormat === DEFAULT_OUTPUT_FORMAT) {
+          return false
+        }
+        return initialOutput !== currentOutputFormat
+      })()
+
+      // No actual change from initial values - but respect needsPromptSync state
+      // (user might have changed and then changed back, but prompt still needs update)
+      if (!inputChanged && !outputChanged) {
+        return needsPromptSync
+      }
+    }
+
+    const prompt = prePromptValue || ''
+    const hasInputSection = prompt.includes('## 입력 정보')
+    const hasOutputSection = prompt.includes('## 출력 형식')
+
+    // If there are input fields, prompt must have input section
+    if (userInputFormFields.length > 0 && !hasInputSection) {
+      return true
+    }
+
+    // If output format is set, prompt must have output section
+    if (outputFormat && !hasOutputSection) {
+      return true
+    }
+
+    return needsPromptSync
+  }
+
+  /**
+   * Whether the form can proceed to next step
+   */
+  const canProceed = isValid && (!isCompletionMode || !checkPromptSyncNeeded())
 
   /**
    * Generate prompt template from user input form and output format
@@ -140,7 +223,43 @@ export default function Step2PromptSettings() {
       pre_prompt: template,
     })
     setHasGeneratedTemplate(true)
+    setNeedsPromptSync(false)
+
+    // Update initial refs to current values (new baseline for change detection)
+    initialInputFormRef.current = JSON.stringify(userInputFormFields)
+    initialOutputFormatRef.current = JSON.stringify(outputFormat)
   }
+
+  // Mark prompt sync needed when input/output format actually changes from initial values
+  useEffect(() => {
+    // Skip if not initialized yet
+    if (!isInitializedRef.current || !isCompletionMode) {
+      return
+    }
+
+    // Check if values actually changed from initial
+    const currentInputForm = JSON.stringify(userInputFormFields)
+    const currentOutputFormat = JSON.stringify(outputFormat)
+    const inputChanged = initialInputFormRef.current !== currentInputForm
+
+    // For outputFormat, undefined → default value is NOT a real change
+    const DEFAULT_OUTPUT_FORMAT = '{"format_type":"text","text_format":"markdown"}'
+    const initialOutput = initialOutputFormatRef.current
+    const outputChanged = (() => {
+      if ((initialOutput === undefined || initialOutput === null) && currentOutputFormat === DEFAULT_OUTPUT_FORMAT) {
+        return false
+      }
+      return initialOutput !== currentOutputFormat
+    })()
+
+    // Mark as needing sync if there's an actual change, otherwise reset
+    if ((inputChanged || outputChanged) && (hasGeneratedTemplate || isEditMode)) {
+      setNeedsPromptSync(true)
+    } else {
+      setNeedsPromptSync(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userInputFormFields, outputFormat])
 
   // Auto-save user_input_form and output_format to context
   useEffect(() => {
@@ -318,7 +437,12 @@ export default function Step2PromptSettings() {
           >
             📝 {hasGeneratedTemplate ? t('promptSettings.regenerateTemplateButton') : t('promptSettings.generateTemplateButton')}
           </button>
-          {(userInputFormFields.length > 0 || outputFormat) && !hasGeneratedTemplate && (
+          {checkPromptSyncNeeded() && (
+            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+              ⚠️ {t('promptSettings.promptSyncRequired')}
+            </p>
+          )}
+          {(userInputFormFields.length > 0 || outputFormat) && !hasGeneratedTemplate && !checkPromptSyncNeeded() && (
             <p className="text-xs text-gray-500 dark:text-gray-400">
               💡 {t('promptSettings.templateGeneratedNotice')}
             </p>
@@ -337,7 +461,7 @@ export default function Step2PromptSettings() {
         </button>
         <button
           type="submit"
-          disabled={!isValid}
+          disabled={!canProceed}
           className="px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-500 dark:hover:bg-blue-600"
         >
           {t('buttons.next')}

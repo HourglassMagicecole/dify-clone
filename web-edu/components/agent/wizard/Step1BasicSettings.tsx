@@ -321,7 +321,7 @@ export function Step1BasicSettings(): React.ReactElement {
       ],
       suggested_output_format: {
         format_type: 'text' as const,
-        text_format: 'json' as const,
+        text_format: 'markdown' as const,
       },
       suggested_tools: ['google.google_search', 'wikipedia.wikipedia_search'],
     },
@@ -340,7 +340,7 @@ export function Step1BasicSettings(): React.ReactElement {
       ],
       suggested_output_format: {
         format_type: 'text' as const,
-        text_format: 'json' as const,
+        text_format: 'markdown' as const,
       },
       suggested_tools: ['wikipedia.wikipedia_search', 'google.google_search'],
     },
@@ -363,6 +363,9 @@ export function Step1BasicSettings(): React.ReactElement {
       },
       suggested_tools: ['google.google_search'],
     },
+    // NOTE: The following samples are temporarily disabled
+    // To re-enable, remove the /* */ block comments
+    /*
     {
       id: 'dataAnalyst',
       mode: AgentType.COMPLETION,
@@ -515,6 +518,7 @@ export function Step1BasicSettings(): React.ReactElement {
       },
       suggested_tools: ['google.google_search', 'openai_tool.dalle3', 'wikipedia.wikipedia_search'],
     },
+    */
   ]
 
   /**

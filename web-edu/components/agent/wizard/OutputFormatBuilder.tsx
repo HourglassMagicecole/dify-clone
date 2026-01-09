@@ -74,9 +74,11 @@ export function OutputFormatBuilder({
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
         >
           <option value="text">{t('promptSettings.formatTypes.text')}</option>
+          {/* NOTE: The following format types are temporarily disabled
           <option value="image">{t('promptSettings.formatTypes.image')}</option>
           <option value="audio">{t('promptSettings.formatTypes.audio')}</option>
           <option value="file">{t('promptSettings.formatTypes.file')}</option>
+          */}
         </select>
       </div>
 
@@ -93,15 +95,18 @@ export function OutputFormatBuilder({
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
           >
             <option value="markdown">{t('promptSettings.textFormats.markdown')}</option>
-            <option value="json">{t('promptSettings.textFormats.json')}</option>
+            {/* <option value="json">{t('promptSettings.textFormats.json')}</option> */}
             <option value="plain_text">{t('promptSettings.textFormats.plain_text')}</option>
             <option value="html">{t('promptSettings.textFormats.html')}</option>
           </select>
         </div>
       )}
 
-      {/* Image Format Options */}
-      {formatType === 'image' && (
+      {/* NOTE: The following format option UIs are temporarily disabled
+         To re-enable, remove the "false &&" condition from each block below */}
+
+      {/* Image Format Options - DISABLED */}
+      {false && formatType === 'image' && (
         <div className="pl-4 border-l-2 border-blue-200 dark:border-blue-800">
           <label htmlFor="image-format" className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
             {t('promptSettings.imageFormatLabel')}
@@ -120,8 +125,8 @@ export function OutputFormatBuilder({
         </div>
       )}
 
-      {/* Audio Format Options */}
-      {formatType === 'audio' && (
+      {/* Audio Format Options - DISABLED */}
+      {false && formatType === 'audio' && (
         <div className="pl-4 border-l-2 border-blue-200 dark:border-blue-800">
           <label htmlFor="audio-format" className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
             {t('promptSettings.audioFormatLabel')}
@@ -139,8 +144,8 @@ export function OutputFormatBuilder({
         </div>
       )}
 
-      {/* File Format Options */}
-      {formatType === 'file' && (
+      {/* File Format Options - DISABLED */}
+      {false && formatType === 'file' && (
         <div className="pl-4 border-l-2 border-blue-200 dark:border-blue-800">
           <label htmlFor="file-format" className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
             {t('promptSettings.fileFormatLabel')}

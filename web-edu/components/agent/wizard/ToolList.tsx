@@ -12,6 +12,10 @@ interface ToolListProps {
   onToolsChange: (tools: string[]) => void
 }
 
+// NOTE: Providers in this list are temporarily disabled and won't appear in the tool selection
+// To re-enable, remove the provider name from this array
+const DISABLED_PROVIDERS = ['arxiv']
+
 export default function ToolList({ selectedTools, onToolsChange }: ToolListProps) {
   const { t } = useTranslation('agent')
   const [toolProviders, setToolProviders] = useState<ToolProvider[]>([])
@@ -52,7 +56,12 @@ export default function ToolList({ selectedTools, onToolsChange }: ToolListProps
           }
           return provider
         })
-        setToolProviders(reorderedProviders)
+
+        // Filter out disabled providers
+        const filteredProviders = reorderedProviders.filter(
+          provider => !DISABLED_PROVIDERS.includes(provider.name)
+        )
+        setToolProviders(filteredProviders)
       }
       else {
         setError(response.message || 'Failed to load tools')

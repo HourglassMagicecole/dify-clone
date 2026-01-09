@@ -91,6 +91,10 @@ const PROVIDER_ICONS = {
 
 const DEFAULT_TOOL_ICON = '🛠️'
 
+// NOTE: Providers in this list are temporarily disabled and won't appear in the tool selection
+// To re-enable, remove the provider name from this array
+const DISABLED_PROVIDERS = ['arxiv']
+
 export default function Step4ToolsConfig() {
   const { t, i18n } = useTranslation('agent')
   const {
@@ -348,7 +352,12 @@ export default function Step4ToolsConfig() {
       const response = await listTools()
 
       if (response.result === 'success' && response.data) {
-        setToolProviders(response.data)
+        // Filter out disabled providers
+        const filteredProviders = response.data.filter(
+          provider => !DISABLED_PROVIDERS.includes(provider.name)
+        )
+
+        setToolProviders(filteredProviders)
       }
       else {
         throw new Error(response.message || 'Failed to load tools')
