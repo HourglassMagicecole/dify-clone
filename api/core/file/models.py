@@ -118,7 +118,7 @@ class File(BaseModel):
         elif self.transfer_method in [FileTransferMethod.TOOL_FILE, FileTransferMethod.DATASOURCE_FILE]:
             assert self.related_id is not None
             assert self.extension is not None
-            return sign_tool_file(tool_file_id=self.related_id, extension=self.extension)
+            return sign_tool_file(tool_file_id=self.related_id, extension=self.extension, for_external=True)
         return None
 
     def to_plugin_parameter(self) -> dict[str, Any]:

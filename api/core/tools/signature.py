@@ -7,12 +7,22 @@ import time
 from configs import dify_config
 
 
-def sign_tool_file(tool_file_id: str, extension: str) -> str:
+def sign_tool_file(tool_file_id: str, extension: str, *, for_external: bool = False) -> str:
     """
-    sign file to get a temporary url for plugin access
+    sign file to get a temporary url
+
+    Args:
+        tool_file_id: The tool file ID
+        extension: File extension (e.g., ".png", ".wav")
+        for_external: If True, use FILES_URL for browser access (relative path if empty).
+                      If False, use INTERNAL_FILES_URL for server-side access (Docker internal).
     """
-    # Use internal URL for plugin/tool file access in Docker environments
-    base_url = dify_config.INTERNAL_FILES_URL or dify_config.FILES_URL
+    if for_external:
+        # Browser access - use FILES_URL (empty = relative path, works with any domain)
+        base_url = dify_config.FILES_URL
+    else:
+        # Server-side access - use internal Docker URL for SSRF proxy
+        base_url = dify_config.INTERNAL_FILES_URL or dify_config.FILES_URL
     file_preview_url = f"{base_url}/files/tools/{tool_file_id}{extension}"
 
     timestamp = str(int(time.time()))

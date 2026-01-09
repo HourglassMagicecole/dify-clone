@@ -8,8 +8,23 @@ import urllib.parse
 from configs import dify_config
 
 
-def get_signed_file_url(upload_file_id: str, as_attachment=False) -> str:
-    url = f"{dify_config.FILES_URL}/files/{upload_file_id}/file-preview"
+def get_signed_file_url(upload_file_id: str, as_attachment=False, *, for_external: bool = True) -> str:
+    """
+    Generate a signed URL for file preview.
+
+    Args:
+        upload_file_id: The upload file ID
+        as_attachment: If True, add as_attachment parameter for download
+        for_external: If True, use FILES_URL for browser access (relative path if empty).
+                      If False, use INTERNAL_FILES_URL for server-side access (Docker internal).
+    """
+    if for_external:
+        # Browser access - use FILES_URL (empty = relative path, works with any domain)
+        base_url = dify_config.FILES_URL
+    else:
+        # Server-side access - use internal Docker URL for SSRF proxy
+        base_url = dify_config.INTERNAL_FILES_URL or dify_config.FILES_URL
+    url = f"{base_url}/files/{upload_file_id}/file-preview"
 
     timestamp = str(int(time.time()))
     nonce = os.urandom(16).hex()

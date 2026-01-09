@@ -169,7 +169,7 @@ class MessageCycleManager:
             if message_file.url.startswith("http"):
                 url = message_file.url
             else:
-                url = sign_tool_file(tool_file_id=tool_file_id, extension=extension)
+                url = sign_tool_file(tool_file_id=tool_file_id, extension=extension, for_external=True)
 
             return MessageFileStreamResponse(
                 task_id=self._application_generate_entity.task_id,

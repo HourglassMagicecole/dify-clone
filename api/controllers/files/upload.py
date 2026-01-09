@@ -103,7 +103,7 @@ class PluginUploadFileApi(Resource):
             )
 
             extension = guess_extension(tool_file.mimetype) or ".bin"
-            preview_url = ToolFileManager.sign_file(tool_file_id=tool_file.id, extension=extension)
+            preview_url = ToolFileManager.sign_file(tool_file_id=tool_file.id, extension=extension, for_external=True)
 
             # Create a dictionary with all the necessary attributes
             result = {

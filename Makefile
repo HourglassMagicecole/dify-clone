@@ -90,16 +90,9 @@ docker-clean-all:
 	@rm -rf docker/volumes/elasticsearch
 	@rm -rf docker/volumes/plugin_daemon
 	@rm -rf docker/volumes/certbot
-	@echo "🔧 Resetting admin credentials in docker/.env..."
-	@if [ -f docker/.env ]; then \
-		perl -pi -e 's/^INITIAL_ADMIN_EMAIL=.*/INITIAL_ADMIN_EMAIL=/' docker/.env; \
-		perl -pi -e 's/^INITIAL_ADMIN_PASSWORD=.*/INITIAL_ADMIN_PASSWORD=/' docker/.env; \
-		perl -pi -e 's/^INITIAL_ADMIN_NAME=.*/INITIAL_ADMIN_NAME=/' docker/.env; \
-		echo "✅ Admin credentials reset"; \
-	else \
-		echo "ℹ️  docker/.env not found (skipped)"; \
-	fi
-	@echo "✅ All Docker resources removed and admin credentials reset"
+	@echo "🗑️  Removing docker/.env file..."
+	@rm -f docker/.env
+	@echo "✅ All Docker resources and .env file removed"
 	@echo ""
 	@echo "💡 Next steps:"
 	@echo "   Run 'make docker-rebuild' to rebuild without cache (recommended after clean-all)"
@@ -176,7 +169,7 @@ dev-clean-all:
 	@echo "  - All Docker containers, volumes, and images"
 	@echo "  - All database data (PostgreSQL, Redis, Elasticsearch)"
 	@echo "  - All build artifacts (node_modules, .next, .venv)"
-	@echo "  - All .env files (web/.env, web-edu/.env.local, api/.env)"
+	@echo "  - All .env files (web/.env, web-edu/.env.local, api/.env, docker/middleware.env)"
 	@echo ""
 	@echo "Press Ctrl+C to cancel, or Enter to continue..."
 	@read dummy
@@ -191,6 +184,7 @@ dev-clean-all:
 	@rm -rf web/node_modules web/.next web/.env
 	@rm -rf web-edu/node_modules web-edu/.next web-edu/.env.local
 	@rm -rf api/.venv api/storage api/.env
+	@rm -f docker/middleware.env
 	@echo "✅ All dev resources removed and environment reset"
 	@echo ""
 	@echo "💡 Next steps:"
@@ -271,7 +265,7 @@ help:
 	@echo "  make docker-down     - Stop Docker containers"
 	@echo "  make docker-restart  - Restart Docker containers"
 	@echo "  make docker-clean    - Remove containers, volumes, and volume directories"
-	@echo "  make docker-clean-all - Remove all Docker resources + reset admin credentials"
+	@echo "  make docker-clean-all - Remove all Docker resources + .env file"
 	@echo "  make docker-prune    - Prune system-wide Docker resources (WARNING: affects other projects)"
 	@echo ""
 	@echo "Backend Code Quality:"

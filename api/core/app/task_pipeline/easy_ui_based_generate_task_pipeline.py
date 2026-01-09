@@ -518,7 +518,7 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                                 extension = f".{url_match.group(1)}"
 
                         # Generate signed URL for tool files (works even without UploadFile)
-                        signed_url = ToolFileManager.sign_file(msg_file.upload_file_id, extension)
+                        signed_url = ToolFileManager.sign_file(msg_file.upload_file_id, extension, for_external=True)
                     else:
                         # No upload_file_id, try to extract tool_file_id from URL and sign it
                         import re
@@ -538,7 +538,7 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                                 else:
                                     extension = ".bin"
                                 # Sign the file URL
-                                signed_url = sign_tool_file(tool_file_id, extension)
+                                signed_url = sign_tool_file(tool_file_id, extension, for_external=True)
 
                     file_data: dict[str, object] = {
                         "id": msg_file.id,

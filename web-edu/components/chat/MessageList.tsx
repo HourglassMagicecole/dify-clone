@@ -209,6 +209,7 @@ export function MessageList({
                               className="w-full rounded-lg shadow-md group-hover:shadow-xl transition-all cursor-pointer object-cover"
                               loading="lazy"
                               style={{ maxHeight: '400px' }}
+                              unoptimized={url.startsWith('/files/')}
                             />
                           </a>
                         )}
@@ -406,6 +407,7 @@ export function MessageList({
                                             height={400}
                                             className="w-full rounded-md border border-gray-300 group-hover:border-blue-500 group-hover:shadow-lg transition-all cursor-pointer object-cover"
                                             loading="lazy"
+                                            unoptimized={url.startsWith('/files/')}
                                             onError={(e) => {
                                               if (process.env.NODE_ENV === 'development') {
                                                 console.error('[ERROR] Failed to load image:', file.url)

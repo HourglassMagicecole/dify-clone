@@ -1072,7 +1072,7 @@ class Message(Base):
                 if not tool_file_id:
                     continue
 
-                sign_url = sign_tool_file(tool_file_id=tool_file_id, extension=extension)
+                sign_url = sign_tool_file(tool_file_id=tool_file_id, extension=extension, for_external=True)
             elif "file-preview" in url:
                 # get upload file id
                 upload_file_id_pattern = r"\/files\/([\w-]+)\/file-preview\?timestamp="
@@ -1872,7 +1872,7 @@ class MessageAgentThought(Base):
 
                 # Generate signed URL
                 if tool_file_id:
-                    signed_url = sign_tool_file(tool_file_id, extension)
+                    signed_url = sign_tool_file(tool_file_id, extension, for_external=True)
                 else:
                     signed_url = msg_file.url or ""
 

@@ -235,7 +235,7 @@ def _build_from_remote_url(
             tenant_id=tenant_id,
             type=file_type,
             transfer_method=transfer_method,
-            remote_url=helpers.get_signed_file_url(upload_file_id=str(upload_file_id)),
+            remote_url=helpers.get_signed_file_url(upload_file_id=str(upload_file_id), for_external=False),
             related_id=mapping.get("upload_file_id"),
             size=upload_file.size,
             storage_key=upload_file.key,
