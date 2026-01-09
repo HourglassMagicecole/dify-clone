@@ -5,7 +5,7 @@
 # ==================================================================
 
 x-shared-env: &shared-api-worker-env
-  CONSOLE_API_URL: ${CONSOLE_API_URL:-http://localhost/console/api}
+  CONSOLE_API_URL: ${CONSOLE_API_URL:-}
   CONSOLE_WEB_URL: ${CONSOLE_WEB_URL:-}
   SERVICE_API_URL: ${SERVICE_API_URL:-}
   APP_API_URL: ${APP_API_URL:-}
@@ -24,7 +24,8 @@ x-shared-env: &shared-api-worker-env
   DEBUG: ${DEBUG:-false}
   FLASK_DEBUG: ${FLASK_DEBUG:-false}
   ENABLE_REQUEST_LOGGING: ${ENABLE_REQUEST_LOGGING:-False}
-  SECRET_KEY: ${SECRET_KEY:-sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U}
+  SECRET_KEY: ${SECRET_KEY:-}
+  API_KEY_ENCRYPTION_KEY: ${API_KEY_ENCRYPTION_KEY:-}
   INIT_PASSWORD: ${INIT_PASSWORD:-}
   DEPLOY_ENV: ${DEPLOY_ENV:-PRODUCTION}
   CHECK_UPDATE_URL: ${CHECK_UPDATE_URL:-https://updates.dify.ai}
@@ -148,7 +149,7 @@ x-shared-env: &shared-api-worker-env
   SUPABASE_BUCKET_NAME: ${SUPABASE_BUCKET_NAME:-your-bucket-name}
   SUPABASE_API_KEY: ${SUPABASE_API_KEY:-your-access-key}
   SUPABASE_URL: ${SUPABASE_URL:-your-server-url}
-  VECTOR_STORE: ${VECTOR_STORE:-weaviate}
+  VECTOR_STORE: ${VECTOR_STORE:-elasticsearch-ko}
   VECTOR_INDEX_NAME_PREFIX: ${VECTOR_INDEX_NAME_PREFIX:-Vector_index}
   WEAVIATE_ENDPOINT: ${WEAVIATE_ENDPOINT:-http://weaviate:8080}
   WEAVIATE_API_KEY: ${WEAVIATE_API_KEY:-WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih}
@@ -266,7 +267,7 @@ x-shared-env: &shared-api-worker-env
   TENCENT_VECTOR_DB_SHARD: ${TENCENT_VECTOR_DB_SHARD:-1}
   TENCENT_VECTOR_DB_REPLICAS: ${TENCENT_VECTOR_DB_REPLICAS:-2}
   TENCENT_VECTOR_DB_ENABLE_HYBRID_SEARCH: ${TENCENT_VECTOR_DB_ENABLE_HYBRID_SEARCH:-false}
-  ELASTICSEARCH_HOST: ${ELASTICSEARCH_HOST:-0.0.0.0}
+  ELASTICSEARCH_HOST: ${ELASTICSEARCH_HOST:-elasticsearch}
   ELASTICSEARCH_PORT: ${ELASTICSEARCH_PORT:-9200}
   ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
   ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic}
@@ -595,11 +596,14 @@ x-shared-env: &shared-api-worker-env
   ENABLE_MAIL_CLEAN_DOCUMENT_NOTIFY_TASK: ${ENABLE_MAIL_CLEAN_DOCUMENT_NOTIFY_TASK:-false}
   ENABLE_DATASETS_QUEUE_MONITOR: ${ENABLE_DATASETS_QUEUE_MONITOR:-false}
   ENABLE_CHECK_UPGRADABLE_PLUGIN_TASK: ${ENABLE_CHECK_UPGRADABLE_PLUGIN_TASK:-true}
+  INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+  INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+  INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-}
 
 services:
   # API service
   api:
-    # Local build for Story 1.0 (init-tenant command)
+    # Local build for EduAI Studio custom features
     build:
       context: ../api
       dockerfile: Dockerfile
@@ -618,7 +622,7 @@ services:
       PLUGIN_MAX_PACKAGE_SIZE: ${PLUGIN_MAX_PACKAGE_SIZE:-52428800}
       INNER_API_KEY_FOR_PLUGIN: ${PLUGIN_DIFY_INNER_API_KEY:-QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1}
 
-      # ========== Initial Tenant Setup (Story 1.0) ==========
+      # ========== Initial Tenant Setup ==========
       # Set these variables for automatic admin account creation on first deployment
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
@@ -638,7 +642,7 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
-    # Local build for Story 1.0 (same as api)
+    # Local build for EduAI Studio custom features (same as api)
     build:
       context: ../api
       dockerfile: Dockerfile
@@ -654,6 +658,11 @@ services:
       SENTRY_PROFILES_SAMPLE_RATE: ${API_SENTRY_PROFILES_SAMPLE_RATE:-1.0}
       PLUGIN_MAX_PACKAGE_SIZE: ${PLUGIN_MAX_PACKAGE_SIZE:-52428800}
       INNER_API_KEY_FOR_PLUGIN: ${PLUGIN_DIFY_INNER_API_KEY:-QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1}
+
+      # ========== Initial Tenant Setup ==========
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-}
     depends_on:
       db:
         condition: service_healthy
@@ -669,7 +678,7 @@ services:
   # worker_beat service
   # Celery beat for scheduling periodic tasks.
   worker_beat:
-    # Local build for Story 1.0 (same as api)
+    # Local build for EduAI Studio custom features (same as api)
     build:
       context: ../api
       dockerfile: Dockerfile
@@ -680,6 +689,11 @@ services:
       <<: *shared-api-worker-env
       # Startup mode, 'worker_beat' starts the Celery beat for scheduling periodic tasks.
       MODE: beat
+
+      # ========== Initial Tenant Setup ==========
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-}
     depends_on:
       db:
         condition: service_healthy
@@ -716,42 +730,21 @@ services:
   #     ENABLE_WEBSITE_FIRECRAWL: ${ENABLE_WEBSITE_FIRECRAWL:-true}
   #     ENABLE_WEBSITE_WATERCRAWL: ${ENABLE_WEBSITE_WATERCRAWL:-true}
 
-  # EduAI Studio Web (Story 1.4+)
-  # Custom educational interface built on Next.js
+  # EduAI Studio Frontend web application.
   web-edu:
     build:
       context: ../web-edu
       dockerfile: Dockerfile
-      args:
-        API_HOST: api:5001
-        NEXT_PUBLIC_API_BASE_URL: ''
     restart: always
-    ports:
-      - "3001:3001"
     environment:
-      # API connection for Docker network
-      API_HOST: api:5001
-      CONSOLE_API_URL: ${CONSOLE_API_URL:-http://localhost/console/api}
+      CONSOLE_API_URL: ${CONSOLE_API_URL:-}
       APP_API_URL: ${APP_API_URL:-}
-      EDITION: ${EDITION:-SELF_HOSTED}
-      DEPLOY_ENV: ${DEPLOY_ENV:-PRODUCTION}
       SENTRY_DSN: ${WEB_SENTRY_DSN:-}
-      NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED:-1}
+      NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED:-0}
       TEXT_GENERATION_TIMEOUT_MS: ${TEXT_GENERATION_TIMEOUT_MS:-60000}
-      CSP_WHITELIST: ${CSP_WHITELIST:-}
-      ALLOW_EMBED: ${ALLOW_EMBED:-false}
-      NEXT_PUBLIC_API_BASE_URL: ''
-      ALLOW_UNSAFE_DATA_SCHEME: ${ALLOW_UNSAFE_DATA_SCHEME:-false}
-      MARKETPLACE_API_URL: ${MARKETPLACE_API_URL:-https://marketplace.dify.ai}
-      MARKETPLACE_URL: ${MARKETPLACE_URL:-https://marketplace.dify.ai}
       PM2_INSTANCES: ${PM2_INSTANCES:-2}
-      LOOP_NODE_MAX_COUNT: ${LOOP_NODE_MAX_COUNT:-100}
-      MAX_TOOLS_NUM: ${MAX_TOOLS_NUM:-10}
-      MAX_PARALLEL_LIMIT: ${MAX_PARALLEL_LIMIT:-10}
-      MAX_ITERATIONS_NUM: ${MAX_ITERATIONS_NUM:-99}
-      MAX_TREE_DEPTH: ${MAX_TREE_DEPTH:-50}
-    depends_on:
-      - api
+    ports:
+      - "${EXPOSE_WEB_EDU_PORT:-3001}:3001"
 
   # The postgres database.
   db:
@@ -975,6 +968,7 @@ services:
       CERTBOT_DOMAIN: ${CERTBOT_DOMAIN:-}
     depends_on:
       - api
+      # - web
     ports:
       - "${EXPOSE_NGINX_PORT:-80}:${NGINX_PORT:-80}"
       - "${EXPOSE_NGINX_SSL_PORT:-443}:${NGINX_SSL_PORT:-443}"
@@ -1347,7 +1341,6 @@ services:
     profiles:
       - elasticsearch
       - elasticsearch-ja
-      - elasticsearch-ko
     restart: always
     volumes:
       - ./elasticsearch/docker-entrypoint.sh:/docker-entrypoint-mount.sh
@@ -1383,8 +1376,6 @@ services:
     container_name: kibana
     profiles:
       - elasticsearch
-      - elasticsearch-ja
-      - elasticsearch-ko
     depends_on:
       - elasticsearch
     restart: always
