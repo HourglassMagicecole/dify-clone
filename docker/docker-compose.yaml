@@ -1341,6 +1341,7 @@ services:
     profiles:
       - elasticsearch
       - elasticsearch-ja
+      - elasticsearch-ko
     restart: always
     volumes:
       - ./elasticsearch/docker-entrypoint.sh:/docker-entrypoint-mount.sh
@@ -1376,6 +1377,8 @@ services:
     container_name: kibana
     profiles:
       - elasticsearch
+      - elasticsearch-ja
+      - elasticsearch-ko
     depends_on:
       - elasticsearch
     restart: always

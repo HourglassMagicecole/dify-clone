@@ -97,6 +97,9 @@ export function Step2Split(): React.ReactElement {
   const [prevFileIds, setPrevFileIds] = useState<string[]>([])
   // Task 11.3: Active tab for file-specific preview ('all' or fileId)
   const [activeTab, setActiveTab] = useState<string>('all')
+  // Local input states to allow empty string during editing
+  const [maxTokensInput, setMaxTokensInput] = useState<string>('')
+  const [chunkOverlapInput, setChunkOverlapInput] = useState<string>('')
 
   /**
    * Clear preview when uploaded files change
@@ -155,6 +158,12 @@ export function Step2Split(): React.ReactElement {
 
   // Ensure we have rules to work with
   const rules = processRule.rules || DEFAULT_RULES
+
+  // Sync local input states with rules.segmentation
+  useEffect(() => {
+    setMaxTokensInput(String(rules.segmentation.max_tokens))
+    setChunkOverlapInput(String(rules.segmentation.chunk_overlap))
+  }, [rules.segmentation.max_tokens, rules.segmentation.chunk_overlap])
 
   /**
    * Handle pre-processing rule toggle
@@ -478,14 +487,19 @@ export function Step2Split(): React.ReactElement {
                   min={50}
                   max={limits?.indexing_max_segmentation_tokens_length || 4000}
                   step={10}
-                  value={rules.segmentation.max_tokens || ''}
+                  value={maxTokensInput}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value)
-                    if (!isNaN(val)) handleSegmentationChange('max_tokens', val)
+                    const val = e.target.value
+                    setMaxTokensInput(val)
+                    const numVal = parseInt(val)
+                    if (!isNaN(numVal)) handleSegmentationChange('max_tokens', numVal)
                   }}
-                  onBlur={(e) => {
-                    const val = parseInt(e.target.value)
-                    if (isNaN(val) || val < 50) handleSegmentationChange('max_tokens', 50)
+                  onBlur={() => {
+                    const val = parseInt(maxTokensInput)
+                    if (isNaN(val) || val < 50) {
+                      handleSegmentationChange('max_tokens', 50)
+                      setMaxTokensInput('50')
+                    }
                   }}
                   className="w-20 px-2 py-1 text-center border border-gray-300 rounded-md text-sm font-medium"
                 />
@@ -518,16 +532,23 @@ export function Step2Split(): React.ReactElement {
                   min={0}
                   max={Math.floor(rules.segmentation.max_tokens * 0.5)}
                   step={1}
-                  value={rules.segmentation.chunk_overlap}
+                  value={chunkOverlapInput}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value)
-                    if (!isNaN(val)) handleSegmentationChange('chunk_overlap', val)
+                    const val = e.target.value
+                    setChunkOverlapInput(val)
+                    const numVal = parseInt(val)
+                    if (!isNaN(numVal)) handleSegmentationChange('chunk_overlap', numVal)
                   }}
-                  onBlur={(e) => {
-                    const val = parseInt(e.target.value)
+                  onBlur={() => {
+                    const val = parseInt(chunkOverlapInput)
                     const maxOverlap = Math.floor(rules.segmentation.max_tokens * 0.5)
-                    if (isNaN(val) || val < 0) handleSegmentationChange('chunk_overlap', 0)
-                    else if (val > maxOverlap) handleSegmentationChange('chunk_overlap', maxOverlap)
+                    if (isNaN(val) || val < 0) {
+                      handleSegmentationChange('chunk_overlap', 0)
+                      setChunkOverlapInput('0')
+                    } else if (val > maxOverlap) {
+                      handleSegmentationChange('chunk_overlap', maxOverlap)
+                      setChunkOverlapInput(String(maxOverlap))
+                    }
                   }}
                   className="w-20 px-2 py-1 text-center border border-gray-300 rounded-md text-sm font-medium"
                 />

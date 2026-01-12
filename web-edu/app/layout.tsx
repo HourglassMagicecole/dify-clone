@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Toaster } from 'sonner'
 import './globals.css'
 import { Providers } from '@/context/Providers'
 import { NavigationHeader } from '@/components/layout/NavigationHeader'
@@ -24,6 +25,7 @@ export default function RootLayout({
           <main className="min-h-screen bg-gray-50">
             {children}
           </main>
+          <Toaster position="top-right" richColors />
         </Providers>
       </body>
     </html>

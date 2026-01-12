@@ -67,6 +67,7 @@ export function FileUploadField({ name, label, required, onChange, value }: File
   const [uploadedFile, setUploadedFile] = useState<UploadedFileInfo | null>(value || null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
   /**
    * Validate file type and extension (security check)
@@ -195,9 +196,13 @@ export function FileUploadField({ name, label, required, onChange, value }: File
     // Validate file
     const validation = validateFile(file)
     if (!validation.valid) {
+      setError(validation.error || null)
       toast.error(validation.error)
       return
     }
+
+    // Clear previous error
+    setError(null)
 
     // Upload file
     setIsUploading(true)
@@ -209,14 +214,14 @@ export function FileUploadField({ name, label, required, onChange, value }: File
       onChange(fileInfo)
       toast.success(t('execute.fileUpload.success', { defaultValue: '파일 업로드 완료' }))
     }
-    catch (error) {
-      console.error('File upload error:', error)
-      toast.error(
-        t('execute.fileUpload.errors.uploadFailed', {
-          defaultValue: '파일 업로드 실패',
-          error: error instanceof Error ? error.message : String(error),
-        }),
-      )
+    catch (err) {
+      const errorMessage = t('execute.fileUpload.errors.uploadFailed', {
+        defaultValue: '파일 업로드 실패',
+        error: err instanceof Error ? err.message : String(err),
+      })
+      setError(errorMessage)
+      console.error('File upload error:', err)
+      toast.error(errorMessage)
     }
     finally {
       setIsUploading(false)
@@ -353,6 +358,16 @@ export function FileUploadField({ name, label, required, onChange, value }: File
               </button>
             </div>
           )}
+
+      {/* Error message */}
+      {error && (
+        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{error}</span>
+        </div>
+      )}
     </div>
   )
 }

@@ -186,13 +186,11 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             fileType = 'video'
           }
 
-          const fileObject = {
+          return {
             type: fileType,
-            transfer_method: 'remote_url',
-            url: fileInfo.url,
+            transfer_method: 'local_file' as const,
+            upload_file_id: fileInfo.id,
           }
-
-          return fileObject
         })
 
       // Prepare inputs (exclude file objects, keep primitive values)

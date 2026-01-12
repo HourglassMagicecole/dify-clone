@@ -81,7 +81,11 @@ export function NavigationHeader() {
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           {/* Logo section */}
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-primary-600">EduAI Studio</h1>
+            <Link href={getDashboardUrl()}>
+              <h1 className="text-xl font-bold text-primary-600 hover:text-primary-700 cursor-pointer">
+                EduAI Studio
+              </h1>
+            </Link>
           </div>
 
           {/* Right menu section */}

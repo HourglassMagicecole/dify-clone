@@ -303,17 +303,17 @@ class FileUploadConfig(BaseSettings):
 
     UPLOAD_IMAGE_FILE_SIZE_LIMIT: NonNegativeInt = Field(
         description="Maximum allowed image file size for uploads in megabytes",
-        default=10,
+        default=15,
     )
 
     UPLOAD_VIDEO_FILE_SIZE_LIMIT: NonNegativeInt = Field(
         description="video file size limit in Megabytes for uploading files",
-        default=100,
+        default=15,
     )
 
     UPLOAD_AUDIO_FILE_SIZE_LIMIT: NonNegativeInt = Field(
         description="audio file size limit in Megabytes for uploading files",
-        default=50,
+        default=15,
     )
 
     BATCH_UPLOAD_LIMIT: NonNegativeInt = Field(

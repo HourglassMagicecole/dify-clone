@@ -626,7 +626,7 @@ export default function ToolConfigModal({
           </audio>
           <a
             href={audioUrl}
-            download="tts-output.wav"
+            download={`tts_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}.wav`}
             className="mt-2 inline-block text-blue-600 hover:underline text-sm"
           >
             {t('tools.downloadAudio')}
@@ -915,11 +915,15 @@ export default function ToolConfigModal({
 
     // Number type
     if (param.type === 'number') {
+      const numValue = typeof value === 'number' || typeof value === 'string' ? value : ''
       return (
         <input
           type="number"
-          value={typeof value === 'number' ? value : Number(value) || ''}
-          onChange={e => handleParamChange(param.name, Number(e.target.value))}
+          value={numValue === '' || numValue === undefined ? '' : numValue}
+          onChange={(e) => {
+            const val = e.target.value
+            handleParamChange(param.name, val === '' ? '' : Number(val))
+          }}
           min={param.min}
           max={param.max}
           className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1100,13 +1104,39 @@ export default function ToolConfigModal({
               <div className="space-y-3">
                 {testResult.results.map((result, index) => {
                   // Blob type: images, documents, audio files
+                  // Skip blob display for TTS since audio player is shown above
                   if (result.type === 'blob' && result.blob_base64) {
                     const mimeType = result.mime_type || 'application/octet-stream'
+                    const isAudio = mimeType.startsWith('audio/')
+
+                    // Skip audio blob for TTS tool (already shown in audio player)
+                    if (tool.name === 'tts' && isAudio) {
+                      return null
+                    }
+
                     const dataUrl = `data:${mimeType};base64,${result.blob_base64}`
                     const isImage = mimeType.startsWith('image/')
                     const filename = result.filename || (() => {
-                      const ext = mimeType.split('/')[1]?.split(';')[0] || 'bin'
-                      return `file-${index + 1}.${ext}`
+                      // Map MIME types to proper extensions
+                      const extMap: Record<string, string> = {
+                        'x-wav': 'wav',
+                        'wav': 'wav',
+                        'mpeg': 'mp3',
+                        'mp3': 'mp3',
+                        'ogg': 'ogg',
+                        'webm': 'webm',
+                        'mp4': 'mp4',
+                        'png': 'png',
+                        'jpeg': 'jpg',
+                        'gif': 'gif',
+                        'webp': 'webp',
+                        'pdf': 'pdf',
+                      }
+                      const rawExt = mimeType.split('/')[1]?.split(';')[0] || 'bin'
+                      const ext = extMap[rawExt] || rawExt
+                      const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
+                      const toolName = tool.name.replace(/[^a-zA-Z0-9]/g, '_')
+                      return `${toolName}_${timestamp}.${ext}`
                     })()
 
                     return (

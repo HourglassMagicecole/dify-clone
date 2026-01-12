@@ -72,12 +72,4 @@ describe('EmptyResourceState', () => {
     expect(screen.getByText('아직 리소스가 없습니다')).toBeInTheDocument()
     expect(screen.getByText(/Agent, Dataset을 생성하여/)).toBeInTheDocument()
   })
-
-  it('시작하기 버튼이 렌더링됨', () => {
-    render(<EmptyResourceState />)
-
-    // 시작하기 버튼 확인
-    const button = screen.getByRole('button', { name: '시작하기' })
-    expect(button).toBeInTheDocument()
-  })
 })

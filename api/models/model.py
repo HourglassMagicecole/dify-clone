@@ -1732,6 +1732,13 @@ class UploadFile(Base):
         self.hash = hash
         self.source_url = source_url
 
+    @property
+    def preview_url(self) -> str:
+        """Generate a fresh signed URL for file preview (external browser access)."""
+        from core.file import helpers as file_helpers
+
+        return file_helpers.get_signed_file_url(upload_file_id=self.id, for_external=True)
+
 
 class ApiRequest(Base):
     __tablename__ = "api_requests"

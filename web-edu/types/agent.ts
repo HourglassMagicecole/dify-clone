@@ -495,8 +495,12 @@ export interface AgentExecutionRequest {
   response_mode: 'blocking' | 'streaming' // completion mode
   files?: Array<{
     type: string
-    transfer_method: string
+    transfer_method: 'remote_url'
     url: string
+  } | {
+    type: string
+    transfer_method: 'local_file'
+    upload_file_id: string
   }>
   userId?: string                     // Account ID for usage tracking
 }

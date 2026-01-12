@@ -117,30 +117,15 @@ export function ResourceSummaryCard({
 export function EmptyResourceState() {
   const { t } = useTranslation('dashboard')
 
-  const handleGetStarted = () => {
-    // 빠른 시작 버튼 섹션으로 스크롤
-    // QuickStartButtons 컴포넌트는 페이지 내에 이미 렌더링되어 있음
-    const quickStartElement = document.querySelector('[data-testid="quick-start-buttons"]')
-    if (quickStartElement) {
-      quickStartElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }
-
   return (
     <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
       <div className="text-6xl mb-4">📦</div>
       <h3 className="text-lg font-medium text-gray-900 mb-2">
         {t('empty.title')}
       </h3>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600">
         {t('empty.description')}
       </p>
-      <button
-        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        onClick={handleGetStarted}
-      >
-        {t('empty.button')}
-      </button>
     </div>
   )
 }
