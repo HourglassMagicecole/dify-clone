@@ -612,6 +612,46 @@ export class AgentAPIService {
   }
 
   /**
+   * Create a new empty conversation
+   * Used for eager conversation ID assignment before first message
+   */
+  async createConversation(agentId: string, mode: string, name?: string): Promise<{ id: string; name: string; createdAt: string }> {
+    // Prepare headers with authentication
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    }
+
+    const token = getAccessToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    // Determine endpoint based on app mode
+    const endpoint = this.getConversationEndpoint(mode)
+
+    const response = await fetch(`${this.apiBaseUrl}/console/api/apps/${agentId}/${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: name || 'New Conversation' }),
+    })
+
+    if (response.status === 403) {
+      throw new ForbiddenError('Access denied to create conversation')
+    }
+
+    if (!response.ok) {
+      throw new Error('Failed to create conversation')
+    }
+
+    const data = await response.json()
+    return {
+      id: data.id,
+      name: data.name,
+      createdAt: new Date(data.created_at * 1000).toISOString(),
+    }
+  }
+
+  /**
    * Delete a conversation
    */
   async deleteConversation(agentId: string, conversationId: string, mode: string): Promise<void> {

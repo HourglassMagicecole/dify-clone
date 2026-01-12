@@ -174,7 +174,7 @@ class ChatMessageApi(Resource):
         args = parser.parse_args()
 
         streaming = args["response_mode"] != "blocking"
-        args["auto_generate_name"] = False
+        args["auto_generate_name"] = True  # Enable auto conversation name generation
 
         external_trace_id = get_external_trace_id(request)
         if external_trace_id:

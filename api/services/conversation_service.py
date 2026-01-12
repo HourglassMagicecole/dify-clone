@@ -1,6 +1,7 @@
 import contextlib
 import logging
 from collections.abc import Callable, Sequence
+from datetime import timedelta
 from typing import Any, Union
 
 from sqlalchemy import asc, desc, func, or_, select
@@ -337,3 +338,49 @@ class ConversationService:
                 "updated_at": naive_utc_now(),  # Update timestamp
                 **updated_variable.model_dump(),
             }
+
+    @classmethod
+    def cleanup_empty_conversations(cls, max_age_minutes: int = 5) -> int:
+        """
+        Delete empty conversations (no messages) that are older than max_age_minutes.
+
+        Args:
+            max_age_minutes: Maximum age in minutes for empty conversations to be kept.
+                            Default is 5 minutes.
+
+        Returns:
+            Number of deleted conversations.
+        """
+        try:
+            cutoff_time = naive_utc_now() - timedelta(minutes=max_age_minutes)
+
+            # Find conversations with no messages that are older than cutoff_time
+            # Using subquery to get conversation IDs with messages
+            conversations_with_messages = db.session.query(Message.conversation_id).distinct().subquery()
+
+            # Find empty conversations older than cutoff time
+            empty_conversations = (
+                db.session.query(Conversation)
+                .filter(
+                    Conversation.is_deleted == False,
+                    Conversation.created_at < cutoff_time,
+                    ~Conversation.id.in_(select(conversations_with_messages.c.conversation_id)),
+                )
+                .all()
+            )
+
+            deleted_count = 0
+            for conversation in empty_conversations:
+                conversation_id = conversation.id
+                db.session.delete(conversation)
+                deleted_count += 1
+                logger.info("Deleted empty conversation: %s", conversation_id)
+
+            db.session.commit()
+            logger.info("Cleaned up %d empty conversations older than %d minutes", deleted_count, max_age_minutes)
+            return deleted_count
+
+        except Exception:
+            db.session.rollback()
+            logger.exception("Failed to cleanup empty conversations")
+            raise

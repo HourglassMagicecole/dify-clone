@@ -185,6 +185,13 @@ def init_app(app: DifyApp) -> Celery:
             "schedule": crontab(minute="0", hour="3"),
         }
 
+    # Empty conversation cleanup task - runs every 10 minutes
+    imports.append("tasks.cleanup_empty_conversations_task")
+    beat_schedule["cleanup_empty_conversations"] = {
+        "task": "tasks.cleanup_empty_conversations_task.cleanup_empty_conversations_task",
+        "schedule": timedelta(minutes=10),
+    }
+
     celery_app.conf.update(beat_schedule=beat_schedule, imports=imports)
 
     return celery_app

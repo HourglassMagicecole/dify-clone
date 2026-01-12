@@ -62,7 +62,17 @@ class MessageCycleManager:
         if isinstance(self._application_generate_entity, CompletionAppGenerateEntity):
             return None
 
+        # Check if this is the first message
+        # Previously only checked if conversation_id was None (lazy creation)
+        # Now also check if pre-created conversation has no messages yet (eager creation)
         is_first_message = self._application_generate_entity.conversation_id is None
+        if not is_first_message and conversation_id:
+            # For pre-created conversations, check dialogue_count instead of message count
+            # dialogue_count is updated after message is saved, so it's still 0 at this point
+            stmt = select(Conversation.dialogue_count).where(Conversation.id == conversation_id)
+            dialogue_count = db.session.scalar(stmt)
+            is_first_message = dialogue_count == 0 if dialogue_count is not None else False
+
         extras = self._application_generate_entity.extras
         auto_generate_conversation_name = extras.get("auto_generate_conversation_name", True)
 

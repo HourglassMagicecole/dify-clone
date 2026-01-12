@@ -171,6 +171,52 @@ class CompletionConversationDetailApi(Resource):
 
 @console_ns.route("/apps/<uuid:app_id>/chat-conversations")
 class ChatConversationApi(Resource):
+    @api.doc("create_chat_conversation")
+    @api.doc(description="Create a new empty chat conversation")
+    @api.doc(params={"app_id": "Application ID"})
+    @api.expect(api.parser().add_argument("name", type=str, location="json", help="Optional conversation name"))
+    @api.response(201, "Conversation created successfully")
+    @api.response(403, "Insufficient permissions")
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @get_app_model(mode=[AppMode.CHAT, AppMode.AGENT_CHAT, AppMode.ADVANCED_CHAT])
+    def post(self, app_model):
+        """Create a new empty conversation for eager conversation ID assignment."""
+        if not current_user.is_editor:
+            raise Forbidden()
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("name", type=str, location="json", default="New Conversation")
+        args = parser.parse_args()
+
+        # Create new conversation
+        conversation = Conversation(
+            app_id=app_model.id,
+            app_model_config_id=app_model.app_model_config_id,
+            model_provider=None,
+            model_id=None,
+            mode=app_model.mode,
+            name=args["name"],
+            inputs={},
+            introduction="",
+            system_instruction="",
+            system_instruction_tokens=0,
+            status="normal",
+            invoke_from=InvokeFrom.EXPLORE.value,
+            from_source="console",
+            from_account_id=current_user.id,
+            dialogue_count=0,
+        )
+        db.session.add(conversation)
+        db.session.commit()
+
+        return {
+            "id": conversation.id,
+            "name": conversation.name,
+            "created_at": int(conversation.created_at.timestamp()),
+        }, 201
+
     @api.doc("list_chat_conversations")
     @api.doc(description="Get chat conversations with pagination, filtering and summary")
     @api.doc(params={"app_id": "Application ID"})

@@ -24,7 +24,25 @@ class TTSTool(BuiltinTool):
         app_id: str | None = None,
         message_id: str | None = None,
     ) -> Generator[ToolInvokeMessage, None, None]:
-        provider, model = tool_parameters.get("model").split("#")  # type: ignore
+        # Get model parameter or use default (first available model)
+        model_param = tool_parameters.get("model")
+        if not model_param:
+            available_models = self.get_available_models()
+            if not available_models:
+                raise ValueError("No TTS models available. Please configure a TTS model in Settings → Model Provider.")
+            # Use first available model as default
+            default_provider, default_model, _ = available_models[0]
+            model_param = f"{default_provider}#{default_model}"
+            logger.info("No model specified, using default: %s", model_param)
+
+        model_parts = model_param.split("#")
+        if len(model_parts) != 2:
+            raise ValueError(
+                f"Invalid model format: '{model_param}'. Expected format: 'provider#model'. "
+                "Please select a valid TTS model from the options."
+            )
+
+        provider, model = model_parts
         voice = tool_parameters.get(f"voice#{provider}#{model}")
         model_manager = ModelManager()
         if not self.runtime:

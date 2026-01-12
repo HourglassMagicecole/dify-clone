@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useRef, useEffect } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { useSession } from '@/context/SessionContext'
 import { agentAPI } from '@/service/agent-api'
@@ -12,6 +12,7 @@ import { AgentInfo } from '@/components/chat/AgentInfo'
 import type { Message, ProcessingStep, Conversation } from '@/types/chat'
 import { ForbiddenError, RateLimitError, NotFoundError } from '@/types/errors'
 import { useTranslation } from 'react-i18next'
+import { savePendingMessage, loadPendingMessage, clearPendingMessage } from '@/utils/pending-message-store'
 
 /**
  * Agent Chat Page
@@ -20,9 +21,25 @@ import { useTranslation } from 'react-i18next'
 export default function AgentChatPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const agentId = params.id as string
   const { currentSession, isLoading: sessionLoading } = useSession()
   const { t } = useTranslation('chat')
+
+  // URL query parameter for conversation ID
+  const urlConversationId = searchParams.get('conversationId')
+
+  // Update URL with conversation ID
+  const updateUrlConversationId = (conversationId: string | null) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (conversationId && conversationId !== 'temp-new-conversation') {
+      params.set('conversationId', conversationId)
+    } else {
+      params.delete('conversationId')
+    }
+    const queryString = params.toString()
+    router.replace(`/agents/${agentId}/chat${queryString ? `?${queryString}` : ''}`, { scroll: false })
+  }
 
   // Message state
   const [messages, setMessages] = useState<Message[]>([])
@@ -32,7 +49,31 @@ export default function AgentChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const conversationIdRef = useRef<string>('') // For API calls (immediate update)
   const parentMessageIdRef = useRef<string>('') // For conversation history chain
+  const isUnloadingRef = useRef(false) // Track page unload to suppress error alerts
+  const isStreamingRef = useRef(false) // Mirror isStreaming state for beforeunload handler
   const [showAgentInfo, setShowAgentInfo] = useState(false)
+
+  // Sync isStreaming state to ref for beforeunload handler
+  useEffect(() => {
+    isStreamingRef.current = isStreaming
+  }, [isStreaming])
+
+  // Detect page unload to suppress error alerts during refresh/navigation
+  // Also warn user if streaming without conversationId (message would be lost)
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      isUnloadingRef.current = true
+
+      // Warn if streaming and no conversationId yet (pending message can't be saved)
+      if (isStreamingRef.current && !conversationIdRef.current) {
+        event.preventDefault()
+        // Chrome requires returnValue to be set
+        event.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
 
   // Load Agent data first
   const {
@@ -61,6 +102,7 @@ export default function AgentChatPage() {
   // Handle conversation selection
   const handleSelectConversation = async (conversationId: string) => {
     setCurrentConversationId(conversationId)
+    updateUrlConversationId(conversationId)
     conversationIdRef.current = conversationId === 'temp-new-conversation' ? '' : conversationId
     parentMessageIdRef.current = '' // Reset parent message ID when switching conversations
 
@@ -118,16 +160,40 @@ export default function AgentChatPage() {
     }
   }
 
-  // Handle new conversation
-  const handleNewConversation = () => {
-    // If already on temp conversation, just reset messages
-    if (currentConversationId === 'temp-new-conversation') {
+  // Handle new conversation - creates conversation on server immediately
+  const handleNewConversation = async () => {
+    if (!agent) return
+
+    try {
+      // Create conversation on server to get real conversation ID immediately
+      const newConversation = await agentAPI.createConversation(agentId, agent.mode, t('newConversationTitle'))
+
+      // Create conversation object for local state
+      const conversation: Conversation = {
+        id: newConversation.id,
+        name: newConversation.name,
+        agentId,
+        createdAt: newConversation.createdAt,
+        updatedAt: newConversation.createdAt,
+        messageCount: 0,
+      }
+
+      // Add to conversations list and refresh
+      mutateConversations([conversation, ...conversations], false)
+
+      // Select the new conversation
+      setCurrentConversationId(newConversation.id)
+      updateUrlConversationId(newConversation.id)
+      conversationIdRef.current = newConversation.id
+      parentMessageIdRef.current = ''
       setStreamingContent('')
-      const openingStatement = (agent?.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
+
+      // Add opening_statement as the first assistant message if available
+      const openingStatement = (agent.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
       if (openingStatement) {
         const openingMessage: Message = {
           id: 'opening-statement',
-          conversationId: 'temp-new-conversation',
+          conversationId: newConversation.id,
           role: 'assistant',
           content: openingStatement,
           createdAt: new Date().toISOString(),
@@ -136,42 +202,9 @@ export default function AgentChatPage() {
       } else {
         setMessages([])
       }
-      return
-    }
-
-    // Create temporary conversation
-    const tempConversation: Conversation = {
-      id: 'temp-new-conversation',
-      name: t('newConversationTitle'),
-      agentId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      messageCount: 0,
-    }
-
-    // Remove any existing temp conversation and add new one
-    const filteredConversations = (conversations || []).filter(c => c.id !== 'temp-new-conversation')
-    mutateConversations([tempConversation, ...filteredConversations], false)
-
-    // Select the temporary conversation
-    setCurrentConversationId('temp-new-conversation')
-    conversationIdRef.current = '' // Reset ref for new conversation
-    parentMessageIdRef.current = '' // Reset parent message ID for new conversation
-    setStreamingContent('')
-
-    // Add opening_statement as the first assistant message if available
-    const openingStatement = (agent?.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
-    if (openingStatement) {
-      const openingMessage: Message = {
-        id: 'opening-statement',
-        conversationId: 'temp-new-conversation',
-        role: 'assistant',
-        content: openingStatement,
-        createdAt: new Date().toISOString(),
-      }
-      setMessages([openingMessage])
-    } else {
-      setMessages([])
+    } catch (error) {
+      console.error('Failed to create new conversation:', error)
+      alert(t('error.createConversation'))
     }
   }
 
@@ -222,9 +255,10 @@ export default function AgentChatPage() {
       // Refresh conversation list
       mutateConversations()
 
-      // If the deleted conversation was selected, clear messages
+      // If the deleted conversation was selected, clear messages and URL
       if (conversationId === currentConversationId) {
         setCurrentConversationId(null)
+        updateUrlConversationId(null)
         setMessages([])
         setStreamingContent('')
       }
@@ -270,6 +304,12 @@ export default function AgentChatPage() {
     setStreamingContent('')
     currentAgentThoughtsRef.current = []
 
+    // Save pending message for existing conversations (we already have conversationId)
+    // For new conversations, pending message is saved in onChunk after receiving conversation_id
+    if (conversationIdRef.current) {
+      savePendingMessage(agentId, conversationIdRef.current, message, files)
+    }
+
     // Create user message immediately
     const userMessageId = `user-${Date.now()}`
     const userMessage: Message = {
@@ -301,6 +341,17 @@ export default function AgentChatPage() {
         parentMessageIdRef.current || null, // For conversation history chain
         // onChunk callback
         (chunk) => {
+          // Update conversation ID immediately when received (before onComplete)
+          if (chunk.conversation_id && !conversationIdRef.current) {
+            conversationIdRef.current = chunk.conversation_id
+            setCurrentConversationId(chunk.conversation_id)
+            updateUrlConversationId(chunk.conversation_id)
+            mutateConversations()
+
+            // Update pending message with new conversation ID for refresh recovery
+            savePendingMessage(agentId, chunk.conversation_id, message, files)
+          }
+
           // Handle both 'message' (completion) and 'agent_message' (agent-chat) events
           if (chunk.event === 'message' || chunk.event === 'agent_message') {
             const newContent = chunk.answer || chunk.data?.answer || ''
@@ -341,6 +392,7 @@ export default function AgentChatPage() {
           if (result.conversationId && !conversationIdRef.current) {
             conversationIdRef.current = result.conversationId
             setCurrentConversationId(result.conversationId)
+            updateUrlConversationId(result.conversationId)
             mutateConversations()
           }
 
@@ -364,9 +416,20 @@ export default function AgentChatPage() {
           setStreamingContent('')
           setIsStreaming(false)
           currentAgentThoughtsRef.current = []
+
+          // Refresh conversation list to get updated name (auto-generated by server)
+          mutateConversations()
+
+          // Clear pending message on successful completion
+          clearPendingMessage(agentId)
         },
         // onError callback
         (error) => {
+          // Skip error handling if page is unloading (refresh/navigation)
+          if (isUnloadingRef.current) {
+            return
+          }
+
           setIsStreaming(false)
           setStreamingContent('')
 
@@ -396,12 +459,71 @@ export default function AgentChatPage() {
       )
     }
     catch {
+      // Skip error handling if page is unloading (refresh/navigation)
+      if (isUnloadingRef.current) {
+        return
+      }
       setIsStreaming(false)
       setStreamingContent('')
       alert(t('error.sendMessage'))
       setMessages((prev) => prev.filter((m) => m.id !== userMessageId))
     }
   }
+
+  // Restore conversation from URL on initial load
+  // Intentionally only depends on urlConversationId and conversations to avoid re-running on every selection
+  useEffect(() => {
+    if (urlConversationId && conversations.length > 0 && currentConversationId !== urlConversationId) {
+      const exists = conversations.find(c => c.id === urlConversationId)
+      if (exists) {
+        handleSelectConversation(urlConversationId)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlConversationId, conversations])
+
+  // Resend pending message after page refresh
+  useEffect(() => {
+    const checkAndResendPendingMessage = async () => {
+      // Only check after agent is loaded and not currently streaming
+      if (!agent || isStreaming) return
+
+      // Wait for conversations to be loaded
+      if (conversations.length === 0) return
+
+      // Wait for URL conversation to be selected first (URL recovery must complete)
+      if (urlConversationId && currentConversationId !== urlConversationId) {
+        return
+      }
+
+      const pending = await loadPendingMessage(agentId)
+      if (!pending) return
+
+      // Verify the conversation matches or is empty (new conversation)
+      const currentConvId = conversationIdRef.current || urlConversationId || ''
+      if (pending.conversationId && pending.conversationId !== currentConvId) {
+        // Different conversation, clear stale pending message
+        await clearPendingMessage(agentId)
+        return
+      }
+
+      // Clear pending message BEFORE resending to prevent infinite loop
+      await clearPendingMessage(agentId)
+
+      // Set conversationId ref before resending to continue the same conversation
+      // Use pending.conversationId first, fallback to URL conversationId
+      const targetConversationId = pending.conversationId || urlConversationId || ''
+      if (targetConversationId) {
+        conversationIdRef.current = targetConversationId
+      }
+
+      // Resend the pending message
+      handleSend(pending.message, pending.files)
+    }
+
+    checkAndResendPendingMessage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent, agentId, conversations, urlConversationId, currentConversationId])
 
   // Loading states
   if (sessionLoading || agentLoading) {

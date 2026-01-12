@@ -81,6 +81,7 @@
     "unauthorized": "Login required",
     "forbidden": "You don't have permission to access this conversation. It was created by another user",
     "deleteConversation": "Failed to delete conversation",
-    "conversationNotFound": "Conversation not found. It may have been deleted or expired"
+    "conversationNotFound": "Conversation not found. It may have been deleted or expired",
+    "createConversation": "Failed to create new conversation"
   }
 }
