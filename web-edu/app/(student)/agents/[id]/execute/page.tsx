@@ -51,6 +51,59 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
     messageId: null,
   })
 
+  // Track execution status in ref for event handlers
+  const isRunningRef = useRef(false)
+  useEffect(() => {
+    isRunningRef.current = executionState.status === 'running'
+  }, [executionState.status])
+
+  // Warn user before leaving page during execution (browser refresh/close)
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isRunningRef.current) {
+        event.preventDefault()
+        event.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
+
+  // Handle browser back button during execution
+  useEffect(() => {
+    // Push a dummy state to detect back navigation
+    window.history.pushState({ preventBack: true }, '')
+
+    const handlePopState = () => {
+      if (isRunningRef.current) {
+        // Ask user for confirmation
+        const confirmed = window.confirm(t('execute.confirmLeave', { defaultValue: '실행 중입니다. 페이지를 떠나시겠습니까? 진행 중인 작업이 중단됩니다.' }))
+        if (!confirmed) {
+          // Stay on page - push state again
+          window.history.pushState({ preventBack: true }, '')
+        } else {
+          // Leave page
+          router.push('/agents')
+        }
+      } else {
+        // Not running, allow navigation
+        router.push('/agents')
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [router, t])
+
+  // Handle UI back button click
+  const handleBackClick = () => {
+    if (executionState.status === 'running') {
+      const confirmed = window.confirm(t('execute.confirmLeave', { defaultValue: '실행 중입니다. 페이지를 떠나시겠습니까? 진행 중인 작업이 중단됩니다.' }))
+      if (!confirmed) return
+    }
+    router.push('/agents')
+  }
+
   // Load agent data on mount
   useEffect(() => {
     const loadAgent = async () => {
@@ -322,7 +375,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => router.push('/agents')}
+                onClick={handleBackClick}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300 transition-colors"
                 aria-label={t('execute.backToList', { defaultValue: '목록으로' })}
               >
