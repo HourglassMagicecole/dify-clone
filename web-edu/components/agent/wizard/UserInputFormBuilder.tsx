@@ -1,8 +1,55 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PlusIcon, TrashIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline'
 import type { UserInputForm } from '@/types/agent'
+
+/**
+ * OptionsInput Component
+ *
+ * Handles comma-separated options input with local state
+ * to prevent comma from being stripped during typing.
+ */
+interface OptionsInputProps {
+  value: string[]
+  onChange: (options: string[]) => void
+  placeholder: string
+  className: string
+}
+
+function OptionsInput({ value, onChange, placeholder, className }: OptionsInputProps) {
+  const [localValue, setLocalValue] = useState(value.join(', '))
+
+  // Sync local state when external value changes (e.g., initial load)
+  useEffect(() => {
+    setLocalValue(value.join(', '))
+  }, [value])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalValue(e.target.value)
+  }
+
+  const handleBlur = () => {
+    // Convert to array only on blur
+    const options = localValue
+      .split(',')
+      .map(opt => opt.trim())
+      .filter(Boolean)
+    onChange(options)
+  }
+
+  return (
+    <input
+      type="text"
+      value={localValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder={placeholder}
+      className={className}
+    />
+  )
+}
 
 interface UserInputFormBuilderProps {
   fields: UserInputForm[]
@@ -280,14 +327,9 @@ export function UserInputFormBuilder({ fields, onChange, onPreview }: UserInputF
                       {t('wizard.step2UserInputForm.options')}
                       <span className="text-red-500 ml-1">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={field.options?.join(', ') || ''}
-                      onChange={(e) => handleFieldChange(
-                        index,
-                        'options',
-                        e.target.value.split(',').map(opt => opt.trim()).filter(Boolean)
-                      )}
+                    <OptionsInput
+                      value={field.options || []}
+                      onChange={(options) => handleFieldChange(index, 'options', options)}
                       placeholder={t('wizard.step2UserInputForm.optionsPlaceholder')}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
