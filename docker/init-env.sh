@@ -24,13 +24,54 @@ if [ ! -f "docker/.env.example" ]; then
     exit 1
 fi
 
-# 2. docker/.env 파일 생성 (없으면)
+# 2. docker/.env 파일 동기화 (.env.example 기반, 중요 키 보존)
 if [ ! -f "docker/.env" ]; then
     echo -e "${YELLOW}📝 docker/.env 파일 생성 중...${NC}"
     cp docker/.env.example docker/.env
     echo -e "${GREEN}✅ docker/.env 파일 생성 완료${NC}\n"
 else
-    echo -e "${GREEN}✅ docker/.env 파일이 이미 존재합니다${NC}\n"
+    echo -e "${YELLOW}📝 docker/.env 파일 동기화 중 (.env.example 기반)...${NC}"
+
+    # 보존할 키 값들 백업
+    BACKUP_SECRET_KEY=$(grep "^SECRET_KEY=" docker/.env | cut -d'=' -f2-)
+    BACKUP_API_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" docker/.env | cut -d'=' -f2-)
+    BACKUP_ADMIN_EMAIL=$(grep "^INITIAL_ADMIN_EMAIL=" docker/.env | cut -d'=' -f2-)
+    BACKUP_ADMIN_PASSWORD=$(grep "^INITIAL_ADMIN_PASSWORD=" docker/.env | cut -d'=' -f2-)
+    BACKUP_ADMIN_NAME=$(grep "^INITIAL_ADMIN_NAME=" docker/.env | cut -d'=' -f2-)
+
+    # .env.example으로 덮어쓰기
+    cp docker/.env.example docker/.env
+
+    # 백업한 키 값들 복원
+    if [ -n "$BACKUP_SECRET_KEY" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^SECRET_KEY=.*|SECRET_KEY=${BACKUP_SECRET_KEY}|" docker/.env
+        else
+            sed -i "s|^SECRET_KEY=.*|SECRET_KEY=${BACKUP_SECRET_KEY}|" docker/.env
+        fi
+    fi
+
+    if [ -n "$BACKUP_API_KEY" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^API_KEY_ENCRYPTION_KEY=.*|API_KEY_ENCRYPTION_KEY=${BACKUP_API_KEY}|" docker/.env
+        else
+            sed -i "s|^API_KEY_ENCRYPTION_KEY=.*|API_KEY_ENCRYPTION_KEY=${BACKUP_API_KEY}|" docker/.env
+        fi
+    fi
+
+    if [ -n "$BACKUP_ADMIN_EMAIL" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^INITIAL_ADMIN_EMAIL=.*|INITIAL_ADMIN_EMAIL=${BACKUP_ADMIN_EMAIL}|" docker/.env
+            sed -i '' "s|^INITIAL_ADMIN_PASSWORD=.*|INITIAL_ADMIN_PASSWORD=${BACKUP_ADMIN_PASSWORD}|" docker/.env
+            sed -i '' "s|^INITIAL_ADMIN_NAME=.*|INITIAL_ADMIN_NAME=${BACKUP_ADMIN_NAME}|" docker/.env
+        else
+            sed -i "s|^INITIAL_ADMIN_EMAIL=.*|INITIAL_ADMIN_EMAIL=${BACKUP_ADMIN_EMAIL}|" docker/.env
+            sed -i "s|^INITIAL_ADMIN_PASSWORD=.*|INITIAL_ADMIN_PASSWORD=${BACKUP_ADMIN_PASSWORD}|" docker/.env
+            sed -i "s|^INITIAL_ADMIN_NAME=.*|INITIAL_ADMIN_NAME=${BACKUP_ADMIN_NAME}|" docker/.env
+        fi
+    fi
+
+    echo -e "${GREEN}✅ docker/.env 동기화 완료 (SECRET_KEY, API_KEY_ENCRYPTION_KEY, INITIAL_ADMIN_* 보존)${NC}\n"
 fi
 
 # 3. SECRET_KEY 확인 및 생성

@@ -134,9 +134,26 @@ export default function AgentChatPage() {
         parentMessageIdRef.current = lastAssistantMessage.id
       }
 
-      // Prepend opening_statement as first message if it exists and not already in messages
+      // Handle opening_statement display
       const openingStatement = (agent?.model_config as unknown as Record<string, unknown>)?.opening_statement as string | undefined
-      if (openingStatement && loadedMessages.length > 0 && loadedMessages[0]?.id !== 'opening-statement') {
+
+      // Case 1: New conversation (no messages yet) - show opening_statement if available
+      if (loadedMessages.length === 0) {
+        if (openingStatement) {
+          const openingMessage: Message = {
+            id: 'opening-statement',
+            conversationId,
+            role: 'assistant',
+            content: openingStatement,
+            createdAt: new Date().toISOString(),
+          }
+          setMessages([openingMessage])
+        } else {
+          setMessages([])
+        }
+      }
+      // Case 2: Existing conversation - prepend opening_statement if not already present
+      else if (openingStatement && loadedMessages[0]?.id !== 'opening-statement') {
         const openingMessage: Message = {
           id: 'opening-statement',
           conversationId,
@@ -145,7 +162,9 @@ export default function AgentChatPage() {
           createdAt: loadedMessages[0]?.createdAt || new Date().toISOString(),
         }
         setMessages([openingMessage, ...loadedMessages])
-      } else {
+      }
+      // Case 3: Messages already include opening_statement or no opening_statement configured
+      else {
         setMessages(loadedMessages)
       }
     }

@@ -41,7 +41,7 @@ docker-up: init-docker-env
 docker-rebuild: init-docker-env
 	@echo "🔨 Rebuilding Docker images without cache..."
 	@cd docker && docker-compose build --no-cache
-	@cd docker && docker-compose up -d
+	@cd docker && docker-compose up -d --force-recreate
 	@echo "✅ Docker images rebuilt and containers started!"
 	@echo ""
 	@echo "📝 Next steps:"
