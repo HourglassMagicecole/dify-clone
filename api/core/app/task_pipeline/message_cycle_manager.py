@@ -3,7 +3,7 @@ from threading import Thread
 from typing import Union
 
 from flask import Flask, current_app
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from configs import dify_config
@@ -31,7 +31,7 @@ from core.app.entities.task_entities import (
 from core.llm_generator.llm_generator import LLMGenerator
 from core.tools.signature import sign_tool_file
 from extensions.ext_database import db
-from models.model import AppMode, Conversation, MessageAnnotation, MessageFile
+from models.model import AppMode, Conversation, Message, MessageAnnotation, MessageFile
 from services.annotation_service import AppAnnotationService
 
 logger = logging.getLogger(__name__)
@@ -67,11 +67,12 @@ class MessageCycleManager:
         # Now also check if pre-created conversation has no messages yet (eager creation)
         is_first_message = self._application_generate_entity.conversation_id is None
         if not is_first_message and conversation_id:
-            # For pre-created conversations, check dialogue_count instead of message count
-            # dialogue_count is updated after message is saved, so it's still 0 at this point
-            stmt = select(Conversation.dialogue_count).where(Conversation.id == conversation_id)
-            dialogue_count = db.session.scalar(stmt)
-            is_first_message = dialogue_count == 0 if dialogue_count is not None else False
+            # Query actual message count from Message table
+            # dialogue_count field is unreliable as it may not be updated in time
+            stmt = select(func.count()).select_from(Message).where(Message.conversation_id == conversation_id)
+            message_count = db.session.scalar(stmt) or 0
+            # Current message may already be saved, so check if count <= 1
+            is_first_message = message_count <= 1
 
         extras = self._application_generate_entity.extras
         auto_generate_conversation_name = extras.get("auto_generate_conversation_name", True)

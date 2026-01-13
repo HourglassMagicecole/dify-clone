@@ -291,7 +291,24 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                     # Save message
                     self._save_message(session=session, trace_manager=trace_manager)
                     session.commit()
-                message_end_resp = self._message_end_to_stream_response()
+
+                # Wait for conversation name generation with timeout to avoid blocking user input
+                conversation_name: str | None = None
+                if self._conversation_name_generate_thread:
+                    # Wait max 0.5 seconds - if LLM is slow, frontend will fetch later
+                    self._conversation_name_generate_thread.join(timeout=0.5)
+                    if not self._conversation_name_generate_thread.is_alive():
+                        # Thread completed within timeout, fetch the generated name
+                        self._conversation_name_generate_thread = None
+                        with Session(db.engine) as session:
+                            conversation_stmt = select(Conversation.name).where(
+                                Conversation.id == self._conversation_id
+                            )
+                            conversation_name = session.scalar(conversation_stmt)
+                    # If thread is still alive (timeout), leave conversation_name as None
+                    # Frontend will fetch it later via delayed update
+
+                message_end_resp = self._message_end_to_stream_response(conversation_name=conversation_name)
                 yield message_end_resp
             elif isinstance(event, QueueRetrieverResourcesEvent):
                 self._message_cycle_manager.handle_retriever_resources(event)
@@ -450,9 +467,10 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
             model, credentials, prompt_tokens, completion_tokens
         )
 
-    def _message_end_to_stream_response(self) -> MessageEndStreamResponse:
+    def _message_end_to_stream_response(self, *, conversation_name: str | None = None) -> MessageEndStreamResponse:
         """
         Message end to stream response.
+        :param conversation_name: auto-generated conversation name (for first message)
         :return:
         """
         self._task_state.metadata.usage = self._task_state.llm_result.usage
@@ -461,6 +479,7 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
             task_id=self._application_generate_entity.task_id,
             id=self._message_id,
             metadata=metadata_dict,
+            conversation_name=conversation_name,
         )
 
     def _agent_message_to_stream_response(self, answer: str, message_id: str) -> AgentMessageStreamResponse:

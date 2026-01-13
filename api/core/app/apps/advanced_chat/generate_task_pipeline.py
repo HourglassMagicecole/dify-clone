@@ -639,7 +639,9 @@ class AdvancedChatAppGenerateTaskPipeline:
                 # Save message
                 self._save_message(session=session)
 
-        yield self._message_end_to_stream_response()
+        # Wait for conversation name generation and include in response
+        conversation_name = self._wait_for_conversation_name()
+        yield self._message_end_to_stream_response(conversation_name=conversation_name)
 
     def _handle_advanced_chat_message_end_event(
         self,
@@ -665,7 +667,9 @@ class AdvancedChatAppGenerateTaskPipeline:
         with self._database_session() as session:
             self._save_message(session=session, graph_runtime_state=graph_runtime_state)
 
-        yield self._message_end_to_stream_response()
+        # Wait for conversation name generation and include in response
+        conversation_name = self._wait_for_conversation_name()
+        yield self._message_end_to_stream_response(conversation_name=conversation_name)
 
     def _handle_retriever_resources_event(
         self, event: QueueRetrieverResourcesEvent, **kwargs
@@ -887,9 +891,10 @@ class AdvancedChatAppGenerateTaskPipeline:
         else:
             self._task_state.metadata.usage = LLMUsage.empty_usage()
 
-    def _message_end_to_stream_response(self) -> MessageEndStreamResponse:
+    def _message_end_to_stream_response(self, *, conversation_name: str | None = None) -> MessageEndStreamResponse:
         """
         Message end to stream response.
+        :param conversation_name: auto-generated conversation name (for first message)
         :return:
         """
         extras = self._task_state.metadata.model_dump()
@@ -902,7 +907,29 @@ class AdvancedChatAppGenerateTaskPipeline:
             id=self._message_id,
             files=self._recorded_files,
             metadata=extras,
+            conversation_name=conversation_name,
         )
+
+    def _wait_for_conversation_name(self) -> str | None:
+        """
+        Wait for conversation name generation thread to complete (with timeout) and fetch the name.
+        :return: conversation name or None
+        """
+        if not self._conversation_name_generate_thread:
+            return None
+
+        # Wait max 0.5 seconds - if LLM is slow, frontend will fetch later
+        self._conversation_name_generate_thread.join(timeout=0.5)
+        if not self._conversation_name_generate_thread.is_alive():
+            # Thread completed within timeout, fetch the generated name
+            self._conversation_name_generate_thread = None
+            with self._database_session() as session:
+                conversation_stmt = select(Conversation.name).where(Conversation.id == self._conversation_id)
+                return session.scalar(conversation_stmt)
+
+        # If thread is still alive (timeout), return None
+        # Frontend will fetch conversation name later via delayed update
+        return None
 
     def _handle_output_moderation_chunk(self, text: str) -> bool:
         """

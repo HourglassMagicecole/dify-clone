@@ -98,6 +98,7 @@ export interface CompletionChunk {
   event: 'message' | 'agent_message' | 'agent_thought' | 'message_end' | 'error'
   conversation_id?: string
   message_id?: string
+  conversation_name?: string  // Auto-generated name (in message_end event)
   answer?: string
   // For agent_thought event
   id?: string
@@ -135,6 +136,7 @@ export interface CompletionResult {
   messageId?: string
   tokenUsage?: TokenUsage
   retrieverResources?: RetrieverResource[]
+  conversationName?: string  // Auto-generated conversation name from server
 }
 
 // ============================================================================

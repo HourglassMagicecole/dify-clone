@@ -443,6 +443,9 @@ export class AgentAPIService {
                   }
                 : undefined
 
+              // Get auto-generated conversation name from server
+              const conversationName = data.conversation_name
+
               // Wait a bit for all agent_thought events to be processed
               setTimeout(() => {
                 onComplete({
@@ -450,6 +453,7 @@ export class AgentAPIService {
                   conversationId: receivedConversationId,
                   messageId: receivedMessageId,
                   tokenUsage,
+                  conversationName,
                 })
               }, 50)
               return
@@ -515,6 +519,41 @@ export class AgentAPIService {
       updatedAt: new Date((conv.updated_at as number) * 1000).toISOString(),
       messageCount: (conv.message_count as number) || 0,
     }))
+  }
+
+  /**
+   * Get a single conversation by ID
+   */
+  async getConversation(agentId: string, conversationId: string, mode: string): Promise<Conversation | null> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    }
+
+    const token = getAccessToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const endpoint = this.getConversationEndpoint(mode)
+
+    const response = await fetch(
+      `${this.apiBaseUrl}/console/api/apps/${agentId}/${endpoint}/${conversationId}`,
+      { headers }
+    )
+
+    if (!response.ok) {
+      return null
+    }
+
+    const conv = await response.json()
+    return {
+      id: conv.id as string,
+      name: conv.name as string,
+      agentId,
+      createdAt: new Date((conv.created_at as number) * 1000).toISOString(),
+      updatedAt: new Date((conv.updated_at as number) * 1000).toISOString(),
+      messageCount: (conv.message_count as number) || 0,
+    }
   }
 
   /**

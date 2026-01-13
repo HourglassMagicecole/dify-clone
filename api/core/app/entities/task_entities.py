@@ -138,6 +138,7 @@ class MessageEndStreamResponse(StreamResponse):
     id: str
     metadata: Mapping[str, object] = Field(default_factory=dict)
     files: Sequence[Mapping[str, Any]] | None = None
+    conversation_name: str | None = None  # Auto-generated conversation name (for first message)
 
 
 class MessageFileStreamResponse(StreamResponse):
