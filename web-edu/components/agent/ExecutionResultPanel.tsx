@@ -330,6 +330,7 @@ export function ExecutionResultPanel({
                         className="w-full rounded-lg shadow-md group-hover:shadow-xl transition-all cursor-pointer object-cover"
                         loading="lazy"
                         style={{ maxHeight: '400px' }}
+                        unoptimized={url.startsWith('/files/')}
                       />
                       {file.filename && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">{file.filename}</p>
