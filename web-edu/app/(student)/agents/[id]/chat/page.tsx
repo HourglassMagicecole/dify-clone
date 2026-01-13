@@ -439,38 +439,17 @@ export default function AgentChatPage() {
           setIsStreaming(false)
           currentAgentThoughtsRef.current = []
 
-          // Update conversation name if provided by server (auto-generated)
-          // Only for first message - server generates name via LLM
-          if (isFirstMessage && result.conversationId) {
-            if (result.conversationName) {
-              // Server returned generated name within timeout - update immediately
-              mutateConversations(
-                (currentConversations) =>
-                  currentConversations?.map((conv) =>
-                    conv.id === result.conversationId
-                      ? { ...conv, name: result.conversationName! }
-                      : conv
-                  ),
-                { revalidate: false }
-              )
-            } else {
-              // Server timed out - fetch conversation name after delay
-              setTimeout(async () => {
-                const updatedConv = await agentAPI.getConversation(agentId, result.conversationId!, agent!.mode)
-                // Only update if we got a valid name (not undefined/empty)
-                if (updatedConv?.name) {
-                  mutateConversations(
-                    (currentConversations) =>
-                      currentConversations?.map((conv) =>
-                        conv.id === result.conversationId
-                          ? { ...conv, name: updatedConv.name }
-                          : conv
-                      ),
-                    { revalidate: false }
-                  )
-                }
-              }, 2000)
-            }
+          // Update conversation name if provided by server (auto-generated from first message)
+          if (isFirstMessage && result.conversationId && result.conversationName) {
+            mutateConversations(
+              (currentConversations) =>
+                currentConversations?.map((conv) =>
+                  conv.id === result.conversationId
+                    ? { ...conv, name: result.conversationName! }
+                    : conv
+                ),
+              { revalidate: false }
+            )
           }
 
           // Clear pending message on successful completion

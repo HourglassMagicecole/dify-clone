@@ -3,7 +3,6 @@ import re
 import time
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
-from threading import Thread
 from typing import Any, Union
 
 from sqlalchemy import select
@@ -154,7 +153,7 @@ class AdvancedChatAppGenerateTaskPipeline:
         self._conversation_mode = conversation.mode
         self._message_id = message.id
         self._message_created_at = int(message.created_at.timestamp())
-        self._conversation_name_generate_thread: Thread | None = None
+        self._generated_conversation_name: str | None = None
         self._recorded_files: list[Mapping[str, Any]] = []
         self._workflow_run_id: str = ""
         self._draft_var_saver_factory = draft_var_saver_factory
@@ -164,7 +163,8 @@ class AdvancedChatAppGenerateTaskPipeline:
         Process generate task pipeline.
         :return:
         """
-        self._conversation_name_generate_thread = self._message_cycle_manager.generate_conversation_name(
+        # Generate conversation name from first message (synchronous, no LLM)
+        self._generated_conversation_name = self._message_cycle_manager.generate_conversation_name(
             conversation_id=self._conversation_id, query=self._application_generate_entity.query
         )
 
@@ -639,9 +639,7 @@ class AdvancedChatAppGenerateTaskPipeline:
                 # Save message
                 self._save_message(session=session)
 
-        # Wait for conversation name generation and include in response
-        conversation_name = self._wait_for_conversation_name()
-        yield self._message_end_to_stream_response(conversation_name=conversation_name)
+        yield self._message_end_to_stream_response(conversation_name=self._generated_conversation_name)
 
     def _handle_advanced_chat_message_end_event(
         self,
@@ -667,9 +665,7 @@ class AdvancedChatAppGenerateTaskPipeline:
         with self._database_session() as session:
             self._save_message(session=session, graph_runtime_state=graph_runtime_state)
 
-        # Wait for conversation name generation and include in response
-        conversation_name = self._wait_for_conversation_name()
-        yield self._message_end_to_stream_response(conversation_name=conversation_name)
+        yield self._message_end_to_stream_response(conversation_name=self._generated_conversation_name)
 
     def _handle_retriever_resources_event(
         self, event: QueueRetrieverResourcesEvent, **kwargs
@@ -837,9 +833,6 @@ class AdvancedChatAppGenerateTaskPipeline:
         if tts_publisher:
             tts_publisher.publish(None)
 
-        if self._conversation_name_generate_thread:
-            self._conversation_name_generate_thread.join()
-
     def _save_message(self, *, session: Session, graph_runtime_state: GraphRuntimeState | None = None):
         message = self._get_message(session=session)
 
@@ -909,27 +902,6 @@ class AdvancedChatAppGenerateTaskPipeline:
             metadata=extras,
             conversation_name=conversation_name,
         )
-
-    def _wait_for_conversation_name(self) -> str | None:
-        """
-        Wait for conversation name generation thread to complete (with timeout) and fetch the name.
-        :return: conversation name or None
-        """
-        if not self._conversation_name_generate_thread:
-            return None
-
-        # Wait max 0.5 seconds - if LLM is slow, frontend will fetch later
-        self._conversation_name_generate_thread.join(timeout=0.5)
-        if not self._conversation_name_generate_thread.is_alive():
-            # Thread completed within timeout, fetch the generated name
-            self._conversation_name_generate_thread = None
-            with self._database_session() as session:
-                conversation_stmt = select(Conversation.name).where(Conversation.id == self._conversation_id)
-                return session.scalar(conversation_stmt)
-
-        # If thread is still alive (timeout), return None
-        # Frontend will fetch conversation name later via delayed update
-        return None
 
     def _handle_output_moderation_chunk(self, text: str) -> bool:
         """

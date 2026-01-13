@@ -1,12 +1,9 @@
 import logging
-from threading import Thread
 from typing import Union
 
-from flask import Flask, current_app
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from configs import dify_config
 from core.app.entities.app_invoke_entities import (
     AdvancedChatAppGenerateEntity,
     AgentChatAppGenerateEntity,
@@ -28,10 +25,9 @@ from core.app.entities.task_entities import (
     StreamEvent,
     WorkflowTaskState,
 )
-from core.llm_generator.llm_generator import LLMGenerator
 from core.tools.signature import sign_tool_file
 from extensions.ext_database import db
-from models.model import AppMode, Conversation, Message, MessageAnnotation, MessageFile
+from models.model import Conversation, Message, MessageAnnotation, MessageFile
 from services.annotation_service import AppAnnotationService
 
 logger = logging.getLogger(__name__)
@@ -52,75 +48,45 @@ class MessageCycleManager:
         self._application_generate_entity = application_generate_entity
         self._task_state = task_state
 
-    def generate_conversation_name(self, *, conversation_id: str, query: str) -> Thread | None:
+    def generate_conversation_name(self, *, conversation_id: str, query: str) -> str | None:
         """
-        Generate conversation name.
+        Generate conversation name from the first user message.
+        Uses simple truncation instead of LLM for reliability and speed.
+
         :param conversation_id: conversation id
-        :param query: query
-        :return: thread
+        :param query: user's first message
+        :return: generated name or None
         """
         if isinstance(self._application_generate_entity, CompletionAppGenerateEntity):
             return None
 
         # Check if this is the first message
-        # Previously only checked if conversation_id was None (lazy creation)
-        # Now also check if pre-created conversation has no messages yet (eager creation)
         is_first_message = self._application_generate_entity.conversation_id is None
         if not is_first_message and conversation_id:
             # Query actual message count from Message table
-            # dialogue_count field is unreliable as it may not be updated in time
             stmt = select(func.count()).select_from(Message).where(Message.conversation_id == conversation_id)
             message_count = db.session.scalar(stmt) or 0
-            # Current message may already be saved, so check if count <= 1
             is_first_message = message_count <= 1
 
         extras = self._application_generate_entity.extras
         auto_generate_conversation_name = extras.get("auto_generate_conversation_name", True)
 
         if auto_generate_conversation_name and is_first_message:
-            # start generate thread
-            thread = Thread(
-                target=self._generate_conversation_name_worker,
-                kwargs={
-                    "flask_app": current_app._get_current_object(),  # type: ignore
-                    "conversation_id": conversation_id,
-                    "query": query,
-                },
-            )
+            # Generate name from first message (truncate if too long)
+            max_length = 30
+            name = query.strip()
+            if len(name) > max_length:
+                name = name[:max_length] + "..."
 
-            thread.start()
-
-            return thread
-
-        return None
-
-    def _generate_conversation_name_worker(self, flask_app: Flask, conversation_id: str, query: str):
-        with flask_app.app_context():
-            # get conversation and message
+            # Update conversation name in database
             stmt = select(Conversation).where(Conversation.id == conversation_id)
             conversation = db.session.scalar(stmt)
-
-            if not conversation:
-                return
-
-            if conversation.mode != AppMode.COMPLETION:
-                app_model = conversation.app
-                if not app_model:
-                    return
-
-                # generate conversation name
-                try:
-                    name = LLMGenerator.generate_conversation_name(
-                        app_model.tenant_id, query, conversation_id, conversation.app_id
-                    )
-                    conversation.name = name
-                except Exception:
-                    if dify_config.DEBUG:
-                        logger.exception("generate conversation name failed, conversation_id: %s", conversation_id)
-
-                db.session.merge(conversation)
+            if conversation:
+                conversation.name = name
                 db.session.commit()
-                db.session.close()
+                return name
+
+        return None
 
     def handle_annotation_reply(self, event: QueueAnnotationReplyEvent) -> MessageAnnotation | None:
         """

@@ -1,7 +1,6 @@
 import logging
 import time
 from collections.abc import Generator
-from threading import Thread
 from typing import Union, cast
 
 from sqlalchemy import select
@@ -110,7 +109,7 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
             task_state=self._task_state,
         )
 
-        self._conversation_name_generate_thread: Thread | None = None
+        self._generated_conversation_name: str | None = None
 
     def process(
         self,
@@ -120,8 +119,8 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
         Generator[Union[ChatbotAppStreamResponse, CompletionAppStreamResponse], None, None],
     ]:
         if self._application_generate_entity.app_config.app_mode != AppMode.COMPLETION:
-            # start generate conversation name thread
-            self._conversation_name_generate_thread = self._message_cycle_manager.generate_conversation_name(
+            # Generate conversation name from first message (synchronous, no LLM)
+            self._generated_conversation_name = self._message_cycle_manager.generate_conversation_name(
                 conversation_id=self._conversation_id, query=self._application_generate_entity.query or ""
             )
 
@@ -292,23 +291,9 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                     self._save_message(session=session, trace_manager=trace_manager)
                     session.commit()
 
-                # Wait for conversation name generation with timeout to avoid blocking user input
-                conversation_name: str | None = None
-                if self._conversation_name_generate_thread:
-                    # Wait max 0.5 seconds - if LLM is slow, frontend will fetch later
-                    self._conversation_name_generate_thread.join(timeout=0.5)
-                    if not self._conversation_name_generate_thread.is_alive():
-                        # Thread completed within timeout, fetch the generated name
-                        self._conversation_name_generate_thread = None
-                        with Session(db.engine) as session:
-                            conversation_stmt = select(Conversation.name).where(
-                                Conversation.id == self._conversation_id
-                            )
-                            conversation_name = session.scalar(conversation_stmt)
-                    # If thread is still alive (timeout), leave conversation_name as None
-                    # Frontend will fetch it later via delayed update
-
-                message_end_resp = self._message_end_to_stream_response(conversation_name=conversation_name)
+                message_end_resp = self._message_end_to_stream_response(
+                    conversation_name=self._generated_conversation_name
+                )
                 yield message_end_resp
             elif isinstance(event, QueueRetrieverResourcesEvent):
                 self._message_cycle_manager.handle_retriever_resources(event)
@@ -377,8 +362,6 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
                 continue
         if publisher:
             publisher.publish(None)
-        if self._conversation_name_generate_thread:
-            self._conversation_name_generate_thread.join()
 
     def _save_message(self, *, session: Session, trace_manager: TraceQueueManager | None = None):
         """

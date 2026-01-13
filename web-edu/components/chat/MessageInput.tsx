@@ -96,7 +96,7 @@ export function MessageInput({ onSend, disabled, isSending = false, placeholder 
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*,.pdf,.txt,.docx"
+          accept="image/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.md"
           onChange={handleFileChange}
           className="hidden"
           disabled={disabled}

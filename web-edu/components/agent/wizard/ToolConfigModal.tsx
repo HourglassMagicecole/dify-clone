@@ -848,7 +848,7 @@ export default function ToolConfigModal({
         <div className="space-y-2">
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.md"
             onChange={async (e) => {
               const file = e.target.files?.[0]
               if (file) {
@@ -879,7 +879,7 @@ export default function ToolConfigModal({
         <div className="space-y-2">
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.md"
             multiple
             onChange={(e) => {
               if (e.target.files) {
