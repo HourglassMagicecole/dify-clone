@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 interface MessageInputProps {
   onSend: (message: string, files: File[]) => void
   disabled: boolean
+  isSending?: boolean
   placeholder?: string
 }
 
@@ -13,7 +14,7 @@ interface MessageInputProps {
  * MessageInput Component
  * Text input area with file upload support
  */
-export function MessageInput({ onSend, disabled, placeholder }: MessageInputProps) {
+export function MessageInput({ onSend, disabled, isSending = false, placeholder }: MessageInputProps) {
   const { t } = useTranslation('chat')
   const [message, setMessage] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
@@ -130,7 +131,7 @@ export function MessageInput({ onSend, disabled, placeholder }: MessageInputProp
           className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50 flex-shrink-0"
           aria-label={t('sendButton')}
         >
-          {disabled ? t('sendButtonSending') : t('sendButton')}
+          {isSending ? t('sendButtonSending') : t('sendButton')}
         </button>
       </div>
     </div>

@@ -93,8 +93,22 @@ export default function SessionDetailPage() {
   }
 
   const handleCopySessionId = async () => {
+    const textToCopy = session?.id || ''
     try {
-      await navigator.clipboard.writeText(session?.id || '')
+      // Try modern Clipboard API first (requires HTTPS or localhost)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy)
+      } else {
+        // Fallback for HTTP: use execCommand (deprecated but works)
+        const textArea = document.createElement('textarea')
+        textArea.value = textToCopy
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-9999px'
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+      }
       setIsCopied(true)
       setTimeout(() => setIsCopied(false), 2000)
     }

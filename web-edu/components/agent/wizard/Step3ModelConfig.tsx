@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
-import { ArrowPathIcon } from '@heroicons/react/24/outline'
+import { ArrowPathIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { modelConfigSchema, type ModelConfigFormData } from '@/schemas/agent-schema'
 import { useAgentWizard } from '@/context/AgentWizardContext'
 import { difyAPI } from '@/service/dify-api'
@@ -122,6 +122,7 @@ export default function Step3ModelConfig() {
   const [isLoadingModels, setIsLoadingModels] = useState(false)
   const [parameterRules, setParameterRules] = useState<ParameterRule[]>([])
   const [_isLoadingParameterRules, _setIsLoadingParameterRules] = useState(false)
+  const [isParametersExpanded, setIsParametersExpanded] = useState(false)
 
   const {
     control,
@@ -154,6 +155,7 @@ export default function Step3ModelConfig() {
   const topPValue = watch('completion_params.top_p')
   const presencePenaltyValue = watch('completion_params.presence_penalty')
   const frequencyPenaltyValue = watch('completion_params.frequency_penalty')
+  const maxTokensValue = watch('completion_params.max_tokens')
 
   // Get parameter support based on fetched parameter_rules
   // Default to all parameters supported if rules not loaded yet
@@ -698,23 +700,45 @@ export default function Step3ModelConfig() {
         )}
       </div>
 
-      {/* Model Parameters */}
-      <div className="border-t pt-8 space-y-6 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            {t('modelSettings.parametersTitle')}
-          </h3>
-          <button
-            type="button"
-            onClick={resetToDefaults}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
-          >
-            <ArrowPathIcon className="h-4 w-4" />
-            {t('modelSettings.resetToDefault')}
-          </button>
-        </div>
+      {/* Model Parameters - Collapsible */}
+      <div className="border-t pt-6 dark:border-gray-700">
+        {/* Collapsible Header */}
+        <button
+          type="button"
+          onClick={() => setIsParametersExpanded(!isParametersExpanded)}
+          className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <ChevronDownIcon
+              className={`h-5 w-5 text-gray-500 transition-transform ${isParametersExpanded ? 'rotate-180' : ''}`}
+            />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              {t('modelSettings.parametersTitle')} ({t('modelSettings.advanced', { defaultValue: '고급' })})
+            </h3>
+          </div>
+          {!isParametersExpanded && (
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+              Temperature: {temperatureValue?.toFixed(1) || '1.0'} · Top P: {topPValue?.toFixed(1) || '1.0'} · Max Tokens: {maxTokensValue?.toLocaleString() || '4,096'}
+            </div>
+          )}
+        </button>
 
-        {/* Temperature */}
+        {/* Expanded Content */}
+        {isParametersExpanded && (
+          <div className="mt-4 space-y-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 border-t-0 rounded-t-none -mt-1">
+            {/* Reset Button */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={resetToDefaults}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+              >
+                <ArrowPathIcon className="h-4 w-4" />
+                {t('modelSettings.resetToDefault')}
+              </button>
+            </div>
+
+            {/* Temperature */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-1.5">
@@ -890,6 +914,8 @@ export default function Step3ModelConfig() {
             </p>
           )}
         </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation Buttons */}

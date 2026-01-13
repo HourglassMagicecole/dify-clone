@@ -14,7 +14,7 @@
   "responseTime": "Response Time",
   "noConversations": "No conversation history",
   "noMessages": "Send a message to start the conversation",
-  "selectConversation": "Select a conversation from the left or start a new one",
+  "selectConversation": "Please select a conversation first, or create a new one if none exists",
   "messageList": "Message List",
   "assistantTyping": "AI is generating a response",
   "preparingResponse": "Preparing response",

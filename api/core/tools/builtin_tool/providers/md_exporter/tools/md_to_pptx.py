@@ -9,6 +9,7 @@ from typing import Any, Optional
 from core.file import File
 from core.tools.builtin_tool.tool import BuiltinTool
 from core.tools.entities.tool_entities import ToolInvokeMessage
+from extensions.ext_storage import storage
 
 from ..utils.file_utils import get_meta_data
 from ..utils.logger_utils import get_logger
@@ -45,7 +46,9 @@ class MarkdownToPptxTool(BuiltinTool):
         try:
             if pptx_template_file:
                 temp_pptx_template_file = NamedTemporaryFile(delete=False)
-                temp_pptx_template_file.write(pptx_template_file.blob)  # pyright: ignore[reportOptionalMemberAccess]
+                # Load file content from storage using storage_key
+                file_content = storage.load_once(pptx_template_file.storage_key)
+                temp_pptx_template_file.write(file_content)  # pyright: ignore[reportOptionalMemberAccess]
                 temp_pptx_template_file.close()  # pyright: ignore[reportOptionalMemberAccess]
                 temp_pptx_template_file_path = temp_pptx_template_file.name  # pyright: ignore[reportOptionalMemberAccess]
 

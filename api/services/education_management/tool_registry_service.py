@@ -530,6 +530,9 @@ class ToolRegistryService:
             "application/pdf": ".pdf",
             "application/msword": ".doc",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+            # Presentation
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+            "application/vnd.ms-powerpoint": ".ppt",
             # Image
             "image/jpeg": ".jpg",
             "image/png": ".png",
@@ -620,6 +623,24 @@ class ToolRegistryService:
                     processed["csv_files"] = file_objects
             except Exception as e:
                 processed["csv_files_error"] = str(e)
+
+        # Process pptx_template_file parameter (used by md_to_pptx)
+        if "pptx_template_file" in processed and isinstance(processed["pptx_template_file"], str):
+            try:
+                file_obj = process_single_file(processed["pptx_template_file"], "pptx_template_file", "template")
+                if file_obj:
+                    processed["pptx_template_file"] = file_obj
+            except Exception as e:
+                processed["pptx_template_file_error"] = str(e)
+
+        # Process docx_template_file parameter (used by md_to_docx)
+        if "docx_template_file" in processed and isinstance(processed["docx_template_file"], str):
+            try:
+                file_obj = process_single_file(processed["docx_template_file"], "docx_template_file", "template")
+                if file_obj:
+                    processed["docx_template_file"] = file_obj
+            except Exception as e:
+                processed["docx_template_file_error"] = str(e)
 
         return processed
 

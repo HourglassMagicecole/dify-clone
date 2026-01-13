@@ -14,7 +14,7 @@
   "responseTime": "응답 시간",
   "noConversations": "대화 기록이 없습니다",
   "noMessages": "메시지를 보내서 대화를 시작하세요",
-  "selectConversation": "왼쪽에서 대화를 선택하거나 새 대화를 시작하세요",
+  "selectConversation": "먼저 대화를 선택하거나 없을 시에는 새 대화를 생성하세요",
   "messageList": "메시지 목록",
   "assistantTyping": "AI가 응답을 생성하고 있습니다",
   "preparingResponse": "응답을 준비하고 있습니다",

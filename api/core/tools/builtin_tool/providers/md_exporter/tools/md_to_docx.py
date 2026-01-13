@@ -8,6 +8,7 @@ from typing import Any, Optional
 from core.file import File
 from core.tools.builtin_tool.tool import BuiltinTool
 from core.tools.entities.tool_entities import ToolInvokeMessage
+from extensions.ext_storage import storage
 
 from ..utils.file_utils import get_meta_data
 from ..utils.mimetype_utils import MimeType
@@ -39,7 +40,9 @@ class MarkdownToDocxTool(BuiltinTool):
         try:
             if docx_template_file:
                 temp_pptx_template_file = NamedTemporaryFile(delete=False)
-                temp_pptx_template_file.write(docx_template_file.blob)
+                # Load file content from storage using storage_key
+                file_content = storage.load_once(docx_template_file.storage_key)
+                temp_pptx_template_file.write(file_content)
                 temp_pptx_template_file.close()
                 temp_pptx_template_file_path = temp_pptx_template_file.name
 

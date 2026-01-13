@@ -15,7 +15,7 @@ parameters:
   - name: md_text
     type: string
     required: true
-    default: "# 샘플 프레젠테이션\n\n## 첫 번째 슬라이드\n\n* 항목 1\n* 항목 2\n* 항목 3\n\n## 두 번째 슬라이드\n\n내용 예시입니다."
+    default: "# 샘플 프레젠테이션\n\n### 첫 번째 슬라이드\n\n* 항목 1\n* 항목 2\n* 항목 3\n\n### 두 번째 슬라이드\n\n내용 예시입니다."
     label:
       en_US: Markdown text
       zh_Hans: Markdown格式文本

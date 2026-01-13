@@ -678,10 +678,12 @@ export default function AgentChatPage() {
           )
         })()}
 
-        {/* Input Area - Fixed at bottom */}
-        <div className="flex-shrink-0 border-t bg-white">
-          <MessageInput onSend={handleSend} disabled={isStreaming || currentConversationId === null} />
-        </div>
+        {/* Input Area - Fixed at bottom, only show when conversation is selected */}
+        {currentConversationId !== null && (
+          <div className="flex-shrink-0 border-t bg-white">
+            <MessageInput onSend={handleSend} disabled={isStreaming} isSending={isStreaming} />
+          </div>
+        )}
       </main>
 
       {/* Agent Info Modal */}

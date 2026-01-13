@@ -214,11 +214,18 @@ describe('MessageInput', () => {
     expect(sendButton).toBeDisabled()
   })
 
-  it('should show sending text on send button when disabled', () => {
-    render(<MessageInput onSend={mockOnSend} disabled={true} />)
+  it('should show sending text on send button when isSending is true', () => {
+    render(<MessageInput onSend={mockOnSend} disabled={true} isSending={true} />)
 
     const sendButton = screen.getByLabelText('sendButton')
     expect(sendButton).toHaveTextContent('sendButtonSending')
+  })
+
+  it('should show normal send text when disabled but not sending', () => {
+    render(<MessageInput onSend={mockOnSend} disabled={true} isSending={false} />)
+
+    const sendButton = screen.getByLabelText('sendButton')
+    expect(sendButton).toHaveTextContent('sendButton')
   })
 
   it('should use custom placeholder when provided', () => {

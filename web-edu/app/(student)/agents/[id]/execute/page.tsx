@@ -16,7 +16,6 @@ import type { ExecutionState, UserInputForm, Agent } from '@/types/agent'
 import { DynamicFormRenderer } from '@/components/agent/DynamicFormRenderer'
 import { AgentThoughtTimeline } from '@/components/agent/AgentThoughtTimeline'
 import { ExecutionResultPanel } from '@/components/agent/ExecutionResultPanel'
-import { ExecutionHistoryTable, type ExecutionHistoryTableRef } from '@/components/agent/ExecutionHistoryTable'
 import { AgentInfo } from '@/components/chat/AgentInfo'
 import { agentAPI } from '@/service/agent-api'
 
@@ -32,7 +31,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
   const { t } = useTranslation('agent')
   const { showToast } = useToast()
   const { user } = useAuth()
-  const historyTableRef = useRef<ExecutionHistoryTableRef>(null)
 
   // Agent data state
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -277,9 +275,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             })
 
             showToast(t('execute.result.success', { defaultValue: 'Agent 실행 성공' }), 'success')
-
-            // Refresh execution history
-            historyTableRef.current?.refresh()
           },
           onError: (error) => {
             const errorMessage = error.message || String(error)
@@ -289,9 +284,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
               error: errorMessage,
             }))
             showToast(errorMessage, 'error')
-
-            // Refresh execution history to show failed status
-            historyTableRef.current?.refresh()
           },
         }
       )
@@ -304,9 +296,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
         error: errorMessage,
       }))
       showToast(errorMessage, 'error')
-
-      // Refresh execution history to show failed status
-      historyTableRef.current?.refresh()
     }
   }
 
@@ -436,18 +425,6 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
             </div>
           )}
 
-          {/* Execution History Table */}
-          <div className="overflow-x-auto">
-            <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-white dark:bg-gray-800">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                {t('execute.history.title', { defaultValue: '실행 내역' })}
-              </h2>
-              <ExecutionHistoryTable
-                ref={historyTableRef}
-                agentId={_agentId}
-              />
-            </div>
-          </div>
         </>
       )}
 

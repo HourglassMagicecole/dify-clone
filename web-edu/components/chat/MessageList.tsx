@@ -65,8 +65,16 @@ export function MessageList({
     >
       {/* No conversation selected state */}
       {!hasConversationSelected && messages.length === 0 && !isStreaming && (
-        <div className="text-center text-gray-500 mt-8">
-          {t('selectConversation')}
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="text-center p-8 bg-blue-50 rounded-xl border-2 border-dashed border-blue-200 max-w-lg">
+            <div className="text-5xl mb-4">💬</div>
+            <p className="text-lg font-medium text-gray-700">
+              {t('selectConversation')}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              ← {t('conversationHistory')}
+            </p>
+          </div>
         </div>
       )}
 

@@ -92,7 +92,8 @@ class JSONReplaceTool(BuiltinTool):
             matches = expr.find(input_data)
 
             for match in matches:
-                new_value = match.value.replace(replace_pattern, replace_value)
+                # Convert to string first to handle non-string values (int, float, etc.)
+                new_value = str(match.value).replace(replace_pattern, replace_value)
                 if value_decode is True:
                     try:
                         new_value = json.loads(new_value)

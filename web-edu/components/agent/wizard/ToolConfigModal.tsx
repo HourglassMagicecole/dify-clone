@@ -781,6 +781,7 @@ export default function ToolConfigModal({
             onChange={e => setUserApiKey(e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder={t('tools.apiKeyPlaceholder')}
+            autoComplete="off"
           />
           <p className="text-xs text-gray-500 mt-1">
             {t('tools.apiKeySecureNote')}
@@ -928,6 +929,7 @@ export default function ToolConfigModal({
           max={param.max}
           className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder={param.description[currentLang] || param.description.en_US}
+          autoComplete="off"
         />
       )
     }
@@ -971,6 +973,7 @@ export default function ToolConfigModal({
         onChange={e => handleParamChange(param.name, e.target.value)}
         className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         placeholder={param.description[currentLang] || param.description.en_US}
+        autoComplete="off"
       />
     )
   }

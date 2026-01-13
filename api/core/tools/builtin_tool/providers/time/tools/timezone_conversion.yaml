@@ -21,12 +21,12 @@ parameters:
       zh_Hans: 当前时间
       ko_KR: 현재 시간
     human_description:
-      en_US: current time, such as 2024-1-1 0:0:0
-      zh_Hans: 当前时间，比如 2024-1-1 0:0:0
-      ko_KR: "현재 시간 (예: 2024-1-1 0:0:0)"
-    default: "2025-1-1 9:0:0"
+      en_US: current time, such as 2024-01-01 00:00:00
+      zh_Hans: 当前时间，比如 2024-01-01 00:00:00
+      ko_KR: "현재 시간 (예: 2024-01-01 00:00:00)"
+    default: "2025-01-01 09:00:00"
   - name: current_timezone
-    type: string
+    type: select
     required: true
     form: llm
     label:
@@ -34,12 +34,38 @@ parameters:
       zh_Hans: 当前时区
       ko_KR: 현재 시간대
     human_description:
-      en_US: Current Timezone, such as Asia/Shanghai
-      zh_Hans: 当前时区，比如 Asia/Shanghai
-      ko_KR: "현재 시간대 (예: Asia/Seoul)"
-    default: Asia/Shanghai
+      en_US: Select current timezone
+      zh_Hans: 选择当前时区
+      ko_KR: 현재 시간대를 선택하세요
+    default: Asia/Seoul
+    options:
+      - value: Asia/Seoul
+        label:
+          en_US: Seoul
+          zh_Hans: 首尔
+          ko_KR: 서울
+      - value: Asia/Tokyo
+        label:
+          en_US: Tokyo
+          zh_Hans: 东京
+          ko_KR: 도쿄
+      - value: America/New_York
+        label:
+          en_US: New York
+          zh_Hans: 纽约
+          ko_KR: 뉴욕
+      - value: Europe/London
+        label:
+          en_US: London
+          zh_Hans: 伦敦
+          ko_KR: 런던
+      - value: America/Los_Angeles
+        label:
+          en_US: Los Angeles
+          zh_Hans: 洛杉矶
+          ko_KR: LA
   - name: target_timezone
-    type: string
+    type: select
     required: true
     form: llm
     label:
@@ -47,7 +73,33 @@ parameters:
       zh_Hans: 目标时区
       ko_KR: 대상 시간대
     human_description:
-      en_US: Target Timezone, such as Asia/Tokyo
-      zh_Hans: 目标时区，比如 Asia/Tokyo
-      ko_KR: "대상 시간대 (예: Asia/Tokyo)"
+      en_US: Select target timezone
+      zh_Hans: 选择目标时区
+      ko_KR: 대상 시간대를 선택하세요
     default: Asia/Tokyo
+    options:
+      - value: Asia/Seoul
+        label:
+          en_US: Seoul
+          zh_Hans: 首尔
+          ko_KR: 서울
+      - value: Asia/Tokyo
+        label:
+          en_US: Tokyo
+          zh_Hans: 东京
+          ko_KR: 도쿄
+      - value: America/New_York
+        label:
+          en_US: New York
+          zh_Hans: 纽约
+          ko_KR: 뉴욕
+      - value: Europe/London
+        label:
+          en_US: London
+          zh_Hans: 伦敦
+          ko_KR: 런던
+      - value: America/Los_Angeles
+        label:
+          en_US: Los Angeles
+          zh_Hans: 洛杉矶
+          ko_KR: LA
