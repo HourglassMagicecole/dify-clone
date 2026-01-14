@@ -105,7 +105,7 @@ export function AgentThoughtTimeline({ thoughts, onWhyClick }: AgentThoughtTimel
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pl-6">
       {thoughts.map((thought, index) => {
         const toolExecutionTime = getToolExecutionTime(thought)
 
