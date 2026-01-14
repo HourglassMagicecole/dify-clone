@@ -22,7 +22,7 @@
   "processingStepsAccessible": "AI 처리 단계",
   "exportSuccess": "대화를 성공적으로 내보냈습니다",
   "rateLimitExceeded": "사용량 한도에 도달했습니다. 관리자에게 문의하세요.",
-  "loading에이전트": "에이전트를 불러오는 중...",
+  "loadingAgent": "에이전트를 불러오는 중...",
   "loadingConversations": "대화 목록을 불러오는 중...",
   "sendingMessage": "메시지를 전송하는 중...",
   "uploadingFile": "파일을 업로드하는 중...",
@@ -68,8 +68,13 @@
   "retrieverResources": {
     "title": "지식 베이스 참조"
   },
+  "streamingWarning": {
+    "title": "응답 생성 중",
+    "switchConversation": "응답 생성 중입니다. 대화창을 전환하면 현재 응답이 중단됩니다. 계속하시겠습니까?",
+    "leaveChat": "응답 생성 중입니다. 페이지를 나가면 현재 응답이 중단됩니다. 계속하시겠습니까?"
+  },
   "error": {
-    "load에이전트": "에이전트를 불러올 수 없습니다",
+    "loadAgent": "에이전트를 불러올 수 없습니다",
     "sendMessage": "메시지 전송 실패",
     "uploadFile": "파일 업로드 실패",
     "loadConversation": "대화를 불러올 수 없습니다",

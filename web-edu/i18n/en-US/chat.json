@@ -68,6 +68,11 @@
   "retrieverResources": {
     "title": "Knowledge Base References"
   },
+  "streamingWarning": {
+    "title": "Response in Progress",
+    "switchConversation": "A response is being generated. Switching conversations will interrupt the current response. Continue?",
+    "leaveChat": "A response is being generated. Leaving the page will interrupt the current response. Continue?"
+  },
   "error": {
     "loadAgent": "Failed to load Agent",
     "sendMessage": "Failed to send message",

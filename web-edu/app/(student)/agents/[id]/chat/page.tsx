@@ -53,6 +53,7 @@ export default function AgentChatPage() {
   const isStreamingRef = useRef(false) // Mirror isStreaming state for beforeunload handler
   const isMessagesLoadedRef = useRef(false) // Track if messages have been loaded for current conversation
   const pendingMessageProcessedRef = useRef(false) // Track if pending message has been processed for this session
+  const abortControllerRef = useRef<AbortController | null>(null) // Track current streaming request for abort
   const [showAgentInfo, setShowAgentInfo] = useState(false)
 
   // Sync isStreaming state to ref for beforeunload handler
@@ -103,6 +104,16 @@ export default function AgentChatPage() {
 
   // Handle conversation selection
   const handleSelectConversation = async (conversationId: string) => {
+    // Warn if streaming is in progress
+    if (isStreaming) {
+      const confirmed = confirm(t('streamingWarning.switchConversation'))
+      if (!confirmed) return
+      // Abort current streaming request
+      abortControllerRef.current?.abort()
+      setIsStreaming(false)
+      setStreamingContent('')
+    }
+
     isMessagesLoadedRef.current = false // Mark messages as not loaded yet
     setCurrentConversationId(conversationId)
     updateUrlConversationId(conversationId)
@@ -205,6 +216,16 @@ export default function AgentChatPage() {
   const handleNewConversation = async () => {
     if (!agent) return
 
+    // Warn if streaming is in progress
+    if (isStreaming) {
+      const confirmed = confirm(t('streamingWarning.switchConversation'))
+      if (!confirmed) return
+      // Abort current streaming request
+      abortControllerRef.current?.abort()
+      setIsStreaming(false)
+      setStreamingContent('')
+    }
+
     try {
       // Create conversation on server to get real conversation ID immediately
       const newConversation = await agentAPI.createConversation(agentId, agent.mode, t('newConversationTitle'))
@@ -247,6 +268,17 @@ export default function AgentChatPage() {
       console.error('Failed to create new conversation:', error)
       alert(t('error.createConversation'))
     }
+  }
+
+  // Handle back to list - warns if streaming
+  const handleBackToList = () => {
+    if (isStreaming) {
+      const confirmed = confirm(t('streamingWarning.leaveChat'))
+      if (!confirmed) return
+      // Abort current streaming request
+      abortControllerRef.current?.abort()
+    }
+    router.push('/agents')
   }
 
   // Handle export conversation
@@ -321,6 +353,9 @@ export default function AgentChatPage() {
 
     // Check if this is the first user message (for conversation name generation)
     const isFirstMessage = messages.filter(m => m.role === 'user').length === 0
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController()
 
     setIsStreaming(true)
     setStreamingContent('')
@@ -470,6 +505,11 @@ export default function AgentChatPage() {
             return
           }
 
+          // Skip error handling if request was aborted by user (conversation switch)
+          if (error.name === 'AbortError') {
+            return
+          }
+
           setIsStreaming(false)
           setStreamingContent('')
 
@@ -495,12 +535,17 @@ export default function AgentChatPage() {
 
           // Remove failed user message
           setMessages((prev) => prev.filter((m) => m.id !== userMessageId))
-        }
+        },
+        abortControllerRef.current?.signal
       )
     }
-    catch {
+    catch (error) {
       // Skip error handling if page is unloading (refresh/navigation)
       if (isUnloadingRef.current) {
+        return
+      }
+      // Skip error handling if request was aborted by user (conversation switch)
+      if (error instanceof Error && error.name === 'AbortError') {
         return
       }
       setIsStreaming(false)
@@ -677,7 +722,7 @@ export default function AgentChatPage() {
         <header className="border-b p-4 bg-white flex justify-between items-center flex-shrink-0 h-[85px]">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push('/agents')}
+              onClick={handleBackToList}
               className="px-3 py-1 border rounded hover:bg-gray-100 flex items-center gap-1"
               aria-label="Back to agents list"
             >

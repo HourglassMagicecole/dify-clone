@@ -82,7 +82,7 @@
       "dataset": "지식베이스 생성"
     },
     "steps": {
-      "create에이전트": {
+      "createAgent": {
         "title": "에이전트 만들기",
         "description": "AI 에이전트를 생성하여 대화형 도우미를 만들어보세요"
       },

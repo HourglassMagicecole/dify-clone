@@ -297,6 +297,7 @@ export class AgentAPIService {
   /**
    * Send message to Agent with streaming response
    * Handles SSE (Server-Sent Events) streaming from Dify Completion API
+   * @param abortSignal - Optional AbortSignal to cancel the request
    */
   async sendMessage(
     agentId: string,
@@ -307,7 +308,8 @@ export class AgentAPIService {
     parentMessageId: string | null,
     onChunk: (chunk: CompletionChunk) => void,
     onComplete: (result: CompletionResult) => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    abortSignal?: AbortSignal
   ): Promise<void> {
     try {
       // Upload files first if any
@@ -379,6 +381,7 @@ export class AgentAPIService {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
+        signal: abortSignal,
       })
 
       // Check for rate limiting
