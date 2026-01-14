@@ -321,6 +321,15 @@ export default function DatasetDetailPage() {
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
             {t('detail.info')}
           </h2>
+
+          {/* Description */}
+          <div className="mb-4">
+            <span className="text-sm text-gray-500">{t('detail.description')}</span>
+            <p className="mt-1 text-gray-900 dark:text-white">
+              {dataset.description || <span className="text-gray-400 italic">{t('detail.noDescription')}</span>}
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-gray-500">{t('detail.documentCount')}</span>

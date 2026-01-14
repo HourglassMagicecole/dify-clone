@@ -2,8 +2,8 @@
   "title": "대시보드",
   "subtitle": "내 학습 현황과 리소스를 확인하세요",
   "resourceSummary": {
-    "agents": "Agents",
-    "datasets": "Datasets",
+    "agents": "에이전트",
+    "datasets": "지식베이스",
     "members": "등록 멤버"
   },
   "recentActivity": {
@@ -35,14 +35,14 @@
   },
   "quickStart": {
     "title": "빠른 시작",
-    "createAgent": "Agent 생성",
-    "createAgentDesc": "대화형 AI Agent 만들기",
-    "createDataset": "Dataset 생성",
-    "createDatasetDesc": "RAG 지식베이스 만들기"
+    "createAgent": "에이전트 생성",
+    "createAgentDesc": "대화형 또는 작업형 에이전트 만들기",
+    "createDataset": "지식베이스 생성",
+    "createDatasetDesc": "지식베이스 만들기"
   },
   "empty": {
     "title": "아직 생성한 리소스가 없습니다",
-    "description": "Agent, Dataset을 생성하여 AI 학습을 시작하세요",
+    "description": "에이전트, 지식베이스를 생성하여 AI 학습을 시작하세요",
     "button": "시작하기"
   },
   "error": {
@@ -78,21 +78,21 @@
   "suggestedNextSteps": {
     "title": "학습 진행 상황",
     "checklist": {
-      "agent": "Agent 생성",
-      "dataset": "Dataset 생성"
+      "agent": "에이전트 생성",
+      "dataset": "지식베이스 생성"
     },
     "steps": {
-      "createAgent": {
-        "title": "Agent 만들기",
-        "description": "AI Agent를 생성하여 대화형 도우미를 만들어보세요"
+      "create에이전트": {
+        "title": "에이전트 만들기",
+        "description": "AI 에이전트를 생성하여 대화형 도우미를 만들어보세요"
       },
       "createDataset": {
-        "title": "RAG 지식베이스 만들기",
-        "description": "Dataset을 생성하여 AI에게 지식을 제공하세요"
+        "title": "지식베이스 만들기",
+        "description": "지식베이스를 생성하여 AI에게 지식을 제공하세요"
       },
       "connectAll": {
-        "title": "Agent와 RAG 연결하기",
-        "description": "Agent에 Dataset을 연결하여 더 똑똑하게 만드세요"
+        "title": "에이전트와 지식베이스 연결하기",
+        "description": "에이전트에 지식베이스를 연결하여 더 똑똑하게 만드세요"
       }
     },
     "startButton": "시작하기"

@@ -120,6 +120,7 @@
   },
   "step1": {
     "title": "Upload Documents",
+    "subtitle": "Enter the name and description for your knowledge base and upload documents.",
     "datasetName": "Knowledge Base Name",
     "datasetNamePlaceholder": "e.g., Company Policy Documents",
     "datasetDescription": "Description (Optional)",
@@ -322,6 +323,8 @@
   "detail": {
     "backToList": "Back to list",
     "info": "Knowledge Base Info",
+    "description": "Description",
+    "noDescription": "No description",
     "documentCount": "Documents",
     "wordCount": "Words",
     "embeddingModel": "Embedding Model",

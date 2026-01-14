@@ -640,6 +640,16 @@ export function Step1BasicSettings(): React.ReactElement {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {t('basicSettings.title')}
+        </h2>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          {t('basicSettings.description')}
+        </p>
+      </div>
+
       {/* Configuration Mode Selection - Hide in edit mode */}
       {!isEditMode && (
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">

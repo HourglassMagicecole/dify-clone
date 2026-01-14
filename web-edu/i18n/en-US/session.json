@@ -53,7 +53,7 @@
   "members_inactive": "Inactive",
   "instructor": "Instructor",
   "my_sessions": "My Sessions",
-  "my_sessions_description": "Sessions you are a member of.",
+  "my_sessions_description": "View usage statistics for your agents and knowledge bases.",
   "no_my_sessions": "You are not currently enrolled in any sessions.",
   "instructor_name": "Instructor",
   "tag_cannot_change": "Session tag cannot be changed",

@@ -202,6 +202,16 @@ export function Step1Load(): React.ReactElement {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {t('step1.title')}
+        </h2>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          {t('step1.subtitle')}
+        </p>
+      </div>
+
       {/* Dataset Name & Description */}
       <div className="space-y-4">
         <Input

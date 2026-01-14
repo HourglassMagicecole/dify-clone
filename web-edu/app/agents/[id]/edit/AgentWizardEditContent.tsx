@@ -76,9 +76,7 @@ export default function AgentWizardEditContent(): React.ReactElement {
    * Handle cancel button
    */
   const handleCancel = (): void => {
-    const confirmed = window.confirm(
-      '변경사항이 저장되지 않을 수 있습니다. 정말 취소하시겠습니까?'
-    )
+    const confirmed = window.confirm(t('wizard.cancelConfirm'))
 
     if (confirmed) {
       resetWizard()
@@ -117,7 +115,7 @@ export default function AgentWizardEditContent(): React.ReactElement {
       <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Agent를 불러오는 중...</p>
+          <p className="mt-4 text-gray-600">{t('wizard.loadingAgent')}</p>
         </div>
       </div>
     )
@@ -132,18 +130,18 @@ export default function AgentWizardEditContent(): React.ReactElement {
             <div className="text-center">
               <ExclamationCircleIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                세션이 필요합니다
+                {t('wizard.sessionRequired')}
               </h2>
               <p className="text-gray-600 mb-6">
-                Agent를 편집하려면 먼저 활성화된 교육 세션에 속해있어야 합니다.
+                {t('wizard.sessionRequiredEditMessage')}
                 <br />
-                관리자에게 문의하여 세션에 등록해주세요.
+                {t('wizard.contactAdmin')}
               </p>
               <Button
                 variant="default"
                 onClick={() => router.push('/dashboard')}
               >
-                대시보드로 돌아가기
+                {t('wizard.backToDashboard')}
               </Button>
             </div>
           </div>
@@ -160,7 +158,7 @@ export default function AgentWizardEditContent(): React.ReactElement {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex items-center gap-4">
             <ArrowPathIcon className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
             <span className="text-sm font-medium text-gray-900 dark:text-white">
-              Agent 업데이트 중...
+              {t('wizard.updating')}
             </span>
           </div>
         </div>
@@ -170,10 +168,10 @@ export default function AgentWizardEditContent(): React.ReactElement {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Agent 편집
+            {t('wizard.editTitle')}
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            5단계로 구성된 마법사를 통해 Agent를 수정하세요
+            {t('wizard.editDescription')}
           </p>
         </div>
 
@@ -182,7 +180,7 @@ export default function AgentWizardEditContent(): React.ReactElement {
           <div className="mb-6 flex items-start gap-3 p-4 border border-red-300 rounded-lg bg-red-50 dark:bg-red-900/20 dark:border-red-800">
             <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">오류가 발생했습니다</h3>
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">{t('wizard.errorOccurred')}</h3>
               <p className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
           </div>

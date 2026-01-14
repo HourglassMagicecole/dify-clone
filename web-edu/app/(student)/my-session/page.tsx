@@ -7,7 +7,6 @@ import { MyUsageSection } from '@/components/session/MyUsageSection'
 
 export default function MySessionPage() {
   const { t } = useTranslation('session')
-  const { t: tCommon } = useTranslation('common')
   const { currentSession, isLoading } = useSession()
 
   // Loading state
@@ -28,7 +27,14 @@ export default function MySessionPage() {
   if (!currentSession) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">{tCommon('nav.my_session')}</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {t('my_sessions')}
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            {t('my_sessions_description')}
+          </p>
+        </div>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">📚</div>
@@ -46,7 +52,14 @@ export default function MySessionPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">{tCommon('nav.my_session')}</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          {t('my_sessions')}
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          {t('my_sessions_description')}
+        </p>
+      </div>
 
       <div className="space-y-6">
         <SessionDetailView session={currentSession} showMembers={false} />

@@ -1,28 +1,42 @@
 {
   "wizard": {
-    "title": "새 Agent 생성",
+    "title": "에이전트 생성",
+    "editTitle": "에이전트 편집",
+    "description": "단계별 설정을 통해 목적에 맞는 에이전트를 생성합니다",
+    "editDescription": "기존에 생성한 에이전트 설정을 수정합니다",
+    "cancelConfirm": "변경사항이 저장되지 않을 수 있습니다. 정말 취소하시겠습니까?",
+    "loading": "불러오는 중...",
+    "loadingAgent": "에이전트를 불러오는 중...",
+    "creating": "에이전트 생성 중...",
+    "updating": "에이전트 업데이트 중...",
+    "sessionRequired": "세션이 필요합니다",
+    "sessionRequiredCreateMessage": "에이전트를 생성하려면 먼저 활성화된 교육 세션에 속해있어야 합니다.",
+    "sessionRequiredEditMessage": "에이전트를 편집하려면 먼저 활성화된 교육 세션에 속해있어야 합니다.",
+    "contactAdmin": "관리자에게 문의하여 세션에 등록해주세요.",
+    "backToDashboard": "대시보드로 돌아가기",
+    "errorOccurred": "오류가 발생했습니다",
     "step1": "기본 설정",
-    "step2": "프롬프트 구성",
+    "step2": "프롬프트 설정",
     "step3": "LLM 설정",
     "step4": "도구 구성",
-    "step5": "최종 검토 및 저장",
+    "step5": "검토 및 저장",
     "step2UserInputForm": {
       "title": "사용자 입력 폼 정의",
       "addField": "필드 추가",
-      "noFields": "정의된 필드가 없습니다",
-      "noFieldsHint": "작업형 Agent의 입력 필드를 추가하세요",
+      "noFields": "정의된 필드가 없습니다.",
+      "noFieldsHint": "작업형 에이전트의 입력 필드를 추가하세요.",
       "fieldNumber": "필드 {{number}}",
       "variableName": "변수명",
       "label": "라벨",
-      "labelPlaceholder": "필드 라벨을 입력하세요",
+      "labelPlaceholder": "필드 라벨을 입력하세요.",
       "inputType": "입력 타입",
       "required": "필수",
       "defaultValue": "기본값",
       "defaultValuePlaceholder": "기본값을 입력하세요 (선택)",
       "options": "옵션",
       "optionsPlaceholder": "옵션1, 옵션2, 옵션3",
-      "optionsHelp": "쉼표로 구분하여 입력하세요",
-      "duplicateVariable": "중복된 변수명입니다",
+      "optionsHelp": "쉼표로 구분하여 입력하세요.",
+      "duplicateVariable": "중복된 변수명입니다.",
       "types": {
         "textInput": "텍스트 입력",
         "paragraph": "긴 텍스트",
@@ -35,13 +49,13 @@
     "step2Preview": {
       "title": "미리보기",
       "badge": "미리보기",
-      "empty": "정의된 필드가 없으면 미리보기를 볼 수 없습니다",
-      "textPlaceholder": "텍스트를 입력하세요",
-      "paragraphPlaceholder": "내용을 입력하세요",
-      "selectPlaceholder": "옵션을 선택하세요",
-      "filePlaceholder": "파일을 드래그하거나 클릭하세요",
-      "requiredHelp": "필수 입력 항목입니다",
-      "infoMessage": "이 폼은 Agent 실행 시 사용자에게 표시됩니다"
+      "empty": "정의된 필드가 없으면 미리보기를 볼 수 없습니다.",
+      "textPlaceholder": "텍스트를 입력하세요.",
+      "paragraphPlaceholder": "내용을 입력하세요.",
+      "selectPlaceholder": "옵션을 선택하세요.",
+      "filePlaceholder": "파일을 드래그하거나 클릭하세요.",
+      "requiredHelp": "필수 입력 항목입니다.",
+      "infoMessage": "이 폼은 에이전트 실행 시 사용자에게 표시됩니다."
     }
   },
   "configMode": {
@@ -54,36 +68,38 @@
       "title": "수동 설정 (직접 입력)",
       "description": "모든 내용을 처음부터 직접 작성"
     },
-    "selectSample": "사용할 샘플을 선택하세요"
+    "selectSample": "사용할 샘플을 선택하세요."
   },
   "basicSettings": {
-    "nameLabel": "Agent 이름",
+    "title": "기본 설정",
+    "description": "에이전트의 이름과 목적을 설정합니다.",
+    "nameLabel": "에이전트 이름",
     "namePlaceholder": "예: 고객 지원 챗봇",
     "descriptionLabel": "설명 (선택)",
-    "descriptionPlaceholder": "이 Agent의 목적을 간단히 설명하세요",
-    "typeLabel": "Agent 유형",
+    "descriptionPlaceholder": "이 에이전트의 목적을 간단히 설명하세요.",
+    "typeLabel": "에이전트 유형",
     "toolEnabledLabel": "도구 사용 허용",
-    "toolEnabledHelp": "Agent가 웹 검색, 계산기, 파일 처리 등의 도구를 사용할 수 있습니다",
+    "toolEnabledHelp": "에이전트가 웹 검색, 계산기, 파일 처리 등의 도구를 사용할 수 있습니다.",
     "roleLabel": "역할 정의",
-    "rolePlaceholder": "이 Agent가 수행할 역할을 상세히 작성하세요...",
-    "roleHelp": "Agent의 전문성, 톤, 행동 방식을 명확히 정의하면 더 나은 결과를 얻을 수 있습니다.",
+    "rolePlaceholder": "이 에이전트가 수행할 역할을 상세히 작성하세요...",
+    "roleHelp": "에이전트의 전문성, 톤, 행동 방식을 명확히 정의하면 더 나은 결과를 얻을 수 있습니다.",
     "roleSamplePlaceholder": "샘플 선택하기"
   },
   "types": {
     "chat": {
-      "title": "대화형 Agent",
-      "description": "사용자와 자연스러운 대화를 나누는 Agent"
+      "title": "대화형 에이전트",
+      "description": "사용자와 자연스러운 대화를 나누는 에이전트"
     },
     "completion": {
-      "title": "작업형 Agent",
-      "description": "특정 작업을 수행하고 결과를 반환하는 Agent"
+      "title": "작업형 에이전트",
+      "description": "특정 작업을 수행하고 결과를 반환하는 에이전트"
     }
   },
   "promptSettings": {
-    "title": "프롬프트 구성",
-    "description": "Agent가 사용할 프롬프트와 대화 설정을 구성하세요",
+    "title": "프롬프트 설정",
+    "description": "에이전트의 역할과 응답 기준을 설정합니다.",
     "prePromptLabel": "시스템 프롬프트",
-    "prePromptPlaceholder": "Agent의 역할과 행동 방식을 상세히 정의하세요...",
+    "prePromptPlaceholder": "에이전트의 역할과 행동 방식을 상세히 정의하세요...",
     "prePromptHelp": "Step 1에서 입력한 역할 정의가 자동으로 채워집니다. 추가 지침을 작성할 수 있습니다.",
     "openingStatementLabel": "대화 시작 메시지 (선택)",
     "openingStatementPlaceholder": "안녕하세요! 무엇을 도와드릴까요?",
@@ -97,7 +113,7 @@
     "voiceLabel": "음성 선택",
     "languageLabel": "언어",
     "outputFormatTitle": "출력 형태 정의",
-    "outputFormatDescription": "Agent가 생성할 결과물의 형식을 정의하세요",
+    "outputFormatDescription": "에이전트가 생성할 결과물의 형식을 정의하세요",
     "generateTemplateButton": "입력·출력 형식 반영",
     "regenerateTemplateButton": "입력·출력 형식 업데이트",
     "templateGeneratedNotice": "입력 폼 또는 출력 형태가 변경되었습니다",
@@ -176,7 +192,7 @@
   },
   "modelSettings": {
     "title": "LLM 모델 설정",
-    "description": "Agent가 사용할 언어 모델과 파라미터를 설정하세요",
+    "description": "에이전트의 성능을 결정할 AI 모델을 선택합니다",
     "providerLabel": "프로바이더 선택",
     "providerPlaceholder": "프로바이더를 선택하세요",
     "loadingProviders": "프로바이더 목록을 불러오는 중...",
@@ -208,7 +224,7 @@
   },
   "toolsSettings": {
     "title": "도구 선택",
-    "description": "Agent가 사용할 도구를 선택하세요",
+    "description": "에이전트에 필요한 기능을 도울 도구를 선택합니다.",
     "onlyForAgentMode": "도구 사용이 비활성화되어 있습니다. Step 1 기본 설정으로 돌아가서 '도구 사용 허용'을 체크하세요.",
     "searchLabel": "도구 검색",
     "searchPlaceholder": "도구 이름 또는 설명으로 검색...",
@@ -217,7 +233,7 @@
     "noToolsSelected": "선택된 도구가 없습니다",
     "searchToolsPlaceholder": "도구 검색...",
     "retryLoad": "다시 시도",
-    "noToolsFoundForQuery": "검색 결과가 없습니다",
+    "noToolsFoundForQuery": "검색 결과가 없습니다.",
     "toolDescription": "설명",
     "toolProvider": "제공자",
     "toolCategory": "카테고리",
@@ -226,25 +242,25 @@
     "testTool": "테스트",
     "configureToolParameters": "파라미터 설정",
     "toolNotAvailable": "이 도구는 현재 사용할 수 없습니다 (API Key 필요)",
-    "noToolsAvailable": "사용 가능한 도구가 없습니다",
+    "noToolsAvailable": "사용 가능한 도구가 없습니다.",
     "adminSetupRequired": "관리자 설정 필요",
     "apiKeyRequired": "API Key 필요",
     "apiKeyConfigured": "API Key 등록됨",
     "promptPreviewTitle": "프롬프트 미리보기",
-    "promptPreviewDescription": "다음 단계에서 선택된 도구들이 시스템 프롬프트에 아래와 같이 추가됩니다"
+    "promptPreviewDescription": "다음 단계에서 선택된 도구들이 시스템 프롬프트에 아래와 같이 추가됩니다."
   },
   "reviewSettings": {
-    "title": "최종 검토 및 저장",
-    "description": "설정을 최종 검토하고 Agent를 생성하세요",
-    "summaryTitle": "Agent 요약",
+    "title": "검토 및 저장",
+    "description": "설정을 최종 검토하고 에이전트를 생성합니다.",
+    "summaryTitle": "에이전트 요약",
     "basicInfoTitle": "기본 정보",
     "promptTitle": "프롬프트",
     "openingStatement": "시작 메시지",
     "suggestedQuestions": "추천 질문",
     "modelTitle": "LLM 모델",
     "toolsTitle": "도구",
-    "knowledgeBaseTitle": "지식 베이스 (RAG)",
-    "noKnowledgeBaseSelected": "연결된 지식 베이스가 없습니다",
+    "knowledgeBaseTitle": "지식베이스",
+    "noKnowledgeBaseSelected": "연결된 지식베이스가 없습니다.",
     "topK": "Top K",
     "scoreThreshold": "점수 임계값",
     "reranking": "재정렬",
@@ -253,28 +269,28 @@
     "disabled": "비활성화",
     "multipleDatasets": "다중",
     "singleDataset": "단일",
-    "testAgentTitle": "Agent 테스트",
-    "testAgentDescription": "생성 전에 Agent를 미리 테스트할 수 있습니다",
-    "startTestSession": "테스트 메시지를 보내 대화를 시작하세요",
-    "agentIsTyping": "Agent가 응답 중...",
+    "testAgentTitle": "에이전트 테스트",
+    "testAgentDescription": "생성 전에 에이전트를 미리 테스트할 수 있습니다.",
+    "startTestSession": "테스트 메시지를 보내 대화를 시작하세요.",
+    "agentIsTyping": "에이전트가 응답 중...",
     "testMessagePlaceholder": "테스트 메시지를 입력하세요...",
     "sendTestMessage": "전송",
     "clearTestSession": "대화 초기화",
-    "createAgentButton": "Agent 생성",
-    "creatingAgent": "Agent 생성 중...",
-    "noToolsSelectedWarning": "선택된 도구가 없습니다",
+    "createAgentButton": "에이전트 생성",
+    "creatingAgent": "에이전트 생성 중...",
+    "noToolsSelectedWarning": "선택된 도구가 없습니다.",
     "editStep": "편집"
   },
   "ragSettings": {
-    "title": "지식 베이스 (RAG)",
-    "description": "지식 베이스를 연결하여 도메인별 정보로 Agent를 강화하세요."
+    "title": "지식베이스",
+    "description": "지식베이스를 연결하여 도메인 별 정보로 에이전트를 강화합니다."
   },
   "datasetSelector": {
     "selected": "선택됨",
-    "noDatasets": "사용 가능한 지식 베이스가 없습니다",
-    "createFirst": "Agent에 연결하려면 먼저 지식 베이스를 만드세요.",
-    "createLink": "지식 베이스 만들기",
-    "searchPlaceholder": "지식 베이스 검색...",
+    "noDatasets": "사용 가능한 지식베이스가 없습니다.",
+    "createFirst": "에이전트에 연결하려면 먼저 지식베이스를 만드세요.",
+    "createLink": "지식베이스 만들기",
+    "searchPlaceholder": "지식베이스 검색...",
     "noResults": "검색 결과가 없습니다",
     "docCount": "{{count}}개 문서",
     "wordCount": "{{count}}개 단어",
@@ -284,7 +300,7 @@
     "ready": "사용 가능",
     "processing": "처리 중",
     "modelDisabled": "모델 문제",
-    "modelDisabledTooltip": "Embedding 모델이 비활성화되었을 수 있습니다"
+    "modelDisabledTooltip": "Embedding 모델이 비활성화되었을 수 있습니다."
   },
   "retrievalSettings": {
     "title": "검색 설정",
@@ -297,47 +313,47 @@
     "rerankingNotConfigured": "리랭킹 모델이 설정되지 않음"
   },
   "validation": {
-    "nameRequired": "Agent 이름을 입력하세요",
+    "nameRequired": "에이전트 이름을 입력하세요",
     "nameTooLong": "이름은 255자를 초과할 수 없습니다",
     "descriptionTooLong": "설명은 400자를 초과할 수 없습니다",
-    "modeRequired": "Agent 유형을 선택하세요",
-    "roleMinLength": "역할 정의는 최소 10자 이상 작성하세요",
+    "modeRequired": "에이전트 유형을 선택하세요",
+    "roleMinLength": "역할 정의는 최소 10자 이상 작성하세요.",
     "roleTooLong": "역할 정의는 2000자를 초과할 수 없습니다",
     "promptMinLength": "프롬프트는 최소 10자 이상 작성하세요",
     "promptTooLong": "프롬프트는 4000자를 초과할 수 없습니다",
-    "invalidVariableName": "변수명은 영문자 또는 밑줄로 시작하고 영문, 숫자, 밑줄만 포함해야 합니다",
+    "invalidVariableName": "변수명은 영문자 또는 밑줄로 시작하고 영문, 숫자, 밑줄만 포함해야 합니다.",
     "labelRequired": "라벨을 입력하세요",
-    "openingStatementTooLong": "대화 시작 메시지는 500자를 초과할 수 없습니다",
-    "userInputFormRequired": "고급 프롬프트 모드에서는 사용자 입력 폼이 필요합니다",
-    "selectOptionsRequired": "Select 타입 필드는 옵션이 필요합니다",
-    "providerRequired": "프로바이더를 선택하세요",
-    "modelRequired": "모델을 선택하세요",
-    "maxTokensTooLarge": "Max Tokens 값이 모델의 최대값을 초과합니다"
+    "openingStatementTooLong": "대화 시작 메시지는 500자를 초과할 수 없습니다.",
+    "userInputFormRequired": "고급 프롬프트 모드에서는 사용자 입력 폼이 필요합니다.",
+    "selectOptionsRequired": "Select 타입 필드는 옵션이 필요합니다.",
+    "providerRequired": "프로바이더를 선택하세요.",
+    "modelRequired": "모델을 선택하세요.",
+    "maxTokensTooLarge": "Max Tokens 값이 모델의 최대값을 초과합니다."
   },
   "execute": {
     "inputForm": {
       "title": "입력 정보",
-      "description": "Agent 실행에 필요한 정보를 입력하세요",
+      "description": "에이전트 실행에 필요한 정보를 입력하세요.",
       "submit": "실행",
       "reset": "초기화",
       "submitting": "실행 중...",
-      "selectPlaceholder": "선택하세요",
+      "selectPlaceholder": "선택하세요.",
       "validation": {
-        "required": "{{field}}은(는) 필수 입력입니다",
-        "invalidNumber": "{{field}}은(는) 숫자여야 합니다",
-        "maxLength": "{{field}}은(는) 최대 {{maxLength}}자까지 입력 가능합니다"
+        "required": "{{field}}은(는) 필수 입력입니다.",
+        "invalidNumber": "{{field}}은(는) 숫자여야 합니다.",
+        "maxLength": "{{field}}은(는) 최대 {{maxLength}}자까지 입력 가능합니다."
       }
     },
     "fileUpload": {
-      "dragOrClick": "파일을 드래그하거나 클릭하세요",
-      "dropHere": "여기에 파일을 놓으세요",
+      "dragOrClick": "파일을 드래그하거나 클릭하세요.",
+      "dropHere": "여기에 파일을 놓으세요.",
       "maxSize": "최대 15MB",
       "uploading": "업로드 중...",
       "success": "파일 업로드 완료",
       "remove": "삭제",
       "errors": {
-        "forbiddenType": "이 파일 형식은 보안상 업로드할 수 없습니다",
-        "unsupportedType": "지원하지 않는 파일 형식입니다",
+        "forbiddenType": "이 파일 형식은 보안상 업로드할 수 없습니다.",
+        "unsupportedType": "지원하지 않는 파일 형식입니다.",
         "sizeTooLarge": "파일 크기가 너무 큽니다 (최대 {{maxSize}})",
         "uploadFailed": "파일 업로드 실패: {{error}}"
       }
@@ -350,8 +366,8 @@
     },
     "timeline": {
       "title": "처리 단계",
-      "empty": "Agent 실행 시 처리 단계가 여기에 표시됩니다",
-      "thought": "Agent 사고",
+      "empty": "에이전트 실행 시 처리 단계가 여기에 표시됩니다.",
+      "thought": "에이전트 사고",
       "toolCall": "Tool 호출",
       "input": "입력",
       "output": "출력",
@@ -360,10 +376,10 @@
     },
     "result": {
       "title": "결과",
-      "empty": "Agent 실행 후 결과가 여기에 표시됩니다",
+      "empty": "에이전트 실행 후 결과가 여기에 표시됩니다.",
       "copy": "복사",
       "copied": "복사됨",
-      "copySuccess": "결과가 복사되었습니다",
+      "copySuccess": "결과가 복사되었습니다.",
       "copyError": "복사 실패",
       "retry": "다시 입력",
       "retrying": "재시도 중...",
@@ -381,7 +397,7 @@
     },
     "history": {
       "title": "실행 내역",
-      "empty": "실행 내역이 없습니다",
+      "empty": "실행 내역이 없습니다.",
       "columns": {
         "time": "실행 시간",
         "inputs": "입력",
@@ -396,15 +412,19 @@
         "previous": "이전",
         "next": "다음"
       }
-    }
+    },
+    "backToList": "목록으로",
+    "agentInfoButton": "에이전트 정보",
+    "agentInfo": "에이전트 정보",
+    "close": "닫기"
   },
   "toasts": {
-    "agentCreated": "Agent가 성공적으로 생성되었습니다",
-    "agentUpdated": "Agent가 성공적으로 업데이트되었습니다",
-    "agentCreationFailed": "Agent 생성에 실패했습니다",
-    "draftSaved": "임시 저장되었습니다",
-    "draftLoaded": "저장된 작업을 불러왔습니다",
-    "validationError": "입력값을 확인해주세요"
+    "agentCreated": "에이전트가 성공적으로 생성되었습니다.",
+    "agentUpdated": "에이전트가 성공적으로 업데이트되었습니다.",
+    "agentCreationFailed": "에이전트 생성에 실패했습니다.",
+    "draftSaved": "임시 저장되었습니다.",
+    "draftLoaded": "저장된 작업을 불러왔습니다.",
+    "validationError": "입력값을 확인해주세요."
   },
   "buttons": {
     "next": "다음",
@@ -416,29 +436,29 @@
   },
   "draft": {
     "badge": "저장된 작업을 계속 작성 중",
-    "loaded": "이전에 저장한 작업을 불러왔습니다",
+    "loaded": "이전에 저장한 작업을 불러왔습니다.",
     "confirmReset": "정말 새로 시작하시겠습니까? 저장된 작업이 삭제됩니다.",
     "promptTitle": "저장된 작업 발견",
-    "promptMessage": "이전에 작성하던 Agent 초안이 있습니다. 이어서 작성하시겠습니까?",
+    "promptMessage": "이전에 작성하던 에이전트 초안이 있습니다. 이어서 작성하시겠습니까?",
     "continue": "이어서 작성",
     "startFresh": "새로 작성"
   },
   "toast": {
-    "draftLoaded": "저장된 작업을 불러왔습니다",
-    "draftRestored": "저장된 작업을 불러왔습니다",
-    "draftSaved": "작업이 자동으로 저장되었습니다",
-    "draftReset": "새로 시작합니다"
+    "draftLoaded": "저장된 작업을 불러왔습니다.",
+    "draftRestored": "저장된 작업을 불러왔습니다.",
+    "draftSaved": "작업이 자동으로 저장되었습니다.",
+    "draftReset": "새로 시작합니다."
   },
   "tools": {
     "title": "도구 선택",
-    "description": "Agent가 사용할 수 있는 도구를 선택하세요",
+    "description": "에이전트가 사용할 수 있는 도구를 선택하세요.",
     "configure": "설정",
     "test": "테스트",
     "testParameters": "테스트 파라미터",
     "testSuccess": "테스트 성공",
     "testFailed": "테스트 실패",
-    "noToolsAvailable": "사용 가능한 도구가 없습니다",
-    "apiKeyRequired": "API Key가 필요합니다",
+    "noToolsAvailable": "사용 가능한 도구가 없습니다.",
+    "apiKeyRequired": "API Key가 필요합니다.",
     "apiKeyConfiguration": "API Key 설정",
     "apiKeyConfigured": "API Key 등록됨",
     "apiKeyConfiguredDesc": "등록된 키",
@@ -451,13 +471,13 @@
     "savingApiKey": "저장 중...",
     "deleteApiKey": "삭제",
     "deleteApiKeyConfirm": "정말로 이 API Key를 삭제하시겠습니까?",
-    "apiKeyUpdatedSuccess": "API Key가 수정되었습니다",
-    "apiKeySavedSuccess": "API Key가 저장되었습니다",
+    "apiKeyUpdatedSuccess": "API Key가 수정되었습니다.",
+    "apiKeySavedSuccess": "API Key가 저장되었습니다.",
     "apiKeyDeletedSuccess": "API Key가 삭제되었습니다",
-    "pleaseEnterApiKey": "API Key를 입력하세요",
-    "failedToUpdateApiKey": "API Key 수정에 실패했습니다",
-    "failedToSaveApiKey": "API Key 저장에 실패했습니다",
-    "failedToDeleteApiKey": "API Key 삭제에 실패했습니다",
+    "pleaseEnterApiKey": "API Key를 입력하세요.",
+    "failedToUpdateApiKey": "API Key 수정에 실패했습니다.",
+    "failedToSaveApiKey": "API Key 저장에 실패했습니다.",
+    "failedToDeleteApiKey": "API Key 삭제에 실패했습니다.",
     "ttsModel": "TTS 모델",
     "textToConvert": "변환할 텍스트",
     "enterTextPlaceholder": "음성으로 변환할 텍스트를 입력하세요...",
@@ -481,11 +501,10 @@
     "whisperDisabledWarning": "whisper-1이 비활성화되어 있습니다. 테스트하려면 모델 관리에서 활성화하세요.",
     "parameterSettings": "파라미터 설정",
     "saveSettings": "설정 저장",
-    "noConfigurableParams": "설정 가능한 파라미터가 없습니다",
-    "noParamsRequired": "필수 파라미터가 없습니다",
+    "noConfigurableParams": "설정 가능한 파라미터가 없습니다.",
+    "noParamsRequired": "필수 파라미터가 없습니다.",
     "configuredBadge": "설정됨",
-    "defaultSettings": "기본 설정",
-    "testParameters": "테스트 파라미터"
+    "defaultSettings": "기본 설정"
   },
   "roleSamples": {
     "learningMentor": {
@@ -628,13 +647,13 @@
     }
   },
   "list": {
-    "title": "Agent 목록",
-    "description": "생성된 Agent를 확인하고 관리하세요",
-    "createButton": "새 Agent 만들기",
-    "emptyTitle": "아직 생성된 Agent가 없습니다",
-    "emptyDescription": "첫 번째 Agent를 만들어 시작하세요",
-    "searchPlaceholder": "Agent 이름으로 검색...",
-    "searchPlaceholderWithOwner": "Agent 이름, 설명, 소유자로 검색...",
+    "title": "에이전트 목록",
+    "description": "생성한 에이전트를 바로 실행하거나 수정할 수 있습니다",
+    "createButton": "새 에이전트 만들기",
+    "emptyTitle": "아직 생성된 에이전트가 없습니다",
+    "emptyDescription": "첫 번째 에이전트를 만들어 시작하세요",
+    "searchPlaceholder": "에이전트 이름으로 검색...",
+    "searchPlaceholderWithOwner": "에이전트 이름, 설명, 소유자로 검색...",
     "sortLatest": "최신순",
     "sortName": "이름순",
     "sortOwner": "소유자순",
@@ -646,16 +665,16 @@
       "delete": "삭제"
     },
     "deleteDialog": {
-      "title": "Agent 삭제",
-      "message": "Agent를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
-      "messageWithName": "{{name}} Agent를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "title": "에이전트 삭제",
+      "message": "에이전트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "messageWithName": "{{name}} 에이전트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
       "confirm": "삭제",
       "cancel": "취소",
       "deleting": "삭제 중...",
       "close": "닫기",
-      "success": "Agent \"{{name}}\"이(가) 삭제되었습니다",
-      "error": "Agent 삭제에 실패했습니다",
-      "notFound": "Agent를 찾을 수 없습니다"
+      "success": "에이전트 \"{{name}}\"이(가) 삭제되었습니다",
+      "error": "에이전트 삭제에 실패했습니다",
+      "notFound": "에이전트를 찾을 수 없습니다"
     },
     "pagination": {
       "previous": "이전",
@@ -678,20 +697,5 @@
     "edit": "편집",
     "duplicate": "복제",
     "delete": "삭제"
-  },
-  "execute": {
-    "inputForm": {
-      "title": "입력 정보"
-    },
-    "status": {
-      "idle": "대기 중",
-      "running": "실행 중",
-      "success": "성공",
-      "failed": "실패"
-    },
-    "backToList": "목록으로",
-    "agentInfoButton": "Agent 정보",
-    "agentInfo": "Agent 정보",
-    "close": "닫기"
   }
 }
