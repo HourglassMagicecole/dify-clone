@@ -51,6 +51,8 @@ export default function AgentChatPage() {
   const parentMessageIdRef = useRef<string>('') // For conversation history chain
   const isUnloadingRef = useRef(false) // Track page unload to suppress error alerts
   const isStreamingRef = useRef(false) // Mirror isStreaming state for beforeunload handler
+  const isMessagesLoadedRef = useRef(false) // Track if messages have been loaded for current conversation
+  const pendingMessageProcessedRef = useRef(false) // Track if pending message has been processed for this session
   const [showAgentInfo, setShowAgentInfo] = useState(false)
 
   // Sync isStreaming state to ref for beforeunload handler
@@ -101,6 +103,7 @@ export default function AgentChatPage() {
 
   // Handle conversation selection
   const handleSelectConversation = async (conversationId: string) => {
+    isMessagesLoadedRef.current = false // Mark messages as not loaded yet
     setCurrentConversationId(conversationId)
     updateUrlConversationId(conversationId)
     conversationIdRef.current = conversationId === 'temp-new-conversation' ? '' : conversationId
@@ -122,11 +125,28 @@ export default function AgentChatPage() {
       } else {
         setMessages([])
       }
+      isMessagesLoadedRef.current = true // Mark messages as loaded
       return
     }
 
     try {
-      const loadedMessages = await agentAPI.getConversationMessages(agentId, conversationId)
+      const rawMessages = await agentAPI.getConversationMessages(agentId, conversationId)
+
+      // Filter out duplicate consecutive user messages with same content
+      // This happens when user refreshes during streaming - multiple API calls create duplicates
+      const loadedMessages = rawMessages.reduce<Message[]>((acc, msg) => {
+        if (msg.role === 'user') {
+          // Check if there's already a user message with same content at the end
+          const lastMsg = acc[acc.length - 1]
+          if (lastMsg?.role === 'user' && lastMsg.content === msg.content) {
+            // Replace with newer one (keep latest)
+            acc[acc.length - 1] = msg
+            return acc
+          }
+        }
+        acc.push(msg)
+        return acc
+      }, [])
 
       // Set parent_message_id to the last assistant message for conversation continuity
       const lastAssistantMessage = [...loadedMessages].reverse().find(m => m.role === 'assistant' && !m.id.startsWith('opening-'))
@@ -167,8 +187,10 @@ export default function AgentChatPage() {
       else {
         setMessages(loadedMessages)
       }
+      isMessagesLoadedRef.current = true // Mark messages as loaded
     }
     catch (error) {
+      isMessagesLoadedRef.current = true // Mark as loaded even on error to prevent infinite waiting
       // Security: Handle forbidden access
       if (error instanceof ForbiddenError) {
         alert(error.message)
@@ -332,23 +354,31 @@ export default function AgentChatPage() {
       savePendingMessage(agentId, conversationIdRef.current, message, files)
     }
 
-    // Create user message immediately
-    const userMessageId = `user-${Date.now()}`
-    const userMessage: Message = {
-      id: userMessageId,
-      conversationId: '', // Will be filled after response
-      role: 'user',
-      content: message,
-      createdAt: new Date().toISOString(),
-      files: files.map((f) => ({
-        id: `file-${Date.now()}-${f.name}`,
-        name: f.name,
-        type: f.type,
-        size: f.size,
-        url: '',
-      })),
+    // Check if the same user message already exists (recovery after refresh)
+    // If so, don't add duplicate - just proceed with API call
+    const existingUserMessage = messages.find(
+      m => m.role === 'user' && m.content === message
+    )
+    const userMessageId = existingUserMessage?.id || `user-${Date.now()}`
+
+    // Only add user message if it doesn't already exist
+    if (!existingUserMessage) {
+      const userMessage: Message = {
+        id: userMessageId,
+        conversationId: '', // Will be filled after response
+        role: 'user',
+        content: message,
+        createdAt: new Date().toISOString(),
+        files: files.map((f) => ({
+          id: `file-${Date.now()}-${f.name}`,
+          name: f.name,
+          type: f.type,
+          size: f.size,
+          url: '',
+        })),
+      }
+      setMessages((prev) => [...prev, userMessage])
     }
-    setMessages((prev) => [...prev, userMessage])
 
     try {
       let fullContent = ''
@@ -517,6 +547,9 @@ export default function AgentChatPage() {
   // Resend pending message after page refresh
   useEffect(() => {
     const checkAndResendPendingMessage = async () => {
+      // Skip if already processed in this session
+      if (pendingMessageProcessedRef.current) return
+
       // Only check after agent is loaded and not currently streaming
       if (!agent || isStreaming) return
 
@@ -528,16 +561,62 @@ export default function AgentChatPage() {
         return
       }
 
+      // Wait for messages to be fully loaded before checking for duplicates
+      if (!isMessagesLoadedRef.current) {
+        return
+      }
+
       const pending = await loadPendingMessage(agentId)
-      if (!pending) return
+      if (!pending) {
+        pendingMessageProcessedRef.current = true // No pending message, mark as processed
+        return
+      }
 
       // Verify the conversation matches or is empty (new conversation)
       const currentConvId = conversationIdRef.current || urlConversationId || ''
       if (pending.conversationId && pending.conversationId !== currentConvId) {
         // Different conversation, clear stale pending message
         await clearPendingMessage(agentId)
+        pendingMessageProcessedRef.current = true
         return
       }
+
+      // Check if we need to resend the pending message
+      // Filter out opening-statement to get actual conversation messages
+      const conversationMessages = messages.filter(m => m.id !== 'opening-statement')
+      const lastMessage = conversationMessages[conversationMessages.length - 1]
+
+      // If the last message is an assistant message, the response was completed
+      // No need to resend
+      if (lastMessage && lastMessage.role === 'assistant') {
+        await clearPendingMessage(agentId)
+        pendingMessageProcessedRef.current = true
+        return
+      }
+
+      // If the last message is a user message with the same content,
+      // the message was saved to server but response was interrupted
+      // Resend to get the response - duplicate user messages will be filtered on next load
+      const lastUserMessage = lastMessage?.role === 'user' ? lastMessage : null
+      if (lastUserMessage && lastUserMessage.content === pending.message) {
+        // User message exists but no assistant response yet
+        // Resend to get the response (server will create duplicate, but we filter it on load)
+        pendingMessageProcessedRef.current = true
+        await clearPendingMessage(agentId)
+
+        // Set conversationId ref before resending
+        const targetConversationId = pending.conversationId || urlConversationId || ''
+        if (targetConversationId) {
+          conversationIdRef.current = targetConversationId
+        }
+
+        // Resend - handleSend will skip adding user message since it already exists
+        handleSend(pending.message, pending.files)
+        return
+      }
+
+      // Mark as processed BEFORE resending to prevent duplicate calls
+      pendingMessageProcessedRef.current = true
 
       // Clear pending message BEFORE resending to prevent infinite loop
       await clearPendingMessage(agentId)
@@ -555,7 +634,7 @@ export default function AgentChatPage() {
 
     checkAndResendPendingMessage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agent, agentId, conversations, urlConversationId, currentConversationId])
+  }, [agent, agentId, conversations, urlConversationId, currentConversationId, messages])
 
   // Loading states
   if (sessionLoading || agentLoading) {
