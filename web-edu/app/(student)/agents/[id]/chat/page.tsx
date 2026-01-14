@@ -314,28 +314,6 @@ export default function AgentChatPage() {
     }
   }
 
-  // Handle regenerate last response
-  const handleRegenerate = () => {
-    if (messages.length < 2) return
-
-    // Find last assistant message
-    const lastAssistantIndex = messages.findLastIndex((m) => m.role === 'assistant')
-    if (lastAssistantIndex === -1) return
-
-    // Find last user message before that
-    const lastUserMessage = messages
-      .slice(0, lastAssistantIndex)
-      .reverse()
-      .find((m) => m.role === 'user')
-
-    if (!lastUserMessage) return
-
-    // Remove assistant message
-    setMessages((prev) => prev.slice(0, lastAssistantIndex))
-
-    // Resend user message
-    handleSend(lastUserMessage.content, [])
-  }
 
   // Handle message send
   const handleSend = async (message: string, files: File[]) => {
@@ -736,7 +714,6 @@ export default function AgentChatPage() {
             messages={messages}
             isStreaming={isStreaming}
             streamingContent={streamingContent}
-            onRegenerate={handleRegenerate}
             hasConversationSelected={currentConversationId !== null}
           />
         </div>
