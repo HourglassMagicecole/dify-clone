@@ -114,12 +114,18 @@ elif [ -n "$API_ENV_KEY" ] && [ "$API_ENV_KEY" != "" ]; then
 else
     echo -e "${YELLOW}🔑 API_KEY_ENCRYPTION_KEY 생성 중...${NC}"
 
-    # Python을 사용하여 Fernet 키 생성
-    NEW_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null)
+    # Fernet 호환 키 생성 (openssl 우선, Python fallback)
+    # Fernet key = 32 bytes random data, URL-safe base64 encoded
+    NEW_KEY=$(openssl rand -base64 32 2>/dev/null | tr '+/' '-_')
 
     if [ -z "$NEW_KEY" ]; then
-        echo -e "${RED}❌ 키 생성 실패: cryptography 패키지가 설치되지 않았습니다${NC}"
-        echo -e "${YELLOW}해결 방법: pip install cryptography${NC}"
+        # Fallback to Python if openssl fails
+        NEW_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null)
+    fi
+
+    if [ -z "$NEW_KEY" ]; then
+        echo -e "${RED}❌ 키 생성 실패: openssl 또는 python3 cryptography가 필요합니다${NC}"
+        echo -e "${YELLOW}해결 방법: brew install openssl 또는 pip install cryptography${NC}"
         exit 1
     fi
 
