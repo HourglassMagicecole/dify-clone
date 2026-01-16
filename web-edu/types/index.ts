@@ -1,5 +1,5 @@
 /**
- * Types barrel export for EduAI Studio
+ * Types barrel export for MAI Studio
  *
  * Note: To avoid naming conflicts, import specific types from their source files
  * when needed. For example:

@@ -83,7 +83,7 @@ export function NavigationHeader() {
           <div className="flex items-center gap-4">
             <Link href={getDashboardUrl()}>
               <h1 className="text-xl font-bold text-primary-600 hover:text-primary-700 cursor-pointer">
-                EduAI Studio
+                MAI Studio
               </h1>
             </Link>
           </div>

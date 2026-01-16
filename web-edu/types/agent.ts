@@ -1,5 +1,5 @@
 /**
- * Agent type definitions for EduAI Studio
+ * Agent type definitions for MAI Studio
  */
 
 import type { MessageFile } from './chat'

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# EduAI Studio Web Entrypoint
-# Based on Dify web entrypoint with EduAI-specific configurations
+# MAI Studio Web Entrypoint
+# Based on Dify web entrypoint with MAI-specific configurations
 
 set -e
 
@@ -33,5 +33,5 @@ export NEXT_PUBLIC_MAX_PARALLEL_LIMIT=${MAX_PARALLEL_LIMIT}
 export NEXT_PUBLIC_MAX_ITERATIONS_NUM=${MAX_ITERATIONS_NUM}
 export NEXT_PUBLIC_MAX_TREE_DEPTH=${MAX_TREE_DEPTH}
 
-# Start EduAI Studio web server with PM2
+# Start MAI Studio web server with PM2
 pm2 start /app/web/server.js --name eduai-studio-web --cwd /app/web -i ${PM2_INSTANCES} --no-daemon

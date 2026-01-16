@@ -1,5 +1,5 @@
 /**
- * Model Management Types for EduAI Studio (Story 3.7)
+ * Model Management Types for MAI Studio (Story 3.7)
  *
  * Type definitions for model activation management feature
  * [Source: api/controllers/console/workspace/models.py]

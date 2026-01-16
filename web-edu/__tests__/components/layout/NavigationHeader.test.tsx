@@ -116,7 +116,7 @@ describe('NavigationHeader', () => {
     });
   });
 
-  it('EduAI Studio 로고가 표시되어야 함', () => {
+  it('MAI Studio 로고가 표시되어야 함', () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: mockUser,
       isLoading: false,
@@ -124,7 +124,7 @@ describe('NavigationHeader', () => {
     });
 
     render(<NavigationHeader />);
-    expect(screen.getByText('EduAI Studio')).toBeInTheDocument();
+    expect(screen.getByText('MAI Studio')).toBeInTheDocument();
   });
 
   it('사용자 아바타가 표시되어야 함', () => {

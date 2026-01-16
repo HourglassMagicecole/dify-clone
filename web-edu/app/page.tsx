@@ -31,7 +31,7 @@ export default function HomePage() {
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <h1 className="mb-4 text-5xl font-bold text-gray-900">
-            EduAI Studio
+            MAI Studio
           </h1>
           <p className="mb-8 text-xl text-gray-600">
             Loading...

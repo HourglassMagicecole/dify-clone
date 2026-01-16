@@ -2,7 +2,7 @@
  * Dataset API Client
  * Story 3.1: RAG Creation Wizard - Load & Split
  *
- * Wraps Dify's native Dataset/File APIs for use in EduAI Studio
+ * Wraps Dify's native Dataset/File APIs for use in MAI Studio
  */
 
 import { apiClient, type ApiResponse } from './base-api'

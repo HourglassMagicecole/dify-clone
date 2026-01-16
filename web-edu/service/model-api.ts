@@ -9,7 +9,7 @@ import type { ModelToggleRequest, ProviderModel, ProviderWithModels } from '@/ty
 type ProviderModelItem = ProviderModel
 
 /**
- * Model Management API for EduAI Studio (Story 3.7)
+ * Model Management API for MAI Studio (Story 3.7)
  * Wraps Dify's model provider API with Owner-only access
  *
  * [Source: api/controllers/console/workspace/models.py]

@@ -8,7 +8,7 @@ import { NavigationHeader } from '@/components/layout/NavigationHeader'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'EduAI Studio - AI Education Platform',
+  title: 'MAI Studio - AI Education Platform',
   description: 'Educational AI Platform for Learning Agent and RAG',
 }
 
