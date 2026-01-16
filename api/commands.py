@@ -2017,7 +2017,7 @@ def install_provider_plugins(tenant_id: str | None):
 
     Installs: OpenAI, Anthropic, Cohere, Gemini (Google)
 
-    These plugins are required for EduAI Console API Key management to work properly.
+    These plugins are required for MAI Console API Key management to work properly.
     """
     import os
 
@@ -2162,7 +2162,7 @@ def install_provider_plugins(tenant_id: str | None):
             click.echo("\n📝 Next steps:")
             click.echo("   1. Wait for background installation tasks (~30 seconds)")
             click.echo("   2. Verify in Dify UI → Settings → Model Provider")
-            click.echo("   3. Test by creating API Key in EduAI Console")
+            click.echo("   3. Test by creating API Key in MAI Console")
 
     except Exception as e:
         click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))

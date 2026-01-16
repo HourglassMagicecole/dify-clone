@@ -1,6 +1,6 @@
 identity:
   name: json_parser
-  author: EduAI Studio
+  author: MAI Studio
   label:
     en_US: JSON Parser
     ko_KR: JSON 파서

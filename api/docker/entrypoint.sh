@@ -58,7 +58,7 @@ if [[ "${MODE}" == "api" ]] || [[ -z "${MODE}" ]]; then
     fi
 
     # Install model provider plugins (OpenAI, Anthropic, Cohere, Gemini)
-    # These are required for EduAI Console API Key management
+    # These are required for MAI Console API Key management
     echo "🔌 Installing model provider plugins..."
     if flask provider install-plugins 2>/dev/null; then
         echo "✅ Provider plugins installed"

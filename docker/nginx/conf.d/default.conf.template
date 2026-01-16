@@ -1,6 +1,6 @@
 # Please do not directly edit this file. Instead, modify the .env variables related to NGINX configuration.
 
-# EduAI Studio (main) - Port 80
+# MAI Studio (main) - Port 80
 server {
     listen ${NGINX_PORT};
     server_name ${NGINX_SERVER_NAME};
@@ -31,7 +31,7 @@ server {
       include proxy.conf;
     }
 
-    # EduAI Studio web (default) - main frontend
+    # MAI Studio web (default) - main frontend
     location / {
       proxy_pass http://web-edu:3001;
       include proxy.conf;

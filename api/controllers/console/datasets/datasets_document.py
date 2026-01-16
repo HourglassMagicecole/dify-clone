@@ -397,13 +397,13 @@ class DatasetInitApi(Resource):
         parser.add_argument("description", type=str, required=False, nullable=True, location="json")
         parser.add_argument(
             "session_id", type=str, required=True, nullable=False, location="json"
-        )  # EduAI session (required)
+        )  # MAI session (required)
         args = parser.parse_args()
 
         # Extract session_id before passing to KnowledgeConfig
         provided_session_id = args.pop("session_id", None)
 
-        # EduAI: Validate session and user membership (with date-based activation check)
+        # MAI: Validate session and user membership (with date-based activation check)
         if not provided_session_id:
             raise BadRequest("session_id is required to create a knowledge base")
 

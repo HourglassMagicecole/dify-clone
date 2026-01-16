@@ -309,7 +309,7 @@ def delete_api_key(key_id: str):
         provider = api_key_config.provider
         # Use stored credential_name (saved during sync) for accurate deletion
         # Fallback to current name if not stored (for backward compatibility)
-        credential_name = api_key_config.provider_credential_name or f"EduAI-{api_key_config.key_name}"
+        credential_name = api_key_config.provider_credential_name or f"MAI-{api_key_config.key_name}"
         # Use request.tenant_id which is set by owner_required decorator
         tenant_id = request.tenant_id
 

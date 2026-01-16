@@ -64,7 +64,7 @@ export interface ProviderWithModels {
   custom_configuration?: {
     status: 'active' | 'no-configure'
   }
-  // EduAI 확장: 프로바이더 전체 활성화 상태
+  // MAI 확장: 프로바이더 전체 활성화 상태
   all_enabled?: boolean
 }
 

@@ -147,7 +147,7 @@ class ProviderSyncService:
                 dify_provider,
                 tenant_id,
             )
-            credential_name = f"EduAI-{api_key_config.key_name}"
+            credential_name = f"MAI-{api_key_config.key_name}"
             provider_configuration.create_provider_credential(
                 credentials=credentials,
                 credential_name=credential_name,
@@ -288,7 +288,7 @@ class ProviderSyncService:
         Args:
             tenant_id: Tenant ID
             provider: AdminAPIKeyConfig provider name
-            credential_name: Credential name to delete (e.g., "EduAI-MyKey")
+            credential_name: Credential name to delete (e.g., "MAI-MyKey")
 
         Returns:
             dict with removal status
@@ -317,7 +317,7 @@ class ProviderSyncService:
         with Session(db.engine) as session:
             try:
                 # Find the ProviderCredential to delete
-                # Note: credential_name is unique (format: "EduAI-{key_name}")
+                # Note: credential_name is unique (format: "MAI-{key_name}")
                 # so we don't need to filter by provider_name
                 stmt = select(ProviderCredential).where(
                     ProviderCredential.tenant_id == tenant_id,
@@ -413,7 +413,7 @@ class ProviderSyncService:
         Args:
             tenant_id: Tenant ID
             dify_provider: Dify provider name (e.g., "openai")
-            credential_name: Credential name (e.g., "EduAI-MyKey")
+            credential_name: Credential name (e.g., "MAI-MyKey")
 
         Raises:
             Exception: If linking fails

@@ -1,4 +1,4 @@
-"""EduTools Provider - Educational tools for EduAI Studio."""
+"""EduTools Provider - Educational tools for MAI Studio."""
 
 __all__ = ["EduToolsProvider"]
 

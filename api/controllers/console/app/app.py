@@ -295,7 +295,7 @@ class AppApi(Resource):
         if not current_user.is_editor:
             raise Forbidden()
 
-        # EduAI: Student can only modify their own resources
+        # MAI: Student can only modify their own resources
         if not current_user.is_admin_or_owner:
             if str(app_model.created_by) != str(current_user.id):
                 raise Forbidden("You can only modify your own resources.")
@@ -342,7 +342,7 @@ class AppApi(Resource):
         if not current_user.is_editor:
             raise Forbidden()
 
-        # EduAI: Student can only delete their own resources
+        # MAI: Student can only delete their own resources
         if not current_user.is_admin_or_owner:
             if str(app_model.created_by) != str(current_user.id):
                 raise Forbidden("You can only delete your own resources.")

@@ -527,7 +527,7 @@ export interface DatasetInitRequest {
   name?: string
   description?: string
   indexing_technique: IndexingTechnique
-  session_id: string  // EduAI: Session to tag the dataset to (required)
+  session_id: string  // MAI: Session to tag the dataset to (required)
   data_source: {
     info_list: {
       data_source_type: DataSourceType

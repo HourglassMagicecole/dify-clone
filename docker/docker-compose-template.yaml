@@ -2,7 +2,7 @@ x-shared-env: &shared-api-worker-env
 services:
   # API service
   api:
-    # Local build for EduAI Studio custom features
+    # Local build for MAI Studio custom features
     build:
       context: ../api
       dockerfile: Dockerfile
@@ -41,7 +41,7 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
-    # Local build for EduAI Studio custom features (same as api)
+    # Local build for MAI Studio custom features (same as api)
     build:
       context: ../api
       dockerfile: Dockerfile
@@ -77,7 +77,7 @@ services:
   # worker_beat service
   # Celery beat for scheduling periodic tasks.
   worker_beat:
-    # Local build for EduAI Studio custom features (same as api)
+    # Local build for MAI Studio custom features (same as api)
     build:
       context: ../api
       dockerfile: Dockerfile
@@ -129,7 +129,7 @@ services:
   #     ENABLE_WEBSITE_FIRECRAWL: ${ENABLE_WEBSITE_FIRECRAWL:-true}
   #     ENABLE_WEBSITE_WATERCRAWL: ${ENABLE_WEBSITE_WATERCRAWL:-true}
 
-  # EduAI Studio Frontend web application.
+  # MAI Studio Frontend web application.
   web-edu:
     build:
       context: ../web-edu

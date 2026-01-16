@@ -7,7 +7,7 @@ from core.tools.builtin_tool.provider import BuiltinToolProviderController
 
 class EduToolsProvider(BuiltinToolProviderController):
     """
-    Educational tools provider for EduAI Studio.
+    Educational tools provider for MAI Studio.
 
     This provider offers simple, educational tools that don't require API keys,
     making them ideal for learning AI concepts.

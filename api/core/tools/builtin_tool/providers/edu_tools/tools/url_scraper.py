@@ -53,7 +53,7 @@ class URLScraperTool(BuiltinTool):
     # HTTP request constraints
     REQUEST_TIMEOUT = 5  # seconds
     MAX_REDIRECTS = 3
-    USER_AGENT = "EduAI-Studio/1.0"
+    USER_AGENT = "MAI-Studio/1.0"
 
     def _invoke(
         self,

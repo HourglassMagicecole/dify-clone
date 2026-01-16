@@ -105,7 +105,7 @@ class DatasetService:
     ):
         query = select(Dataset).where(Dataset.tenant_id == tenant_id).order_by(Dataset.created_at.desc())
 
-        # EduAI: When session_id is provided, skip Dify permission filtering
+        # MAI: When session_id is provided, skip Dify permission filtering
         # and use session-based filtering instead (applied later)
         if not session_id:
             if user:

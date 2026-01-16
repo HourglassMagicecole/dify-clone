@@ -84,10 +84,10 @@ class TestProviderSyncService:
         mock_provider_config.create_provider_credential.assert_called_once()
         call_args = mock_provider_config.create_provider_credential.call_args
         assert call_args[1]["credentials"]["openai_api_key"] == "sk-test-key-12345"
-        assert call_args[1]["credential_name"] == "EduAI-Test OpenAI Key"
+        assert call_args[1]["credential_name"] == "MAI-Test OpenAI Key"
 
         # Verify _ensure_provider_credential_linked was called
-        service._ensure_provider_credential_linked.assert_called_once_with(tenant_id, "openai", "EduAI-Test OpenAI Key")
+        service._ensure_provider_credential_linked.assert_called_once_with(tenant_id, "openai", "MAI-Test OpenAI Key")
 
     @patch("services.education_management.provider_sync_service.APIKeyEncryptionService")
     @patch("services.education_management.provider_sync_service.db")
@@ -217,7 +217,7 @@ class TestProviderSyncService:
         service = ProviderSyncService()
         tenant_id = "test-tenant-id"
         provider = "openai"
-        credential_name = "EduAI-TestKey"
+        credential_name = "MAI-TestKey"
 
         # Mock sqlalchemy.orm.Session (imported inside the function)
         mock_session_instance = mocker.MagicMock()
@@ -248,7 +248,7 @@ class TestProviderSyncService:
         service = ProviderSyncService()
         tenant_id = "test-tenant-id"
         provider = "unsupported_provider"
-        credential_name = "EduAI-TestKey"
+        credential_name = "MAI-TestKey"
 
         # Act
         result = service.remove_synced_credentials(tenant_id, provider, credential_name)

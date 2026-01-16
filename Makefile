@@ -34,7 +34,7 @@ docker-up: init-docker-env
 	@echo ""
 	@echo "📝 Next steps:"
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
-	@echo "   - Access EduAI: http://localhost"
+	@echo "   - Access MAI: http://localhost"
 	@echo "   - Access API: http://localhost/v1"
 
 # Rebuild Docker images without cache (slower but ensures fresh build)
@@ -46,7 +46,7 @@ docker-rebuild: init-docker-env
 	@echo ""
 	@echo "📝 Next steps:"
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
-	@echo "   - Access EduAI: http://localhost"
+	@echo "   - Access MAI: http://localhost"
 
 # Stop Docker production environment
 docker-down:
@@ -125,7 +125,15 @@ prepare-api:
 	@cp -n api/.env.example api/.env 2>/dev/null || echo "API .env already exists"
 	@awk -v key="$$(openssl rand -base64 42)" '/^SECRET_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env
 	@cd api && uv sync --dev
-	@awk -v key="$$(cd api && uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" '/^API_KEY_ENCRYPTION_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env
+	@# Sync API_KEY_ENCRYPTION_KEY: use docker/.env key if exists, otherwise generate new
+	@DOCKER_KEY=$$(grep "^API_KEY_ENCRYPTION_KEY=" docker/.env 2>/dev/null | cut -d'=' -f2); \
+	if [ -n "$$DOCKER_KEY" ]; then \
+		echo "🔑 Syncing API_KEY_ENCRYPTION_KEY from docker/.env..."; \
+		awk -v key="$$DOCKER_KEY" '/^API_KEY_ENCRYPTION_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env; \
+	else \
+		echo "🔑 Generating new API_KEY_ENCRYPTION_KEY..."; \
+		awk -v key="$$(cd api && uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" '/^API_KEY_ENCRYPTION_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env; \
+	fi
 	@cd api && uv run flask db upgrade
 	@echo "👤 Creating initial tenant (development default)..."
 	@cd api && uv run flask init-tenant --email owner@test.com --password Test1234! --name "Owner" 2>/dev/null || echo "ℹ️  Tenant already exists (skipped)"

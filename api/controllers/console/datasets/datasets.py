@@ -300,7 +300,7 @@ class DatasetApi(Resource):
         if dataset is None:
             raise NotFound("Dataset not found.")
 
-        # EduAI: Student can only modify their own resources
+        # MAI: Student can only modify their own resources
         if not current_user.is_admin_or_owner:
             if str(dataset.created_by) != str(current_user.id):
                 raise Forbidden("You can only modify your own resources.")
@@ -423,7 +423,7 @@ class DatasetApi(Resource):
         if not (current_user.is_editor or current_user.is_dataset_operator):
             raise Forbidden()
 
-        # EduAI: Student can only delete their own resources
+        # MAI: Student can only delete their own resources
         if not current_user.is_admin_or_owner:
             dataset = DatasetService.get_dataset(dataset_id_str)
             if dataset and str(dataset.created_by) != str(current_user.id):

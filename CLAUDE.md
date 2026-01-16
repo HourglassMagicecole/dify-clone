@@ -21,12 +21,12 @@ MANDATORY: Before EVERY code change:
 ## Project Overview
 
 <system_context>
-EduAI-Studio is an educational web application built on Dify, an open-source platform for developing LLM applications with an intuitive interface combining agentic AI workflows, RAG pipelines, agent capabilities, and model management. EduAI-Studio aims to enable non-IT majors to intuitively understand and practice the core concepts of generative AI—Agent and Workflow—by providing an environment where users can experience the structure and operational principles of AI applications without requiring complex technical knowledge. While leveraging Dify's backend infrastructure, it offers a separate user interface (UI) and user experience (UX) specifically tailored for educational purposes, maximizing learning effectiveness through hands-on, practice-oriented features.
+MAI-Studio is an educational web application built on Dify, an open-source platform for developing LLM applications with an intuitive interface combining agentic AI workflows, RAG pipelines, agent capabilities, and model management. MAI-Studio aims to enable non-IT majors to intuitively understand and practice the core concepts of generative AI—Agent and Workflow—by providing an environment where users can experience the structure and operational principles of AI applications without requiring complex technical knowledge. While leveraging Dify's backend infrastructure, it offers a separate user interface (UI) and user experience (UX) specifically tailored for educational purposes, maximizing learning effectiveness through hands-on, practice-oriented features.
 
 The codebase is split into:
 - **Backend API** (`/api`): Python Flask application organized with Domain-Driven Design
 - **Dify Frontend** (`/web`): Original Dify Frontend Next.js 15 application using TypeScript and React 19
-- **EduAI Frontend** (`/web-edu`): Independent frontend for EduAI Studio, separate from Dify's frontend
+- **MAI Frontend** (`/web-edu`): Independent frontend for MAI Studio, separate from Dify's frontend
 - **Docker deployment** (`/docker`): Containerized deployment configurations
 </system_context>
 
@@ -54,7 +54,7 @@ The codebase is split into:
 **IMPORTANT: YOU MUST follow these steps for ALL frontend changes:**
 
 ```bash
-cd /PATH_TO_EduAI-Studio/web-edu
+cd /PATH_TO_MAI-Studio/web-edu
 pnpm lint      # MUST pass before commit
 pnpm lint:fix  # Auto-fix when possible
 pnpm test      # MUST pass before commit
@@ -183,7 +183,7 @@ make docker-up
 make docker-rebuild
 
 # Access points:
-# - EduAI Studio: http://localhost
+# - MAI Studio: http://localhost
 # - Dify Original (test): http://localhost:8080
 # - API: http://localhost/v1
 ```

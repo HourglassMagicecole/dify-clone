@@ -89,13 +89,28 @@ else
     echo -e "${GREEN}✅ SECRET_KEY가 이미 설정되어 있습니다${NC}\n"
 fi
 
-# 4. API_KEY_ENCRYPTION_KEY 확인
+# 4. API_KEY_ENCRYPTION_KEY 확인 (api/.env와 동기화)
 EXISTING_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" docker/.env | cut -d'=' -f2 || echo "")
+API_ENV_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" api/.env 2>/dev/null | cut -d'=' -f2 || echo "")
 
 if [ -n "$EXISTING_KEY" ] && [ "$EXISTING_KEY" != "" ]; then
     echo -e "${GREEN}✅ API_KEY_ENCRYPTION_KEY가 이미 설정되어 있습니다${NC}"
     echo -e "${YELLOW}⚠️  기존 키를 유지합니다 (덮어쓰지 않음)${NC}\n"
     echo -e "현재 키: ${EXISTING_KEY}"
+elif [ -n "$API_ENV_KEY" ] && [ "$API_ENV_KEY" != "" ]; then
+    # Sync from api/.env if exists
+    echo -e "${YELLOW}🔑 api/.env에서 API_KEY_ENCRYPTION_KEY 동기화 중...${NC}"
+
+    if grep -q "^API_KEY_ENCRYPTION_KEY=" docker/.env; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^API_KEY_ENCRYPTION_KEY=.*|API_KEY_ENCRYPTION_KEY=${API_ENV_KEY}|" docker/.env
+        else
+            sed -i "s|^API_KEY_ENCRYPTION_KEY=.*|API_KEY_ENCRYPTION_KEY=${API_ENV_KEY}|" docker/.env
+        fi
+    fi
+
+    echo -e "${GREEN}✅ API_KEY_ENCRYPTION_KEY 동기화 완료 (api/.env → docker/.env)${NC}\n"
+    echo -e "동기화된 키: ${API_ENV_KEY}"
 else
     echo -e "${YELLOW}🔑 API_KEY_ENCRYPTION_KEY 생성 중...${NC}"
 
