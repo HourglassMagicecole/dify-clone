@@ -75,7 +75,7 @@ else
 fi
 
 # 3. SECRET_KEY 확인 및 생성
-EXISTING_SECRET=$(grep "^SECRET_KEY=" docker/.env | cut -d'=' -f2)
+EXISTING_SECRET=$(grep "^SECRET_KEY=" docker/.env | cut -d'=' -f2-)
 if [ -z "$EXISTING_SECRET" ] || [ "$EXISTING_SECRET" == "sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U" ]; then
     echo -e "${YELLOW}🔑 SECRET_KEY 생성 중...${NC}"
     NEW_SECRET=$(openssl rand -base64 42)
@@ -90,8 +90,8 @@ else
 fi
 
 # 4. API_KEY_ENCRYPTION_KEY 확인 (api/.env와 동기화)
-EXISTING_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" docker/.env | cut -d'=' -f2 || echo "")
-API_ENV_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" api/.env 2>/dev/null | cut -d'=' -f2 || echo "")
+EXISTING_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" docker/.env | cut -d'=' -f2- || echo "")
+API_ENV_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" api/.env 2>/dev/null | cut -d'=' -f2- || echo "")
 
 if [ -n "$EXISTING_KEY" ] && [ "$EXISTING_KEY" != "" ]; then
     echo -e "${GREEN}✅ API_KEY_ENCRYPTION_KEY가 이미 설정되어 있습니다${NC}"
@@ -166,9 +166,9 @@ echo -e "\n${YELLOW}━━━━━━━━━━━━━━━━━━━━
 echo -e "${YELLOW}📝 초기 관리자 계정 설정 (필수)${NC}"
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 
-EXISTING_EMAIL=$(grep "^INITIAL_ADMIN_EMAIL=" docker/.env | cut -d'=' -f2)
-EXISTING_PASSWORD=$(grep "^INITIAL_ADMIN_PASSWORD=" docker/.env | cut -d'=' -f2)
-EXISTING_NAME=$(grep "^INITIAL_ADMIN_NAME=" docker/.env | cut -d'=' -f2)
+EXISTING_EMAIL=$(grep "^INITIAL_ADMIN_EMAIL=" docker/.env | cut -d'=' -f2-)
+EXISTING_PASSWORD=$(grep "^INITIAL_ADMIN_PASSWORD=" docker/.env | cut -d'=' -f2-)
+EXISTING_NAME=$(grep "^INITIAL_ADMIN_NAME=" docker/.env | cut -d'=' -f2-)
 
 if [ -n "$EXISTING_EMAIL" ]; then
     echo -e "${GREEN}✅ 초기 관리자 계정이 이미 설정되어 있습니다${NC}"
