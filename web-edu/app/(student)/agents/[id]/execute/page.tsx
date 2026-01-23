@@ -12,7 +12,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
-import type { ExecutionState, UserInputForm, Agent } from '@/types/agent'
+import type { ExecutionState, UserInputForm, Agent, OutputFormat } from '@/types/agent'
+import type { TextFormatType } from '@/components/agent/ExecutionResultPanel'
 import { DynamicFormRenderer } from '@/components/agent/DynamicFormRenderer'
 import { AgentThoughtTimeline } from '@/components/agent/AgentThoughtTimeline'
 import { ExecutionResultPanel } from '@/components/agent/ExecutionResultPanel'
@@ -36,6 +37,7 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
   const [agent, setAgent] = useState<Agent | null>(null)
   const [isLoadingAgent, setIsLoadingAgent] = useState(true)
   const [showAgentInfo, setShowAgentInfo] = useState(false)
+  const [textFormat, setTextFormat] = useState<TextFormatType>('markdown')
 
   // Execution state
   const [executionState, _setExecutionState] = useState<ExecutionState>({
@@ -133,6 +135,18 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
           }).filter(Boolean) as UserInputForm[]
 
           agentData.user_input_form = transformedUserInputForm
+        }
+
+        // Extract output_format.text_format for download feature
+        if (modelConfig?.output_format) {
+          const outputFormat = modelConfig.output_format as OutputFormat
+          if (outputFormat.text_format) {
+            // Only set if it's a valid TextFormatType (exclude 'json')
+            const validFormats: TextFormatType[] = ['markdown', 'plain_text', 'html']
+            if (validFormats.includes(outputFormat.text_format as TextFormatType)) {
+              setTextFormat(outputFormat.text_format as TextFormatType)
+            }
+          }
         }
 
         setAgent(agentData)
@@ -420,6 +434,8 @@ export default function TaskExecutionPage({ params }: TaskExecutionPageProps) {
                   messageId={executionState.messageId}
                   onRetry={handleRetry}
                   isRetrying={executionState.status === 'running'}
+                  textFormat={textFormat}
+                  agentName={agent?.name}
                 />
               </div>
             </div>

@@ -53,6 +53,7 @@ model_config_fields = {
     "completion_prompt_config": fields.Raw(attribute="completion_prompt_config_dict"),
     "dataset_configs": fields.Raw(attribute="dataset_configs_dict"),
     "file_upload": fields.Raw(attribute="file_upload_dict"),
+    "output_format": fields.Raw(attribute="output_format_dict"),
     "created_by": fields.String,
     "created_at": TimestampField,
     "updated_by": fields.String,

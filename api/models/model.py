@@ -335,6 +335,7 @@ class AppModelConfig(Base):
     dataset_configs = mapped_column(sa.Text)
     external_data_tools = mapped_column(sa.Text)
     file_upload = mapped_column(sa.Text)
+    output_format = mapped_column(sa.Text)
 
     @property
     def app(self) -> App | None:
@@ -484,6 +485,10 @@ class AppModelConfig(Base):
             }
         )
 
+    @property
+    def output_format_dict(self) -> dict[str, Any] | None:
+        return json.loads(self.output_format) if self.output_format else None
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "opening_statement": self.opening_statement,
@@ -506,6 +511,7 @@ class AppModelConfig(Base):
             "completion_prompt_config": self.completion_prompt_config_dict,
             "dataset_configs": self.dataset_configs_dict,
             "file_upload": self.file_upload_dict,
+            "output_format": self.output_format_dict,
         }
 
     def from_model_config_dict(self, model_config: Mapping[str, Any]):
@@ -552,6 +558,9 @@ class AppModelConfig(Base):
             json.dumps(model_config.get("dataset_configs")) if model_config.get("dataset_configs") else None
         )
         self.file_upload = json.dumps(model_config.get("file_upload")) if model_config.get("file_upload") else None
+        self.output_format = (
+            json.dumps(model_config.get("output_format")) if model_config.get("output_format") else None
+        )
         return self
 
 

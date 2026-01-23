@@ -340,7 +340,7 @@ export function AgentWizardProvider({
               pre_prompt: prePrompt || '',
               prompt_type: 'simple',
               user_input_form: userInputForm,
-              output_format: undefined, // Output format not stored in backend, will be redefined in edit mode
+              output_format: modelConfig.output_format || undefined,
               opening_statement: openingStatement,
               suggested_questions: suggestedQuestions,
             },
@@ -619,6 +619,7 @@ export function AgentWizardProvider({
           user_input_form: transformedUserInputForm,
           opening_statement: state.promptSettings.opening_statement || '',
           suggested_questions: state.promptSettings.suggested_questions || [],
+          output_format: state.promptSettings.output_format || undefined,
           model: {
             provider: state.modelConfig.original_provider || state.modelConfig.provider,
             name: state.modelConfig.model,
@@ -769,11 +770,12 @@ export function AgentWizardProvider({
         // Call updateModelConfig to trigger app_model_config_was_updated event
         // This is required for dataset_configs to be saved to AppDatasetJoin table
         // Also required for agent-chat mode to have agent_mode set properly
-        if (isAgentChatMode || state.datasetConfig || state.toolsConfig.tools.length > 0) {
+        if (isAgentChatMode || state.datasetConfig || state.toolsConfig.tools.length > 0 || state.promptSettings.output_format) {
           const modelConfigPayload: Record<string, unknown> = {
             pre_prompt: state.promptSettings.pre_prompt,
             opening_statement: state.promptSettings.opening_statement,
             suggested_questions: state.promptSettings.suggested_questions || [],
+            output_format: state.promptSettings.output_format || undefined,
             model: {
               provider: state.modelConfig.original_provider || state.modelConfig.provider,
               name: state.modelConfig.model,

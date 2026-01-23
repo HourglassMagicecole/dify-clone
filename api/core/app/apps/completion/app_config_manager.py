@@ -116,6 +116,10 @@ class CompletionAppConfigManager(BaseAppConfigManager):
         )
         related_config_keys.extend(current_related_config_keys)
 
+        # output_format (pass through without validation - MAI Studio feature)
+        if config.get("output_format"):
+            related_config_keys.append("output_format")
+
         related_config_keys = list(set(related_config_keys))
 
         # Filter out extra parameters

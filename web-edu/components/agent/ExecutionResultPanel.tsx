@@ -6,11 +6,19 @@ import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
+import DOMPurify from 'dompurify'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
+import { saveAs } from 'file-saver'
 import type { TokenUsage, ExecutionTime, AgentThought } from '@/types/agent'
 import type { MessageFile } from '@/types/chat'
 import { getMessageUsageCost } from '@/service/usage-analytics-api'
+
+/**
+ * Text format type for download
+ */
+export type TextFormatType = 'markdown' | 'plain_text' | 'html'
 
 /**
  * Execution result panel props
@@ -23,6 +31,8 @@ export interface ExecutionResultPanelProps {
   messageId?: string | null
   onRetry: () => void
   isRetrying?: boolean
+  textFormat?: TextFormatType
+  agentName?: string
 }
 
 /**
@@ -60,6 +70,8 @@ export function ExecutionResultPanel({
   messageId,
   onRetry,
   isRetrying = false,
+  textFormat = 'markdown',
+  agentName = 'Agent',
 }: ExecutionResultPanelProps) {
   const { t } = useTranslation('agent')
   const [isCopied, setIsCopied] = useState(false)
@@ -208,6 +220,303 @@ export function ExecutionResultPanel({
     }
   }
 
+  /**
+   * Download result as file
+   */
+  const handleDownload = () => {
+    if (!result)
+      return
+
+    // Determine file extension based on textFormat
+    const extConfig: Record<TextFormatType, string> = {
+      markdown: 'md',
+      plain_text: 'txt',
+      html: 'html',
+    }
+
+    const ext = extConfig[textFormat]
+
+    // Generate filename with agent name and timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const sanitizedAgentName = agentName.replace(/[^a-zA-Z0-9가-힣_-]/g, '_')
+    const filename = `${sanitizedAgentName}_${timestamp}.${ext}`
+
+    // Create blob with octet-stream to force download instead of browser preview
+    const blob = new Blob([result], { type: 'application/octet-stream' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    toast.success(t('execute.result.downloadSuccess', { defaultValue: '파일이 다운로드되었습니다' }))
+  }
+
+  /**
+   * Parse markdown text to DOCX paragraphs
+   */
+  const parseMarkdownToDocx = (text: string): Paragraph[] => {
+    const lines = text.split('\n')
+    const children: Paragraph[] = []
+
+    for (const line of lines) {
+      // Skip empty lines but add spacing
+      if (line.trim() === '') {
+        children.push(new Paragraph({ text: '' }))
+        continue
+      }
+
+      // Heading 1: # Title
+      if (line.startsWith('# ')) {
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [new TextRun({ text: line.slice(2), bold: true, size: 32 })],
+        }))
+        continue
+      }
+
+      // Heading 2: ## Title
+      if (line.startsWith('## ')) {
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: [new TextRun({ text: line.slice(3), bold: true, size: 28 })],
+        }))
+        continue
+      }
+
+      // Heading 3: ### Title
+      if (line.startsWith('### ')) {
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_3,
+          children: [new TextRun({ text: line.slice(4), bold: true, size: 26 })],
+        }))
+        continue
+      }
+
+      // Bullet list: - item or * item
+      if (line.match(/^[-*]\s+/)) {
+        children.push(new Paragraph({
+          bullet: { level: 0 },
+          children: [new TextRun({ text: line.replace(/^[-*]\s+/, ''), size: 24 })],
+        }))
+        continue
+      }
+
+      // Numbered list: 1. item
+      if (line.match(/^\d+\.\s+/)) {
+        children.push(new Paragraph({
+          numbering: { reference: 'default-numbering', level: 0 },
+          children: [new TextRun({ text: line.replace(/^\d+\.\s+/, ''), size: 24 })],
+        }))
+        continue
+      }
+
+      // Bold text: **text** or __text__
+      const boldRegex = /\*\*(.+?)\*\*|__(.+?)__/g
+      const textRuns: TextRun[] = []
+      let lastIndex = 0
+      let match
+
+      while ((match = boldRegex.exec(line)) !== null) {
+        // Add text before the match
+        if (match.index > lastIndex) {
+          textRuns.push(new TextRun({ text: line.slice(lastIndex, match.index), size: 24 }))
+        }
+        // Add bold text
+        textRuns.push(new TextRun({ text: match[1] || match[2], bold: true, size: 24 }))
+        lastIndex = match.index + match[0].length
+      }
+
+      // Add remaining text
+      if (lastIndex < line.length) {
+        textRuns.push(new TextRun({ text: line.slice(lastIndex), size: 24 }))
+      }
+
+      // If no special formatting, just add the line as is
+      if (textRuns.length === 0) {
+        textRuns.push(new TextRun({ text: line, size: 24 }))
+      }
+
+      children.push(new Paragraph({ children: textRuns }))
+    }
+
+    return children
+  }
+
+  /**
+   * Parse HTML to DOCX paragraphs
+   */
+  const parseHtmlToDocx = (html: string): Paragraph[] => {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    const children: Paragraph[] = []
+
+    const processNode = (node: Node): void => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim()
+        if (text) {
+          children.push(new Paragraph({
+            children: [new TextRun({ text, size: 24 })],
+          }))
+        }
+        return
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) return
+
+      const element = node as Element
+      const tagName = element.tagName.toLowerCase()
+
+      switch (tagName) {
+        case 'h1':
+          children.push(new Paragraph({
+            heading: HeadingLevel.HEADING_1,
+            children: [new TextRun({ text: element.textContent || '', bold: true, size: 32 })],
+          }))
+          break
+        case 'h2':
+          children.push(new Paragraph({
+            heading: HeadingLevel.HEADING_2,
+            children: [new TextRun({ text: element.textContent || '', bold: true, size: 28 })],
+          }))
+          break
+        case 'h3':
+        case 'h4':
+        case 'h5':
+        case 'h6':
+          children.push(new Paragraph({
+            heading: HeadingLevel.HEADING_3,
+            children: [new TextRun({ text: element.textContent || '', bold: true, size: 26 })],
+          }))
+          break
+        case 'p':
+          children.push(new Paragraph({
+            children: [new TextRun({ text: element.textContent || '', size: 24 })],
+          }))
+          break
+        case 'ul':
+          element.querySelectorAll(':scope > li').forEach((li) => {
+            children.push(new Paragraph({
+              bullet: { level: 0 },
+              children: [new TextRun({ text: li.textContent || '', size: 24 })],
+            }))
+          })
+          break
+        case 'ol':
+          element.querySelectorAll(':scope > li').forEach((li) => {
+            children.push(new Paragraph({
+              numbering: { reference: 'default-numbering', level: 0 },
+              children: [new TextRun({ text: li.textContent || '', size: 24 })],
+            }))
+          })
+          break
+        case 'strong':
+        case 'b':
+          children.push(new Paragraph({
+            children: [new TextRun({ text: element.textContent || '', bold: true, size: 24 })],
+          }))
+          break
+        case 'em':
+        case 'i':
+          children.push(new Paragraph({
+            children: [new TextRun({ text: element.textContent || '', italics: true, size: 24 })],
+          }))
+          break
+        case 'br':
+          children.push(new Paragraph({ text: '' }))
+          break
+        case 'div':
+        case 'section':
+        case 'article':
+        case 'body':
+          // Container elements - process children
+          element.childNodes.forEach(child => processNode(child))
+          break
+        default:
+          // For other elements, just extract text content
+          if (element.textContent?.trim()) {
+            children.push(new Paragraph({
+              children: [new TextRun({ text: element.textContent, size: 24 })],
+            }))
+          }
+      }
+    }
+
+    // Process body content
+    doc.body.childNodes.forEach(node => processNode(node))
+
+    return children
+  }
+
+  /**
+   * Parse plain text to DOCX paragraphs
+   */
+  const parsePlainTextToDocx = (text: string): Paragraph[] => {
+    return text.split('\n').map(line => new Paragraph({
+      children: [new TextRun({ text: line, size: 24 })],
+    }))
+  }
+
+  /**
+   * Download result as DOCX file
+   */
+  const handleDownloadDocx = async () => {
+    if (!result)
+      return
+
+    try {
+      // Parse content based on textFormat
+      let children: Paragraph[]
+      switch (textFormat) {
+        case 'html':
+          children = parseHtmlToDocx(result)
+          break
+        case 'plain_text':
+          children = parsePlainTextToDocx(result)
+          break
+        case 'markdown':
+        default:
+          children = parseMarkdownToDocx(result)
+          break
+      }
+
+      // Create document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children,
+        }],
+        numbering: {
+          config: [{
+            reference: 'default-numbering',
+            levels: [{
+              level: 0,
+              format: 'decimal',
+              text: '%1.',
+              alignment: 'start' as const,
+            }],
+          }],
+        },
+      })
+
+      // Generate and download
+      const blob = await Packer.toBlob(doc)
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+      const sanitizedAgentName = agentName.replace(/[^a-zA-Z0-9가-힣_-]/g, '_')
+      const filename = `${sanitizedAgentName}_${timestamp}.docx`
+
+      saveAs(blob, filename)
+      toast.success(t('execute.result.downloadDocxSuccess', { defaultValue: 'DOCX 파일이 다운로드되었습니다' }))
+    }
+    catch (error) {
+      console.error('Failed to generate DOCX:', error)
+      toast.error(t('execute.result.downloadDocxError', { defaultValue: 'DOCX 생성 실패' }))
+    }
+  }
+
   if (!result && !tokenUsage && !executionTime) {
     return (
       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -243,44 +552,98 @@ export function ExecutionResultPanel({
                 </button>
               )}
             </div>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center space-x-1"
-            >
-              {isCopied
-                ? (
-                    <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>{t('execute.result.copied', { defaultValue: '복사됨' })}</span>
-                    </>
-                  )
-                : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <span>{t('execute.result.copy', { defaultValue: '복사' })}</span>
-                    </>
-                  )}
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Copy Button */}
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center space-x-1"
+              >
+                {isCopied
+                  ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{t('execute.result.copied', { defaultValue: '복사됨' })}</span>
+                      </>
+                    )
+                  : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span>{t('execute.result.copy', { defaultValue: '복사' })}</span>
+                      </>
+                    )}
+              </button>
+
+              {/* Download Button */}
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center space-x-1"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                <span>{t('execute.result.download', { defaultValue: '다운로드' })}</span>
+              </button>
+
+              {/* DOCX Download Button */}
+              <button
+                type="button"
+                onClick={handleDownloadDocx}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 flex items-center space-x-1"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <span>DOCX</span>
+              </button>
+            </div>
           </div>
 
-          {/* Markdown result with XSS protection */}
+          {/* Result content with format-specific rendering */}
           <div className="prose prose-sm dark:prose-invert max-w-none bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700 max-h-[600px] overflow-y-auto">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeSanitize]} // XSS protection
-            >
-              {result}
-            </ReactMarkdown>
+            {textFormat === 'markdown' && (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeSanitize]}
+              >
+                {result}
+              </ReactMarkdown>
+            )}
+            {textFormat === 'plain_text' && (
+              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-900 dark:text-gray-100">
+                {result}
+              </pre>
+            )}
+            {textFormat === 'html' && (
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(result, {
+                    ADD_TAGS: ['style'],
+                    ADD_ATTR: ['class', 'style'],
+                  }),
+                }}
+              />
+            )}
           </div>
         </div>
       )}

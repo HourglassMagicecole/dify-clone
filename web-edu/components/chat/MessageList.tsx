@@ -51,6 +51,27 @@ export function MessageList({
     })
   }
 
+  // Download file with proper filename (handles cross-origin)
+  const handleFileDownload = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+    }
+    catch (error) {
+      console.error('Failed to download file:', error)
+      // Fallback: open in new tab
+      window.open(url, '_blank')
+    }
+  }
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -235,16 +256,15 @@ export function MessageList({
                           </video>
                         )}
                         {!isImage && !isAudio && !isVideo && (
-                          <a
-                            href={file.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 bg-white bg-opacity-90 rounded-lg p-2 shadow-sm hover:shadow-md transition-all"
+                          <button
+                            type="button"
+                            onClick={() => handleFileDownload(file.url, file.filename || 'download')}
+                            className="flex items-center gap-2 bg-white bg-opacity-90 rounded-lg p-2 shadow-sm hover:shadow-md transition-all cursor-pointer"
                           >
                             <span>📄</span>
                             <span className="text-gray-700 text-sm">{file.filename || 'Download file'}</span>
                             <span className="text-blue-500 ml-auto">↓</span>
-                          </a>
+                          </button>
                         )}
                       </div>
                     )
@@ -446,11 +466,10 @@ export function MessageList({
                                       </div>
                                     )}
                                     {!isImage && !isAudio && !isVideo && (
-                                      <a
-                                        href={file.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded transition-colors"
+                                      <button
+                                        type="button"
+                                        onClick={() => handleFileDownload(file.url, file.filename || 'download')}
+                                        className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded transition-colors cursor-pointer w-full text-left"
                                       >
                                         <span className="text-3xl">📄</span>
                                         <div className="flex-1">
@@ -464,7 +483,7 @@ export function MessageList({
                                           )}
                                         </div>
                                         <span className="text-blue-500 text-sm">↓</span>
-                                      </a>
+                                      </button>
                                     )}
                                   </div>
                                 )
