@@ -1,7 +1,7 @@
 // Authentication API Client
 // Integrates with existing Dify Console API endpoints
 
-import type { AccountProfile, SignInRequest, SignInResponse } from '@/types/auth'
+import type { AccountProfile, SSOLoginResponse, SignInRequest, SignInResponse } from '@/types/auth'
 
 // Use empty string to leverage Next.js rewrites (CORS bypass)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
@@ -93,6 +93,27 @@ export async function refreshAccessToken(refreshToken: string): Promise<SignInRe
     const error = await response.json()
     // 백엔드 응답 형식: {"result": "fail", "data": "에러 메시지"}
     throw new Error(error.data || error.message || 'Token refresh failed')
+  }
+
+  return response.json()
+}
+
+/**
+ * SSO 로그인 API 호출 (외부 LMS 연동)
+ * 백엔드가 request cookies에서 MOAI_LOGIN_EMAIL, MOAI_LOGIN_NAME을 직접 읽음
+ *
+ * @returns SSO login response with tokens
+ * @throws Error if SSO login fails
+ */
+export async function ssoLogin(): Promise<SSOLoginResponse> {
+  const response = await fetch(`${API_BASE_URL}/console/api/auth/sso-login`, {
+    method: 'GET',
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.data || error.message || 'SSO login failed')
   }
 
   return response.json()

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { useSession } from '@/context/SessionContext'
+import { useAuth } from '@/hooks/useAuth'
 import { agentAPI } from '@/service/agent-api'
 import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
@@ -24,6 +25,7 @@ export default function AgentChatPage() {
   const searchParams = useSearchParams()
   const agentId = params.id as string
   const { currentSession, isLoading: sessionLoading } = useSession()
+  const { user } = useAuth()
   const { t } = useTranslation('chat')
 
   // URL query parameter for conversation ID
@@ -734,7 +736,7 @@ export default function AgentChatPage() {
               <p className="text-sm text-gray-500">{agent.description}</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowAgentInfo(true)}
               className="px-3 py-1 border rounded hover:bg-gray-100 flex items-center gap-1"
@@ -750,6 +752,27 @@ export default function AgentChatPage() {
             >
               {t('exportButton')}
             </button>
+            {user && (
+              <div className="flex items-center gap-2 ml-2">
+                <div className="text-right text-sm max-w-[150px]" title={`${user.name}\n${user.email}`}>
+                  <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                  <p className="text-gray-500 truncate">{user.email}</p>
+                </div>
+                {user.avatar
+                  ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="h-8 w-8 rounded-full"
+                    />
+                    )
+                  : (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-sm font-medium text-white">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    )}
+              </div>
+            )}
           </div>
         </header>
 

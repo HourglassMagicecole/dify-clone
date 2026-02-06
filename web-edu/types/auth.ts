@@ -7,6 +7,15 @@ export interface SignInRequest {
   password: string
 }
 
+// SSO 로그인 응답 타입 (외부 LMS 연동)
+export interface SSOLoginResponse {
+  result: 'success' | 'fail'
+  data: {
+    access_token: string
+    refresh_token: string
+  }
+}
+
 // 로그인 응답 타입 (기존 Dify API 스펙)
 export interface SignInResponse {
   result: 'success' | 'fail'

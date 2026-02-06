@@ -126,7 +126,7 @@ prepare-api:
 	@awk -v key="$$(openssl rand -base64 42)" '/^SECRET_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env
 	@cd api && uv sync --dev
 	@# Sync API_KEY_ENCRYPTION_KEY: use docker/.env key if exists, otherwise generate new
-	@DOCKER_KEY=$$(grep "^API_KEY_ENCRYPTION_KEY=" docker/.env 2>/dev/null | cut -d'=' -f2); \
+	@DOCKER_KEY=$$(grep "^API_KEY_ENCRYPTION_KEY=" docker/.env 2>/dev/null | cut -d'=' -f2-); \
 	if [ -n "$$DOCKER_KEY" ]; then \
 		echo "🔑 Syncing API_KEY_ENCRYPTION_KEY from docker/.env..."; \
 		awk -v key="$$DOCKER_KEY" '/^API_KEY_ENCRYPTION_KEY=/ {sub(/=.*/, "=" key)} 1' api/.env > api/temp_env && mv api/temp_env api/.env; \

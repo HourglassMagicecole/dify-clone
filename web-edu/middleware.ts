@@ -8,7 +8,7 @@ import type { NextRequest } from 'next/server'
 const PROTECTED_PATHS = ['/dashboard', '/agents', '/datasets', '/admin']
 
 // 인증이 필요 없는 공개 경로
-const PUBLIC_PATHS = ['/signin', '/signup']
+const PUBLIC_PATHS = ['/signin', '/signup', '/callback']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
