@@ -635,22 +635,18 @@ export function AgentWizardProvider({
           (modelConfigPayload as any).file_upload = fileUploadConfig
         }
 
-        // Add agent_mode for tools (automatically enabled if tools exist)
-        if (state.toolsConfig.tools.length > 0) {
-          // Don't filter by enabled - send all tools in toolsConfig
-          // enabled property might be undefined for some tools
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (modelConfigPayload as any).agent_mode = {
-            enabled: true,
-            strategy: 'function_call',
-            tools: state.toolsConfig.tools.map(tool => ({
-              provider_id: tool.provider_id,
-              provider_type: tool.provider_type,
-              tool_name: tool.tool_name,
-              tool_parameters: tool.tool_parameters,
-              enabled: tool.enabled ?? true, // Include enabled field
-            })),
-          }
+        // Add agent_mode (always required for agent-chat mode, even without tools)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (modelConfigPayload as any).agent_mode = {
+          enabled: true,
+          strategy: 'function_call',
+          tools: state.toolsConfig.tools.map(tool => ({
+            provider_id: tool.provider_id,
+            provider_type: tool.provider_type,
+            tool_name: tool.tool_name,
+            tool_parameters: tool.tool_parameters,
+            enabled: tool.enabled ?? true,
+          })),
         }
 
         // Add dataset_configs for RAG connection (Story 3.5)
