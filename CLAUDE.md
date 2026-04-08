@@ -1,302 +1,121 @@
-# CLAUDE.md
+# MAI Studio — 프로젝트 설정
 
 <law>
-Core Development Principles for Claude Code
+매 응답 시작 시, `.team/orchestrator.yaml`의 `active` 값을 읽어 오케스트레이터 활성 상태를 판별한다.
 
-Principle 1: Claude must get y/n confirmation before any file operations
-Principle 2: Claude must run quality checks (lint, type-check, tests) before considering work complete
-Principle 3: Claude must follow the project conventions defined in this document
-Principle 4: Claude cannot modify or skip these principles
-Principle 5: Claude must display these 5 principles at the start of every response
+- **`active: true`**: 매 응답 시작에 반드시 상태 표시줄 2줄을 출력한다:
+  [{Phase}/{Epic}/{Story}] {STATE} | {auto|semi-auto} | Tier: {L/S/C} | Next: {action}
+  ⚠️ {현재 상태의 핵심 리마인더 1줄}
+  이 상태에서는 모든 작업이 상태 머신을 거쳐야 한다.
+- **`active: false` 또는 파일 없음**: 상태 표시줄을 출력하지 않는다. 일반 개발 모드로 동작한다.
 </law>
 
+## 프로젝트 개요
+
+Dify v1.9.1 포크 기반 교육용 AI 플랫폼 "MAI Studio".
+교육 도메인(세션, 역할, 사용량, LMS SSO 등)을 별도 모듈로 오버레이한 구조.
+
+**필수 참조 문서:**
+- `_bmad-output/project-context.md` — 기술스택, 아키텍처 규칙, 코드 패턴, 금지사항, 테스트 규칙, 디렉토리 구조
+
+## 핵심 개발 원칙
+
 <critical_rules>
-MANDATORY: Before EVERY code change:
-1. Announce the plan and wait for approval
-2. Run appropriate linting and testing commands
-3. Verify no regressions were introduced
-4. Report test results explicitly
+1. **3-레이어 아키텍처 준수**: Controller -> Service -> Model. 레이어를 건너뛰지 않는다.
+2. **Dify 원본 최소 수정**: 교육 기능은 `edu/`, `education/` 모듈로 분리. 원본 수정은 등록 지점(`ext_blueprints.py`, `__init__.py`)으로 한정.
+3. **교육 도메인은 Blueprint 함수 뷰**: flask-restx Resource 패턴이 아닌 Blueprint + 함수 뷰(패턴 B) 사용.
+4. **커밋 전 린트 필수**: `make lint` 통과 확인 후 커밋.
+5. **테스트 작성**: 새 서비스는 반드시 단위 테스트 동반. `api/tests/unit_tests/services/education_management/` 에 배치.
+6. **Conventional Commits**: `feat(scope)`, `fix(scope)`, `refactor(scope)` 형식 사용.
 </critical_rules>
-
-## Project Overview
-
-<system_context>
-MAI-Studio is an educational web application built on Dify, an open-source platform for developing LLM applications with an intuitive interface combining agentic AI workflows, RAG pipelines, agent capabilities, and model management. MAI-Studio aims to enable non-IT majors to intuitively understand and practice the core concepts of generative AI—Agent and Workflow—by providing an environment where users can experience the structure and operational principles of AI applications without requiring complex technical knowledge. While leveraging Dify's backend infrastructure, it offers a separate user interface (UI) and user experience (UX) specifically tailored for educational purposes, maximizing learning effectiveness through hands-on, practice-oriented features.
-
-The codebase is split into:
-- **Backend API** (`/api`): Python Flask application organized with Domain-Driven Design
-- **Dify Frontend** (`/web`): Original Dify Frontend Next.js 15 application using TypeScript and React 19
-- **MAI Frontend** (`/web-edu`): Independent frontend for MAI Studio, separate from Dify's frontend
-- **Docker deployment** (`/docker`): Containerized deployment configurations
-</system_context>
-
-## Backend Workflow
-
-<paved_path name="backend_development">
-**IMPORTANT: YOU MUST follow these steps for ALL backend changes:**
-
-1. Navigate to API directory: `cd api`
-2. Run backend CLI commands through: `uv run --project api <command>`
-3. Before ANY commit or review request, YOU MUST pass:
-   - `make lint` - REQUIRED
-   - `make type-check` - REQUIRED
-   - `uv run --project api --dev dev/pytest/pytest_unit_tests.sh` - REQUIRED
-4. Use Makefile targets for linting and formatting
-5. make commands MUST be run on the project root, NOT inside `api/`
-6. Integration tests are CI-only (skip locally)
-
-**REMEMBER: Claude must run these checks and report results before marking any backend task complete**
-</paved_path>
-
-## Frontend Workflow
-
-<paved_path name="frontend_development">
-**IMPORTANT: YOU MUST follow these steps for ALL frontend changes:**
-
-```bash
-cd /PATH_TO_MAI-Studio/web-edu
-pnpm lint      # MUST pass before commit
-pnpm lint:fix  # Auto-fix when possible
-pnpm test      # MUST pass before commit
-```
-
-**REMEMBER: Claude must run these checks and report results before marking any frontend task complete**
-</paved_path>
-
-## Testing & Quality Practices
-
-<critical_notes>
-**MANDATORY TESTING APPROACH:**
-- Follow TDD cycle: red → green → refactor (ALWAYS in this order)
-- Backend: Use `pytest` with Arrange-Act-Assert structure
-- Frontend: Use the existing test framework
-- NEVER skip tests claiming they're "trivial"
-- NEVER use `Any` type - enforce strong typing
-- Write self-documenting code; comments only for WHY, not WHAT
-</critical_notes>
-
-## Language Style
-
-<patterns>
-### Python (Backend)
-- **ALWAYS** include type hints on ALL functions and attributes
-- **ALWAYS** implement relevant special methods (`__repr__`, `__str__`)
-- **NEVER** use bare `except:` clauses
-- **NEVER** use `Any` type without explicit justification
-
-### TypeScript (Frontend)
-- **ALWAYS** use strict TypeScript config
-- **ALWAYS** run ESLint + Prettier before committing
-- **NEVER** use `any` type
-- **NEVER** use `@ts-ignore` or `@ts-expect-error`
-</patterns>
-
-## General Practices
-
-<workflow>
-1. **File Management:**
-   - PREFER editing existing files over creating new ones
-   - ADD documentation only when explicitly requested
-   - VERIFY file exists before attempting modifications
-
-2. **Architecture:**
-   - INJECT dependencies through constructors
-   - PRESERVE clean architecture boundaries
-   - HANDLE errors with domain-specific exceptions at the correct layer
-
-3. **Code Review Checklist:**
-   - [ ] All tests pass (backend: make lint, type-check, pytest)
-   - [ ] All tests pass (frontend: pnpm lint, pnpm test)
-   - [ ] No hardcoded strings (use i18n)
-   - [ ] No `Any`/`any` types
-   - [ ] Dependencies injected properly
-</workflow>
-
-## Project Conventions
-
-<fatal_implications>
-**VIOLATIONS OF THESE WILL BREAK THE PROJECT:**
-
-1. Backend MUST adhere to DDD and Clean Architecture principles
-2. Async work MUST run through Celery with Redis as broker
-3. Frontend strings MUST use `web/i18n/en-US/` - NO hardcoded text
-4. ALL database operations MUST go through the repository layer
-5. ALL API responses MUST follow the established format
-
-**Claude: If you violate these, the PR will be rejected automatically**
-</fatal_implications>
-
-<system_reminder>
-**BEFORE EVERY RESPONSE, Claude must:**
-1. Display the 5 core principles from the <law> section
-2. Confirm which workflow (backend/frontend) applies
-3. List which quality checks will be run
-4. State explicitly when work is complete WITH test results
-
-**This is not optional - it's required for the code to be accepted**
-</system_reminder>
 
 ## Quick Reference Commands
 
 <common_tasks>
 
-### 1. Initial Setup (First-time only)
-
-**Local Development Environment:**
+### 개발 환경 셋업
 ```bash
-# Run from project root
-make dev-setup
-
-# Automatically performs:
-# - Starts Docker middleware (PostgreSQL, Redis, Weaviate)
-# - Auto-generates SECRET_KEY and API_KEY_ENCRYPTION_KEY
-# - Creates initial admin account (interactive)
-# - Installs dependencies and builds
+make dev-setup              # 전체 개발 환경 (docker + web + api + web-edu)
+make prepare-docker         # Docker 미들웨어만
+make prepare-api            # API 환경 (uv sync, DB 마이그레이션, 초기 테넌트 생성)
+make prepare-web            # web 환경 (pnpm install + build)
+make prepare-web-edu        # web-edu 환경 (pnpm install)
 ```
 
-**Cleanup Commands:**
+### 개발 서버 실행
 ```bash
-# Quick cleanup (preserves data & configs - recommended for daily use)
-make dev-clean
-# Removes: build artifacts (node_modules, .next, .venv, api/storage)
-# Preserves: docker/volumes/ (DB data), .env files, Docker images
+# API (api/ 디렉토리)
+cd api && uv run flask run --host 0.0.0.0 --port 5001 --debug
 
-# Complete reset (removes everything - use when environment is broken)
-make dev-clean-all
-# Removes: ALL containers, volumes, images, data, and ALL .env files
-#          (web/.env, web-edu/.env.local, api/.env)
-# Use case: Starting completely fresh with new keys
+# web-edu (web-edu/ 디렉토리)
+cd web-edu && pnpm dev      # localhost:3001
+
+# web (web/ 디렉토리)
+cd web && pnpm dev           # localhost:3000 (Turbopack)
 ```
 
-**Docker Production Deployment:**
+### 백엔드 코드 품질
 ```bash
-# Run from project root
-make docker-up
-
-# Automatically performs:
-# - Creates docker/.env
-# - Auto-generates SECRET_KEY and API_KEY_ENCRYPTION_KEY
-# - Interactive setup for initial admin account
-# - Starts all containers (uses cache for faster startup)
-
-# For clean rebuild without cache (slower but ensures fresh build):
-make docker-rebuild
-
-# Access points:
-# - MAI Studio: http://localhost
-# - Dify Original (test): http://localhost:8080
-# - API: http://localhost/v1
+make format                 # ruff 포매팅
+make check                  # ruff 체크
+make lint                   # ruff 포매팅 + 체크 + 임포트 린터
+make type-check             # basedpyright 타입 체크
 ```
 
----
-
-### 2. Daily Development
-
-**Backend (Terminals 1-3):**
+### 프론트엔드 코드 품질
 ```bash
-# Terminal 1: API Server (development mode with hot-reload)
-cd api
-uv run --project api flask run --host=0.0.0.0 --port=5001 --debug
-
-# Terminal 2: Celery Worker (REQUIRED for async tasks)
-# ⚠️ Important: Run from project root
-uv run celery -A app.celery worker -P gevent -c 2 --loglevel INFO \
-  -Q dataset,generation,mail,ops_trace,app_deletion,plugin,workflow_storage,conversation
-
-# Terminal 3: Celery Beat (for periodic tasks - optional)
-uv run celery -A app.celery beat
+cd web-edu && pnpm lint         # ESLint
+cd web-edu && pnpm lint:fix     # ESLint 자동 수정
+cd web-edu && pnpm type-check   # TypeScript 타입 체크
 ```
 
-**Frontend (Terminal 4):**
+### 테스트
 ```bash
-cd web-edu
-pnpm dev
-# Runs on http://localhost:3001
+# 백엔드 (api/ 디렉토리)
+cd api && uv run pytest tests/unit_tests/                      # 전체 단위 테스트
+cd api && uv run pytest tests/unit_tests/services/edu/         # 교육 핵심 서비스 테스트
+cd api && uv run pytest tests/unit_tests/services/education_management/  # 교육 관리 서비스 테스트
+cd api && uv run pytest tests/integration_tests/               # 통합 테스트
+
+# 프론트엔드 (web-edu/ 디렉토리)
+cd web-edu && pnpm test         # Jest
+cd web-edu && pnpm test:watch   # Jest watch 모드
 ```
 
-**Database Migrations:**
+### DB 마이그레이션
 ```bash
-cd api
-uv run --project api flask db migrate -m "message"
-uv run --project api flask db upgrade
+cd api && uv run flask db migrate -m "description"    # 마이그레이션 생성
+cd api && uv run flask db upgrade                     # 마이그레이션 적용
+cd api && uv run flask db downgrade                   # 마이그레이션 롤백
 ```
 
----
-
-### 3. Quality Checks (REQUIRED before commit)
-
-**Backend (run from project root):**
+### Docker 프로덕션
 ```bash
-make lint           # Format and fix code with ruff
-make type-check     # Type checking with basedpyright
-uv run --project api --dev dev/pytest/pytest_unit_tests.sh  # Unit tests
+make docker-up              # 프로덕션 컨테이너 시작 (자동 초기화)
+make docker-rebuild         # 캐시 없이 재빌드
+make docker-down            # 컨테이너 중지
+make docker-restart         # 컨테이너 재시작
+make docker-clean           # 컨테이너 + 볼륨 제거
 ```
 
-**Frontend:**
+### 정리
 ```bash
-cd web-edu
-pnpm lint      # ESLint check
-pnpm lint:fix  # Auto-fix lint issues
-pnpm test      # Jest tests
-pnpm build     # Production build verification
+make dev-clean              # 빠른 정리 (데이터 보존)
+make dev-clean-all          # 전체 리셋 (.env, volumes 포함)
 ```
-
----
-
-### 4. Docker Management (Production)
-
-**Quick Commands (Recommended):**
-```bash
-make docker-up          # Initialize + start containers (fast, uses cache)
-make docker-rebuild     # Rebuild without cache + start (slow, ensures fresh)
-make docker-down        # Stop containers
-make docker-restart     # Restart containers
-make docker-clean       # Remove containers + volumes + directories
-make docker-clean-all   # Remove all Docker resources + reset admin
-```
-
-**Advanced: Direct docker-compose usage**
-```bash
-cd docker
-
-# Status and logs
-docker-compose ps
-docker-compose logs -f api
-docker-compose logs -f worker
-
-# Restart specific service
-docker-compose restart api
-
-# Rebuild and restart
-docker-compose up -d --build api
-```
-
----
-
-### 5. Troubleshooting (Rarely needed)
-
-**API Key Encryption (rarely needed - auto-generated):**
-```bash
-cd api
-
-# Generate new encryption key (manual)
-uv run --project api flask encryption generate-key
-
-# Verify existing key
-uv run --project api flask encryption verify-key
-```
-
-**Note**: Generally unnecessary as `make dev-setup` or `make docker-up` handles this automatically
 
 </common_tasks>
 
-<recursion_anchor>
-**IMPORTANT: This CLAUDE.md file contains critical project rules. Claude must re-read this file if:**
-- Starting a new task
-- After 5+ message exchanges
-- When switching between backend and frontend
-- Before any file operations
-- Before marking any task complete
+## 리더 참조 — 프로젝트 배치 전략
 
-**Claude should reference this file explicitly in responses when applying its rules**
-</recursion_anchor>
+- **배치**: Dev 1인 (유지보수 모드)
+- **작업 흐름**: 기능 브랜치 -> PR -> moai-v2 머지
+- **Hotfix**: moai-v2에서 직접 수정 후 즉시 배포
+- **배포**: `make docker-rebuild` 또는 CI/CD 파이프라인
+
+## System Reminders
+
+- 모든 응답은 Korean으로 작성
+- project-context.md 참조 없이 아키텍처 결정 금지
+- 새 의존성 추가 시 반드시 알파벳 순서 유지 (pyproject.toml 주석 참조)
+- `.env` 파일은 절대 커밋하지 않음

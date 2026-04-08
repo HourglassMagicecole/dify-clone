@@ -1,0 +1,11 @@
+active: true
+mode: semi-auto
+output_dir: _bmad-output
+skill_preset: optimal-v2
+skill_overrides: {}
+coverage_min: 80
+tea_score_min: 90
+cr_max_rounds: 3
+phases:
+  phase0: false
+  phase1: true

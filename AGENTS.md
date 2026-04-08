@@ -1,54 +1,37 @@
-# AGENTS.md
+# MAI Studio — Agent Configuration
 
-## Project Overview
+## 필수 참조
 
-Dify is an open-source platform for developing LLM applications with an intuitive interface combining agentic AI workflows, RAG pipelines, agent capabilities, and model management.
+모든 서브에이전트는 작업 시작 전 아래 문서를 읽어야 합니다:
+- `_bmad-output/project-context.md` — 기술스택, 아키텍처 규칙, 코드 패턴, 테스트 규칙, 디렉토리 구조
 
-The codebase is split into:
+## 품질 기준
 
-- **Backend API** (`/api`): Python Flask application organized with Domain-Driven Design
-- **Frontend Web** (`/web`): Next.js 15 application using TypeScript and React 19
-- **Docker deployment** (`/docker`): Containerized deployment configurations
+- **작업 중**: 변경한 파일에 대해 린트 실행 + 관련 테스트만 실행
+  - 백엔드: `make lint` + `cd api && uv run pytest tests/unit_tests/services/교육_관련_경로/`
+  - 프론트엔드: `cd web-edu && pnpm lint` + `cd web-edu && pnpm type-check`
+- **커밋 전**: CLAUDE.md `<critical_rules>` 항목 전체 확인
 
-## Backend Workflow
+## 코드 작성 규칙
 
-- Run backend CLI commands through `uv run --project api <command>`.
+- project-context.md의 금지 패턴을 위반하지 않는다:
+  - 컨트롤러에서 직접 DB 접근 금지
+  - 서비스에서 Flask request/response 직접 참조 금지
+  - 교육 도메인에서 flask-restx Resource 패턴 사용 금지
+  - Dify 원본 파일 직접 수정 최소화
+- 기존 코드의 네이밍 컨벤션과 패턴을 따른다:
+  - Python: snake_case 파일/함수, PascalCase 클래스
+  - TypeScript: kebab-case 파일, PascalCase 컴포넌트/타입
+  - DB 테이블: snake_case 복수형
+  - API URL: kebab-case
+- 새 기능 추가 시 project-context.md Section 6.2의 파일 생성 위치 가이드를 따른다
 
-- Backend QA gate requires passing `make lint`, `make type-check`, and `uv run --project api --dev dev/pytest/pytest_unit_tests.sh` before review.
+## 이슈 보고
 
-- Use Makefile targets for linting and formatting; `make lint` and `make type-check` cover the required checks.
+작업 중 아래 상황이 발생하면 즉시 사용자에게 보고한다:
 
-- Integration tests are CI-only and are not expected to run in the local environment.
-
-## Frontend Workflow
-
-```bash
-cd web
-pnpm lint
-pnpm lint:fix
-pnpm test
-```
-
-## Testing & Quality Practices
-
-- Follow TDD: red → green → refactor.
-- Use `pytest` for backend tests with Arrange-Act-Assert structure.
-- Enforce strong typing; avoid `Any` and prefer explicit type annotations.
-- Write self-documenting code; only add comments that explain intent.
-
-## Language Style
-
-- **Python**: Keep type hints on functions and attributes, and implement relevant special methods (e.g., `__repr__`, `__str__`).
-- **TypeScript**: Use the strict config, lean on ESLint + Prettier workflows, and avoid `any` types.
-
-## General Practices
-
-- Prefer editing existing files; add new documentation only when requested.
-- Inject dependencies through constructors and preserve clean architecture boundaries.
-- Handle errors with domain-specific exceptions at the correct layer.
-
-## Project Conventions
-
-- Backend architecture adheres to DDD and Clean Architecture principles.
-- Async work runs through Celery with Redis as the broker.
-- Frontend user-facing strings must use `web/i18n/en-US/`; avoid hardcoded text.
+- **아키텍처 위반 발견**: 기존 코드에서 3-레이어 위반, 레이어 건너뛰기 등 발견 시
+- **테스트 실패**: 기존 테스트가 실패하거나, 변경으로 인해 다른 테스트가 깨질 경우
+- **보안 우려**: 하드코딩된 시크릿, 인증 우회 가능성, SQL 인젝션 위험 등 발견 시
+- **Dify 원본 수정 필요**: 교육 모듈 외 Dify 원본 코드 수정이 불가피한 경우
+- **기술 부채 발견**: project-context.md Section 7에 없는 새로운 기술 부채 발견 시
