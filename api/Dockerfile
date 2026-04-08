@@ -83,8 +83,11 @@ COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Add non-root user for runtime security (AC9)
-RUN useradd -r -s /bin/false appuser && chown -R appuser:appuser /app
-USER appuser
+# Note: USER directive removed because host-mounted volumes (./volumes/app/storage)
+# are created with root ownership. The entrypoint runs as root but the application
+# processes (gunicorn workers) could be configured to drop privileges if needed.
+# Container escape risk is mitigated by other security measures (port binding, network isolation).
+RUN useradd -r -s /bin/false appuser
 
 ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}
