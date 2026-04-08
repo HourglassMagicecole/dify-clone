@@ -73,8 +73,6 @@ def bulk_create_users_task(self, csv_content: str, session_id: str | None, creat
     users = list(reader)
 
     logger.info("Parsed CSV. Total users: %d", len(users))
-    if users:
-        logger.info("First user sample: %s", users[0])
 
     total = len(users)
     created = 0

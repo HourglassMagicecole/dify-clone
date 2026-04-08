@@ -8,7 +8,8 @@ from typing import Optional
 from sqlalchemy import select
 
 from extensions.ext_database import db
-from models.education import SessionResourceTag
+from models.account import TenantAccountJoin, TenantAccountRole
+from models.education import EducationSessionMember, SessionResourceTag
 from services.edu.exceptions import ResourceAlreadyTaggedError, ResourceTagNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,92 @@ logger = logging.getLogger(__name__)
 
 class ResourceTaggingService:
     """Service for managing resource tags in education sessions."""
+
+    def check_session_membership(self, session_id: str, account_id: str) -> bool:
+        """
+        Check if the account is an active member of the given session.
+
+        Args:
+            session_id: Education session ID (UUID)
+            account_id: User account ID (UUID)
+
+        Returns:
+            bool: True if the account is an active member, False otherwise
+        """
+        stmt = select(EducationSessionMember).where(
+            EducationSessionMember.session_id == session_id,
+            EducationSessionMember.account_id == account_id,
+            EducationSessionMember.status == "active",
+        )
+        membership = db.session.scalar(stmt)
+        return membership is not None
+
+    def check_delete_permission(self, tag_id: str, account_id: str) -> tuple[SessionResourceTag | None, bool]:
+        """
+        Check if the account has permission to delete the given tag.
+
+        Returns a tuple of (tag, has_permission).
+        - tag is None if tag_id not found.
+        - has_permission is True if the account is the tag creator or has admin/owner role.
+
+        Args:
+            tag_id: Tag ID (UUID)
+            account_id: User account ID (UUID)
+
+        Returns:
+            tuple[SessionResourceTag | None, bool]: (tag, has_permission)
+        """
+        stmt = select(SessionResourceTag).where(SessionResourceTag.id == tag_id)
+        tag = db.session.scalar(stmt)
+
+        if not tag:
+            return None, False
+
+        # Check if the account is the tag creator
+        is_tag_creator = str(tag.account_id) == str(account_id)
+        if is_tag_creator:
+            return tag, True
+
+        # Check if the account has admin/owner role
+        tenant_join = (
+            db.session.query(TenantAccountJoin).filter_by(account_id=account_id, current=True).first()
+        )
+        if not tenant_join:
+            tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id).first()
+
+        if tenant_join:
+            try:
+                role = TenantAccountRole(tenant_join.role)
+                if TenantAccountRole.is_privileged_role(role):
+                    return tag, True
+            except ValueError:
+                pass
+
+        return tag, False
+
+    def is_privileged_user(self, account_id: str) -> bool:
+        """
+        Check if the account has admin or owner role.
+
+        Args:
+            account_id: User account ID (UUID)
+
+        Returns:
+            bool: True if the account has admin/owner role
+        """
+        tenant_join = (
+            db.session.query(TenantAccountJoin).filter_by(account_id=account_id, current=True).first()
+        )
+        if not tenant_join:
+            tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id).first()
+
+        if tenant_join:
+            try:
+                role = TenantAccountRole(tenant_join.role)
+                return TenantAccountRole.is_privileged_role(role)
+            except ValueError:
+                pass
+        return False
 
     def add_tag(
         self,

@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC
 
 from flask import Blueprint, request
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from controllers.console.wraps import account_initialization_required, setup_required
 from services.edu.exceptions import ResourceAlreadyTaggedError, ResourceTagNotFoundError
@@ -40,27 +40,32 @@ def create_tag():
     if not data:
         return {"result": "error", "message": "Request body is required"}, 400
 
-    # Validate required fields
-    required_fields = ["session_id", "resource_type", "resource_id", "account_id"]
+    # Validate required fields (account_id is no longer accepted from request body)
+    required_fields = ["session_id", "resource_type", "resource_id"]
     for field in required_fields:
         if field not in data:
             return {"result": "error", "message": f"{field} is required"}, 400
 
     # Validate UUID format
-    uuid_fields = ["session_id", "resource_id", "account_id"]
+    uuid_fields = ["session_id", "resource_id"]
     for field in uuid_fields:
         try:
             uuid.UUID(data[field])
         except (ValueError, AttributeError):
             return {"result": "error", "message": f"Invalid UUID format for {field}"}, 400
 
+    # 세션 멤버십 검증: 요청자가 해당 세션의 멤버인지 확인
+    service = ResourceTaggingService()
+    if not service.check_session_membership(data["session_id"], str(current_user.id)):
+        return {"result": "error", "message": "You are not a member of this session"}, 403
+
     try:
-        service = ResourceTaggingService()
+        # account_id는 요청 본문이 아닌 current_user에서 가져옴 (IDOR 방어)
         tag = service.add_tag(
             session_id=data["session_id"],
             resource_type=data["resource_type"],
             resource_id=data["resource_id"],
-            account_id=data["account_id"],
+            account_id=str(current_user.id),
         )
 
         logger.info("Tag created via API: tag_id=%s, resource_type=%s", tag.id, tag.resource_type)
@@ -106,7 +111,16 @@ def delete_tag(tag_id: str):
         return {"result": "error", "message": "Invalid UUID format for tag_id"}, 400
 
     try:
+        # 태그 조회 및 권한 검증 (서비스 레이어에서 처리)
         service = ResourceTaggingService()
+        tag, has_permission = service.check_delete_permission(tag_id, str(current_user.id))
+
+        if not tag:
+            return {"result": "error", "message": f"Tag not found: {tag_id}"}, 404
+
+        if not has_permission:
+            return {"result": "error", "message": "Only the tag creator or admin can delete this tag"}, 403
+
         service.remove_tag(tag_id)
 
         logger.info("Tag deleted via API: tag_id=%s", tag_id)
@@ -193,7 +207,14 @@ def get_resources_by_tag(session_id: str, resource_type: str):
         except (ValueError, AttributeError):
             return {"result": "error", "message": "Invalid UUID format for session_id"}, 400
 
-        account_id = request.args.get("account_id")
+        service = ResourceTaggingService()
+
+        # admin이면 쿼리 파라미터 허용, 아닌 경우 current_user.id 강제
+        is_admin = service.is_privileged_user(str(current_user.id))
+        if is_admin:
+            account_id = request.args.get("account_id", str(current_user.id))
+        else:
+            account_id = str(current_user.id)
 
         # Validate account_id UUID format if provided
         if account_id:
@@ -201,8 +222,6 @@ def get_resources_by_tag(session_id: str, resource_type: str):
                 uuid.UUID(account_id)
             except (ValueError, AttributeError):
                 return {"result": "error", "message": "Invalid UUID format for account_id"}, 400
-
-        service = ResourceTaggingService()
         resource_ids = service.get_resources_by_tag(
             session_id=session_id,
             resource_type=resource_type,

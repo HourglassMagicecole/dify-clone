@@ -3,6 +3,15 @@ import type { NextConfig } from 'next'
 // Use API_HOST from environment, fallback to localhost for local development
 const API_HOST = process.env.API_HOST || 'localhost:5001'
 
+// Parse API_HOST to extract hostname for image remote patterns
+const apiHostname = new URL(`http://${API_HOST}`).hostname
+
+// Additional allowed image hosts (comma-separated) from environment
+const extraHosts = (process.env.ALLOWED_IMAGE_HOSTS || '')
+  .split(',')
+  .map(h => h.trim())
+  .filter(Boolean)
+
 const nextConfig: NextConfig = {
   /* config options here */
 
@@ -13,17 +22,21 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker builds
   output: 'standalone',
 
-  // Image configuration for external sources
+  // Image configuration — only allow known hosts (SSRF prevention)
   images: {
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: '*',
+        hostname: apiHostname,
       },
       {
         protocol: 'https',
-        hostname: '*',
+        hostname: apiHostname,
       },
+      ...extraHosts.flatMap(host => [
+        { protocol: 'http' as const, hostname: host },
+        { protocol: 'https' as const, hostname: host },
+      ]),
     ],
   },
 

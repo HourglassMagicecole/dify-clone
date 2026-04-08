@@ -89,12 +89,15 @@ class PassportResource(Resource):
             db.session.add(end_user)
             db.session.commit()
 
+        exp_dt = datetime.now(UTC) + timedelta(minutes=dify_config.ACCESS_TOKEN_EXPIRE_MINUTES)
+        exp = int(exp_dt.timestamp())
         payload = {
             "iss": site.app_id,
             "sub": "Web API Passport",
             "app_id": site.app_id,
             "app_code": app_code,
             "end_user_id": end_user.id,
+            "exp": exp,
         }
 
         tk = PassportService().issue(payload)
@@ -209,12 +212,15 @@ def _exchange_for_public_app_token(app_model, site, token_decoded):
         db.session.add(end_user)
         db.session.commit()
 
+    exp_dt = datetime.now(UTC) + timedelta(minutes=dify_config.ACCESS_TOKEN_EXPIRE_MINUTES)
+    exp = int(exp_dt.timestamp())
     payload = {
         "iss": site.app_id,
         "sub": "Web API Passport",
         "app_id": site.app_id,
         "app_code": site.code,
         "end_user_id": end_user.id,
+        "exp": exp,
     }
 
     tk = PassportService().issue(payload)

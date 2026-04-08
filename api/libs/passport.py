@@ -9,6 +9,8 @@ class PassportService:
         self.sk = dify_config.SECRET_KEY
 
     def issue(self, payload):
+        if "exp" not in payload:
+            raise ValueError("exp claim is required")
         return jwt.encode(payload, self.sk, algorithm="HS256")
 
     def verify(self, token):

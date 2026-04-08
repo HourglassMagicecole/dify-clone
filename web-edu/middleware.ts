@@ -1,52 +1,42 @@
 // Next.js Middleware for Route Protection
-// Validates JWT tokens from cookies on server-side (TECH-001 risk mitigation)
+// Validates JWT tokens from cookies using HS256 signature verification (jose)
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { jwtVerify } from 'jose'
 
-// 보호된 경로 목록
-const PROTECTED_PATHS = ['/dashboard', '/agents', '/datasets', '/admin']
+// Whitelist: only these paths are accessible without authentication
+const PUBLIC_PATHS = ['/signin', '/signup', '/callback', '/403']
 
-// 인증이 필요 없는 공개 경로
-const PUBLIC_PATHS = ['/signin', '/signup', '/callback']
+// SECRET_KEY for HS256 JWT verification (same key as backend api PassportService)
+const SECRET_KEY = new TextEncoder().encode(process.env.SECRET_KEY || '')
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 공개 경로는 통과
+  // Public paths — allow without authentication
   if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
     return NextResponse.next()
   }
 
-  // 보호된 경로 접근 시 토큰 검증
-  if (PROTECTED_PATHS.some(path => pathname.startsWith(path))) {
-    // 쿠키에서 토큰 읽기 (서버 사이드에서 접근 가능)
-    const token = request.cookies.get('edu_access_token')?.value
+  // All other paths require JWT verification
+  const token = request.cookies.get('edu_access_token')?.value
 
-    if (!token) {
-      // 토큰 없으면 로그인 페이지로 리다이렉트
-      const signInUrl = new URL('/signin', request.url)
-      signInUrl.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(signInUrl)
-    }
+  if (!token) {
+    const signInUrl = new URL('/signin', request.url)
+    signInUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(signInUrl)
+  }
 
-    // 토큰 만료 검증 (간단한 검증)
-    try {
-      const parts = token.split('.')
-      if (parts.length !== 3 || !parts[1]) {
-        return NextResponse.redirect(new URL('/signin', request.url))
-      }
-
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
-      if (payload.exp * 1000 < Date.now()) {
-        // 토큰 만료 시 로그인 페이지로 리다이렉트
-        return NextResponse.redirect(new URL('/signin', request.url))
-      }
-    }
-    catch {
-      // 토큰 파싱 실패 시 로그인 페이지로 리다이렉트
-      return NextResponse.redirect(new URL('/signin', request.url))
-    }
+  // Verify JWT signature using jose (HS256, Edge Runtime compatible)
+  try {
+    await jwtVerify(token, SECRET_KEY, { algorithms: ['HS256'] })
+  }
+  catch {
+    // Invalid signature, expired, or malformed token — redirect to sign in
+    const signInUrl = new URL('/signin', request.url)
+    signInUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(signInUrl)
   }
 
   return NextResponse.next()

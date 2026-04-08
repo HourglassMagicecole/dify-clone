@@ -38,6 +38,14 @@ else
     BACKUP_ADMIN_EMAIL=$(grep "^INITIAL_ADMIN_EMAIL=" docker/.env | cut -d'=' -f2-)
     BACKUP_ADMIN_PASSWORD=$(grep "^INITIAL_ADMIN_PASSWORD=" docker/.env | cut -d'=' -f2-)
     BACKUP_ADMIN_NAME=$(grep "^INITIAL_ADMIN_NAME=" docker/.env | cut -d'=' -f2-)
+    BACKUP_DB_PASSWORD=$(grep "^DB_PASSWORD=" docker/.env | cut -d'=' -f2-)
+    BACKUP_REDIS_PASSWORD=$(grep "^REDIS_PASSWORD=" docker/.env | cut -d'=' -f2-)
+    BACKUP_SANDBOX_API_KEY=$(grep "^SANDBOX_API_KEY=" docker/.env | cut -d'=' -f2-)
+    BACKUP_CODE_EXECUTION_API_KEY=$(grep "^CODE_EXECUTION_API_KEY=" docker/.env | cut -d'=' -f2-)
+    BACKUP_PLUGIN_DAEMON_KEY=$(grep "^PLUGIN_DAEMON_KEY=" docker/.env | cut -d'=' -f2-)
+    BACKUP_PLUGIN_DIFY_INNER_API_KEY=$(grep "^PLUGIN_DIFY_INNER_API_KEY=" docker/.env | cut -d'=' -f2-)
+    BACKUP_ELASTICSEARCH_PASSWORD=$(grep "^ELASTICSEARCH_PASSWORD=" docker/.env | cut -d'=' -f2-)
+    BACKUP_CELERY_BROKER_URL=$(grep "^CELERY_BROKER_URL=" docker/.env | cut -d'=' -f2-)
 
     # .env.example으로 덮어쓰기
     cp docker/.env.example docker/.env
@@ -71,7 +79,35 @@ else
         fi
     fi
 
-    echo -e "${GREEN}✅ docker/.env 동기화 완료 (SECRET_KEY, API_KEY_ENCRYPTION_KEY, INITIAL_ADMIN_* 보존)${NC}\n"
+    # 백업한 보안 키 값들 복원
+    for KEY_PAIR in \
+        "DB_PASSWORD:${BACKUP_DB_PASSWORD}" \
+        "REDIS_PASSWORD:${BACKUP_REDIS_PASSWORD}" \
+        "SANDBOX_API_KEY:${BACKUP_SANDBOX_API_KEY}" \
+        "CODE_EXECUTION_API_KEY:${BACKUP_CODE_EXECUTION_API_KEY}" \
+        "PLUGIN_DAEMON_KEY:${BACKUP_PLUGIN_DAEMON_KEY}" \
+        "PLUGIN_DIFY_INNER_API_KEY:${BACKUP_PLUGIN_DIFY_INNER_API_KEY}" \
+        "ELASTICSEARCH_PASSWORD:${BACKUP_ELASTICSEARCH_PASSWORD}"; do
+        KEY_NAME="${KEY_PAIR%%:*}"
+        KEY_VALUE="${KEY_PAIR#*:}"
+        if [ -n "$KEY_VALUE" ]; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i '' "s|^${KEY_NAME}=.*|${KEY_NAME}=${KEY_VALUE}|" docker/.env
+            else
+                sed -i "s|^${KEY_NAME}=.*|${KEY_NAME}=${KEY_VALUE}|" docker/.env
+            fi
+        fi
+    done
+
+    if [ -n "$BACKUP_CELERY_BROKER_URL" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^CELERY_BROKER_URL=.*|CELERY_BROKER_URL=${BACKUP_CELERY_BROKER_URL}|" docker/.env
+        else
+            sed -i "s|^CELERY_BROKER_URL=.*|CELERY_BROKER_URL=${BACKUP_CELERY_BROKER_URL}|" docker/.env
+        fi
+    fi
+
+    echo -e "${GREEN}✅ docker/.env 동기화 완료 (SECRET_KEY, API_KEY_ENCRYPTION_KEY, INITIAL_ADMIN_*, 보안 키 보존)${NC}\n"
 fi
 
 # 3. SECRET_KEY 확인 및 생성
@@ -89,7 +125,150 @@ else
     echo -e "${GREEN}✅ SECRET_KEY가 이미 설정되어 있습니다${NC}\n"
 fi
 
-# 4. API_KEY_ENCRYPTION_KEY 확인 (api/.env와 동기화)
+# 4. DB_PASSWORD 확인 및 생성
+EXISTING_DB_PASSWORD=$(grep "^DB_PASSWORD=" docker/.env | cut -d'=' -f2-)
+if [ -z "$EXISTING_DB_PASSWORD" ]; then
+    echo -e "${YELLOW}🔑 DB_PASSWORD 생성 중...${NC}"
+    NEW_DB_PASSWORD=$(openssl rand -hex 32)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|^DB_PASSWORD=.*|DB_PASSWORD=${NEW_DB_PASSWORD}|" docker/.env
+    else
+        sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${NEW_DB_PASSWORD}|" docker/.env
+    fi
+    # middleware.env도 동기화
+    if [ -f "docker/middleware.env" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${NEW_DB_PASSWORD}|" docker/middleware.env
+        else
+            sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${NEW_DB_PASSWORD}|" docker/middleware.env
+        fi
+    fi
+    echo -e "${GREEN}✅ DB_PASSWORD 생성 완료${NC}\n"
+else
+    echo -e "${GREEN}✅ DB_PASSWORD가 이미 설정되어 있습니다${NC}\n"
+fi
+
+# 4-1-2. ELASTICSEARCH_PASSWORD 확인 및 생성
+EXISTING_ES_PASSWORD=$(grep "^ELASTICSEARCH_PASSWORD=" docker/.env | cut -d'=' -f2-)
+if [ -z "$EXISTING_ES_PASSWORD" ]; then
+    echo -e "${YELLOW}🔑 ELASTICSEARCH_PASSWORD 생성 중...${NC}"
+    NEW_ES_PASSWORD=$(openssl rand -hex 32)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|^ELASTICSEARCH_PASSWORD=.*|ELASTICSEARCH_PASSWORD=${NEW_ES_PASSWORD}|" docker/.env
+    else
+        sed -i "s|^ELASTICSEARCH_PASSWORD=.*|ELASTICSEARCH_PASSWORD=${NEW_ES_PASSWORD}|" docker/.env
+    fi
+    # middleware.env도 동기화
+    if [ -f "docker/middleware.env" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^ELASTICSEARCH_PASSWORD=.*|ELASTICSEARCH_PASSWORD=${NEW_ES_PASSWORD}|" docker/middleware.env
+        else
+            sed -i "s|^ELASTICSEARCH_PASSWORD=.*|ELASTICSEARCH_PASSWORD=${NEW_ES_PASSWORD}|" docker/middleware.env
+        fi
+    fi
+    echo -e "${GREEN}✅ ELASTICSEARCH_PASSWORD 생성 완료${NC}\n"
+else
+    echo -e "${GREEN}✅ ELASTICSEARCH_PASSWORD가 이미 설정되어 있습니다${NC}\n"
+fi
+
+# 4-2. REDIS_PASSWORD 확인 및 생성
+EXISTING_REDIS_PASSWORD=$(grep "^REDIS_PASSWORD=" docker/.env | cut -d'=' -f2-)
+if [ -z "$EXISTING_REDIS_PASSWORD" ]; then
+    echo -e "${YELLOW}🔑 REDIS_PASSWORD 생성 중...${NC}"
+    NEW_REDIS_PASSWORD=$(openssl rand -hex 32)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${NEW_REDIS_PASSWORD}|" docker/.env
+        # CELERY_BROKER_URL의 비밀번호도 업데이트
+        sed -i '' "s|^CELERY_BROKER_URL=redis://:[^@]*@|CELERY_BROKER_URL=redis://:${NEW_REDIS_PASSWORD}@|" docker/.env
+    else
+        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${NEW_REDIS_PASSWORD}|" docker/.env
+        sed -i "s|^CELERY_BROKER_URL=redis://:[^@]*@|CELERY_BROKER_URL=redis://:${NEW_REDIS_PASSWORD}@|" docker/.env
+    fi
+    # middleware.env도 동기화
+    if [ -f "docker/middleware.env" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${NEW_REDIS_PASSWORD}|" docker/middleware.env
+        else
+            sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${NEW_REDIS_PASSWORD}|" docker/middleware.env
+        fi
+    fi
+    echo -e "${GREEN}✅ REDIS_PASSWORD 생성 완료${NC}\n"
+else
+    echo -e "${GREEN}✅ REDIS_PASSWORD가 이미 설정되어 있습니다${NC}\n"
+fi
+
+# 4-3. SANDBOX_API_KEY 확인 및 생성
+EXISTING_SANDBOX_KEY=$(grep "^SANDBOX_API_KEY=" docker/.env | cut -d'=' -f2-)
+if [ -z "$EXISTING_SANDBOX_KEY" ]; then
+    echo -e "${YELLOW}🔑 SANDBOX_API_KEY 생성 중...${NC}"
+    NEW_SANDBOX_KEY=$(openssl rand -base64 42)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|^SANDBOX_API_KEY=.*|SANDBOX_API_KEY=${NEW_SANDBOX_KEY}|" docker/.env
+        sed -i '' "s|^CODE_EXECUTION_API_KEY=.*|CODE_EXECUTION_API_KEY=${NEW_SANDBOX_KEY}|" docker/.env
+    else
+        sed -i "s|^SANDBOX_API_KEY=.*|SANDBOX_API_KEY=${NEW_SANDBOX_KEY}|" docker/.env
+        sed -i "s|^CODE_EXECUTION_API_KEY=.*|CODE_EXECUTION_API_KEY=${NEW_SANDBOX_KEY}|" docker/.env
+    fi
+    # middleware.env도 동기화
+    if [ -f "docker/middleware.env" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^SANDBOX_API_KEY=.*|SANDBOX_API_KEY=${NEW_SANDBOX_KEY}|" docker/middleware.env
+        else
+            sed -i "s|^SANDBOX_API_KEY=.*|SANDBOX_API_KEY=${NEW_SANDBOX_KEY}|" docker/middleware.env
+        fi
+    fi
+    echo -e "${GREEN}✅ SANDBOX_API_KEY 생성 완료 (CODE_EXECUTION_API_KEY와 동기화됨)${NC}\n"
+else
+    echo -e "${GREEN}✅ SANDBOX_API_KEY가 이미 설정되어 있습니다${NC}\n"
+fi
+
+# 4-4. PLUGIN_DAEMON_KEY 확인 및 생성
+EXISTING_PLUGIN_KEY=$(grep "^PLUGIN_DAEMON_KEY=" docker/.env | cut -d'=' -f2-)
+if [ -z "$EXISTING_PLUGIN_KEY" ]; then
+    echo -e "${YELLOW}🔑 PLUGIN_DAEMON_KEY 생성 중...${NC}"
+    NEW_PLUGIN_KEY=$(openssl rand -base64 42)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|^PLUGIN_DAEMON_KEY=.*|PLUGIN_DAEMON_KEY=${NEW_PLUGIN_KEY}|" docker/.env
+    else
+        sed -i "s|^PLUGIN_DAEMON_KEY=.*|PLUGIN_DAEMON_KEY=${NEW_PLUGIN_KEY}|" docker/.env
+    fi
+    # middleware.env도 동기화
+    if [ -f "docker/middleware.env" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^PLUGIN_DAEMON_KEY=.*|PLUGIN_DAEMON_KEY=${NEW_PLUGIN_KEY}|" docker/middleware.env
+        else
+            sed -i "s|^PLUGIN_DAEMON_KEY=.*|PLUGIN_DAEMON_KEY=${NEW_PLUGIN_KEY}|" docker/middleware.env
+        fi
+    fi
+    echo -e "${GREEN}✅ PLUGIN_DAEMON_KEY 생성 완료${NC}\n"
+else
+    echo -e "${GREEN}✅ PLUGIN_DAEMON_KEY가 이미 설정되어 있습니다${NC}\n"
+fi
+
+# 4-5. PLUGIN_DIFY_INNER_API_KEY 확인 및 생성
+EXISTING_INNER_KEY=$(grep "^PLUGIN_DIFY_INNER_API_KEY=" docker/.env | cut -d'=' -f2-)
+if [ -z "$EXISTING_INNER_KEY" ]; then
+    echo -e "${YELLOW}🔑 PLUGIN_DIFY_INNER_API_KEY 생성 중...${NC}"
+    NEW_INNER_KEY=$(openssl rand -base64 42)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|^PLUGIN_DIFY_INNER_API_KEY=.*|PLUGIN_DIFY_INNER_API_KEY=${NEW_INNER_KEY}|" docker/.env
+    else
+        sed -i "s|^PLUGIN_DIFY_INNER_API_KEY=.*|PLUGIN_DIFY_INNER_API_KEY=${NEW_INNER_KEY}|" docker/.env
+    fi
+    # middleware.env도 동기화
+    if [ -f "docker/middleware.env" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^PLUGIN_DIFY_INNER_API_KEY=.*|PLUGIN_DIFY_INNER_API_KEY=${NEW_INNER_KEY}|" docker/middleware.env
+        else
+            sed -i "s|^PLUGIN_DIFY_INNER_API_KEY=.*|PLUGIN_DIFY_INNER_API_KEY=${NEW_INNER_KEY}|" docker/middleware.env
+        fi
+    fi
+    echo -e "${GREEN}✅ PLUGIN_DIFY_INNER_API_KEY 생성 완료${NC}\n"
+else
+    echo -e "${GREEN}✅ PLUGIN_DIFY_INNER_API_KEY가 이미 설정되어 있습니다${NC}\n"
+fi
+
+# 5. API_KEY_ENCRYPTION_KEY 확인 (api/.env와 동기화)
 EXISTING_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" docker/.env | cut -d'=' -f2- || echo "")
 API_ENV_KEY=$(grep "^API_KEY_ENCRYPTION_KEY=" api/.env 2>/dev/null | cut -d'=' -f2- || echo "")
 

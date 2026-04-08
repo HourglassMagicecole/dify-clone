@@ -25,10 +25,21 @@ class TestPassportService:
             mock_config.SECRET_KEY = "another-secret-key-for-testing"
             return PassportService()
 
+    @pytest.fixture
+    def future_exp(self):
+        """Return a future expiration timestamp"""
+        return int((datetime.now(UTC) + timedelta(hours=1)).timestamp())
+
     # Core functionality tests
-    def test_should_issue_and_verify_token(self, passport_service):
-        """Test complete JWT lifecycle: issue and verify"""
+    def test_should_reject_issue_without_exp(self, passport_service):
+        """Test that issuing a token without exp claim raises ValueError"""
         payload = {"user_id": "123", "app_code": "test-app"}
+        with pytest.raises(ValueError, match="exp claim is required"):
+            passport_service.issue(payload)
+
+    def test_should_issue_and_verify_token(self, passport_service, future_exp):
+        """Test complete JWT lifecycle: issue and verify"""
+        payload = {"user_id": "123", "app_code": "test-app", "exp": future_exp}
         token = passport_service.issue(payload)
 
         # Verify token format
@@ -39,7 +50,7 @@ class TestPassportService:
         decoded = passport_service.verify(token)
         assert decoded == payload
 
-    def test_should_handle_different_payload_types(self, passport_service):
+    def test_should_handle_different_payload_types(self, passport_service, future_exp):
         """Test issuing and verifying tokens with different payload types"""
         test_cases = [
             {"string": "value"},
@@ -51,18 +62,18 @@ class TestPassportService:
             {"nested": {"key": "value"}},
             {"unicode": "中文测试"},
             {"emoji": "🔐"},
-            {},  # Empty payload
         ]
 
         for payload in test_cases:
+            payload["exp"] = future_exp
             token = passport_service.issue(payload)
             decoded = passport_service.verify(token)
             assert decoded == payload
 
     # Security tests
-    def test_should_reject_modified_token(self, passport_service):
+    def test_should_reject_modified_token(self, passport_service, future_exp):
         """Test that any modification to token invalidates it"""
-        token = passport_service.issue({"user": "test"})
+        token = passport_service.issue({"user": "test", "exp": future_exp})
 
         # Test multiple modification points
         test_positions = [0, len(token) // 3, len(token) // 2, len(token) - 1]
@@ -74,18 +85,20 @@ class TestPassportService:
                 with pytest.raises(Unauthorized):
                     passport_service.verify(tampered)
 
-    def test_should_reject_token_with_different_secret_key(self, passport_service, another_passport_service):
+    def test_should_reject_token_with_different_secret_key(
+        self, passport_service, another_passport_service, future_exp
+    ):
         """Test key isolation - token from one service should not work with another"""
-        payload = {"user_id": "123", "app_code": "test-app"}
+        payload = {"user_id": "123", "app_code": "test-app", "exp": future_exp}
         token = passport_service.issue(payload)
 
         with pytest.raises(Unauthorized) as exc_info:
             another_passport_service.verify(token)
         assert str(exc_info.value) == "401 Unauthorized: Invalid token signature."
 
-    def test_should_use_hs256_algorithm(self, passport_service):
+    def test_should_use_hs256_algorithm(self, passport_service, future_exp):
         """Test that HS256 algorithm is used for signing"""
-        payload = {"test": "data"}
+        payload = {"test": "data", "exp": future_exp}
         token = passport_service.issue(payload)
 
         # Decode header without relying on JWT internals
@@ -143,42 +156,42 @@ class TestPassportService:
         assert str(exc_info.value) == "401 Unauthorized: Token has expired."
 
     # Configuration tests
-    def test_should_handle_empty_secret_key(self):
+    def test_should_handle_empty_secret_key(self, future_exp):
         """Test behavior when SECRET_KEY is empty"""
         with patch("libs.passport.dify_config") as mock_config:
             mock_config.SECRET_KEY = ""
             service = PassportService()
 
             # Empty secret key should still work but is insecure
-            payload = {"test": "data"}
+            payload = {"test": "data", "exp": future_exp}
             token = service.issue(payload)
             decoded = service.verify(token)
             assert decoded == payload
 
-    def test_should_handle_none_secret_key(self):
+    def test_should_handle_none_secret_key(self, future_exp):
         """Test behavior when SECRET_KEY is None"""
         with patch("libs.passport.dify_config") as mock_config:
             mock_config.SECRET_KEY = None
             service = PassportService()
 
-            payload = {"test": "data"}
+            payload = {"test": "data", "exp": future_exp}
             # JWT library will raise TypeError when secret is None
             with pytest.raises((TypeError, jwt.exceptions.InvalidKeyError)):
                 service.issue(payload)
 
     # Boundary condition tests
-    def test_should_handle_large_payload(self, passport_service):
+    def test_should_handle_large_payload(self, passport_service, future_exp):
         """Test handling of large payload"""
         # Test with 100KB instead of 1MB for faster tests
         large_data = "x" * (100 * 1024)
-        payload = {"data": large_data}
+        payload = {"data": large_data, "exp": future_exp}
 
         token = passport_service.issue(payload)
         decoded = passport_service.verify(token)
 
         assert decoded["data"] == large_data
 
-    def test_should_handle_special_characters_in_payload(self, passport_service):
+    def test_should_handle_special_characters_in_payload(self, passport_service, future_exp):
         """Test handling of special characters in payload"""
         special_payloads = [
             {"special": "!@#$%^&*()"},
@@ -190,6 +203,7 @@ class TestPassportService:
         ]
 
         for payload in special_payloads:
+            payload["exp"] = future_exp
             token = passport_service.issue(payload)
             decoded = passport_service.verify(token)
             assert decoded == payload

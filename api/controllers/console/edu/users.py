@@ -10,6 +10,7 @@ from controllers.console.edu.auth_decorators import (
     admin_required,
     jwt_required,
 )
+from extensions.ext_database import db
 from extensions.ext_rate_limit import rate_limit
 from services.education_management.user_management_service import UserManagementService
 
@@ -156,12 +157,22 @@ def get_user(user_id: str):
     """
     특정 사용자 조회.
 
+    자기 자신의 정보이거나 admin/owner 역할인 경우에만 조회 가능.
+
     Path Parameters:
         user_id (str): 사용자 ID
 
     Returns:
         JSON: 사용자 정보
     """
+    # IDOR 방어: 자기 자신이 아니면 admin/owner 권한 필요
+    if str(request.user.id) != str(user_id):
+        from services.edu.resource_tagging_service import ResourceTaggingService
+
+        tagging_service = ResourceTaggingService()
+        if not tagging_service.is_privileged_user(str(request.user.id)):
+            return jsonify({"result": "error", "message": "Forbidden: admin permission required"}), 403
+
     service = UserManagementService()
     user = service.get_user(user_id)
 
@@ -339,6 +350,7 @@ def bulk_create_users():
 
 @bp.route("/bulk/<task_id>", methods=["GET"])
 @jwt_required
+@admin_required
 def get_bulk_create_status(task_id: str):
     """
     일괄 생성 작업 상태 조회.
