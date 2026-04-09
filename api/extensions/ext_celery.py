@@ -185,6 +185,9 @@ def init_app(app: DifyApp) -> Celery:
             "schedule": crontab(minute="0", hour="3"),
         }
 
+    # Auto-generate dataset description after indexing
+    imports.append("tasks.generate_dataset_description_task")
+
     # Empty conversation cleanup task - runs every 10 minutes
     imports.append("tasks.cleanup_empty_conversations_task")
     beat_schedule["cleanup_empty_conversations"] = {

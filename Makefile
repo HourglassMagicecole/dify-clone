@@ -62,6 +62,29 @@ docker-rebuild: init-docker-env
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
 	@echo "   - Access MAI: http://localhost"
 
+# Rebuild specific services and restart nginx (for development)
+# Usage: make deploy-api, make deploy-web, make deploy-all
+deploy-api:
+	@echo "🔨 Rebuilding API + Worker..."
+	@cd docker && docker-compose up -d --build --no-deps api worker
+	@echo "🔄 Restarting nginx..."
+	@cd docker && docker-compose restart nginx
+	@echo "✅ API + Worker deployed"
+
+deploy-web:
+	@echo "🔨 Rebuilding web-edu..."
+	@cd docker && docker-compose up -d --build --no-deps web-edu
+	@echo "🔄 Restarting nginx..."
+	@cd docker && docker-compose restart nginx
+	@echo "✅ web-edu deployed"
+
+deploy-all:
+	@echo "🔨 Rebuilding API + Worker + web-edu..."
+	@cd docker && docker-compose up -d --build --no-deps api worker web-edu
+	@echo "🔄 Restarting nginx..."
+	@cd docker && docker-compose restart nginx
+	@echo "✅ All services deployed"
+
 # Stop Docker production environment
 docker-down:
 	@echo "🛑 Stopping Docker containers..."
@@ -283,6 +306,9 @@ help:
 	@echo "Docker Production Setup:"
 	@echo "  make init-docker-env - Initialize Docker production environment (generate keys & admin account)"
 	@echo "  make docker-up       - Start Docker containers (auto-initialize if needed)"
+	@echo "  make deploy-api      - Rebuild API + Worker + restart nginx"
+	@echo "  make deploy-web      - Rebuild web-edu + restart nginx"
+	@echo "  make deploy-all      - Rebuild all services + restart nginx"
 	@echo "  make docker-build    - Build images with cache and start (fast, auto-cleanup)"
 	@echo "  make docker-rebuild  - Rebuild images without cache and start (slower, ensures fresh build, auto-cleanup)"
 	@echo "  make docker-down     - Stop Docker containers"
@@ -305,4 +331,4 @@ help:
 	@echo "  make build-push-all - Build and push all Docker images"
 
 # Phony targets
-.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-build docker-rebuild docker-down docker-restart docker-clean docker-clean-all docker-prune dev-clean dev-clean-all help format check lint type-check
+.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-build docker-rebuild docker-down docker-restart docker-clean docker-clean-all docker-prune deploy-api deploy-web deploy-all dev-clean dev-clean-all help format check lint type-check

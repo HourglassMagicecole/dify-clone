@@ -26,6 +26,7 @@ import type { Dataset } from '@/types/dataset'
 export interface SelectedDataset {
   id: string
   name: string
+  description?: string
   retrieval_model_dict?: {
     search_method: 'semantic_search' | 'full_text_search' | 'hybrid_search'
     reranking_enable: boolean
@@ -94,6 +95,17 @@ export function DatasetSelector({
     loadDatasets()
   }, [loadDatasets])
 
+  // When datasets are loaded, emit full info for already-selected datasets (edit mode)
+  useEffect(() => {
+    if (datasets.length > 0 && selectedDatasetIds.length > 0) {
+      const info = getSelectedDatasetsInfo(selectedDatasetIds)
+      if (info.length > 0) {
+        onSelectionChange(selectedDatasetIds, info)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datasets])
+
   // Filtered datasets based on search query
   const filteredDatasets = datasets.filter(dataset => {
     if (!searchQuery.trim()) return true
@@ -112,6 +124,7 @@ export function DatasetSelector({
         return dataset ? {
           id: dataset.id,
           name: dataset.name,
+          description: dataset.description || undefined,
           retrieval_model_dict: dataset.retrieval_model_dict,
         } as SelectedDataset : null
       })

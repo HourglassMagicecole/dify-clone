@@ -143,6 +143,7 @@ export default function Step4ToolsConfig() {
       return acc
     }, {} as Record<string, string>) ?? {}
   )
+  const [selectedDatasetDescriptions, setSelectedDatasetDescriptions] = useState<Record<string, string>>({})
   const [retrievalSettings, setRetrievalSettings] = useState<DatasetRetrievalConfig>(
     datasetConfig ? {
       search_method: DEFAULT_RETRIEVAL_SETTINGS.search_method,
@@ -518,20 +519,22 @@ export default function Step4ToolsConfig() {
       })
     }
 
-    // RAG section
-    if (ragEnabled && selectedDatasetIds.length > 0) {
-      const datasetNames = selectedDatasetIds
-        .map(id => selectedDatasetNames[id] || id.substring(0, 8))
-        .join(', ')
-
+    // RAG section — filter out deleted datasets (no name)
+    const activeDatasetIds = selectedDatasetIds.filter(id => selectedDatasetNames[id])
+    if (ragEnabled && activeDatasetIds.length > 0) {
       if (preview) preview += '\n'
       preview += '## 지식 베이스 활용 지침\n'
-      preview += '사용자의 질문이 지식 베이스 주제와 관련될 때 검색하세요.\n'
-      preview += `- 연결된 지식 베이스: ${datasetNames}\n`
-      preview += '- 관련 질문일 경우 지식 베이스를 먼저 검색하고, 결과가 없거나 부족하면 다른 도구를 사용하세요\n'
-      preview += '- 검색 결과가 있으면 그 내용을 바탕으로 답변하세요\n'
-      preview += '- 일반 대화(인사, 이전 대화 내용 질문 등)에는 지식 베이스 검색이 필요 없습니다\n'
-      preview += '- 지식 베이스의 정보와 일반 지식이 충돌하면 지식 베이스 정보를 우선시하세요\n'
+      preview += '- 연결된 지식 베이스:\n'
+      activeDatasetIds.forEach(id => {
+        const name = selectedDatasetNames[id]
+        const desc = selectedDatasetDescriptions[id]
+        preview += desc ? `  - ${name}: ${desc}\n` : `  - ${name}\n`
+      })
+      preview += '- 사용자의 질문이 위 지식 베이스의 주제와 관련되면 먼저 검색하세요\n'
+      preview += '- 검색 결과가 질문과 관련 있으면 그 내용을 바탕으로 답변하세요\n'
+      preview += '- 검색 결과가 질문과 관련 없으면 검색 결과를 무시하세요\n'
+      preview += '- 지식 베이스에 해당 정보가 없으면 솔직하게 안내하세요\n'
+      preview += '- 일반 대화나 다른 도구로 처리할 수 있는 요청에는 검색하지 마세요\n'
     }
 
     return preview
@@ -584,18 +587,21 @@ export default function Step4ToolsConfig() {
       }
 
       // Add RAG section if datasets are selected (Story 3.5)
-      if (ragEnabled && selectedDatasetIds.length > 0) {
-        const datasetNames = selectedDatasetIds
-          .map(id => selectedDatasetNames[id] || id.substring(0, 8))
-          .join(', ')
-
+      // RAG section — filter out deleted datasets (no name)
+      const activeIds = selectedDatasetIds.filter(id => selectedDatasetNames[id])
+      if (ragEnabled && activeIds.length > 0) {
         updatedPrompt += '\n\n## 지식 베이스 활용 지침\n'
-        updatedPrompt += '사용자의 질문이 지식 베이스 주제와 관련될 때 검색하세요.\n'
-        updatedPrompt += `- 연결된 지식 베이스: ${datasetNames}\n`
-        updatedPrompt += '- 관련 질문일 경우 지식 베이스를 먼저 검색하고, 결과가 없거나 부족하면 다른 도구를 사용하세요\n'
-        updatedPrompt += '- 검색 결과가 있으면 그 내용을 바탕으로 답변하세요\n'
-        updatedPrompt += '- 일반 대화(인사, 이전 대화 내용 질문 등)에는 지식 베이스 검색이 필요 없습니다\n'
-        updatedPrompt += '- 지식 베이스의 정보와 일반 지식이 충돌하면 지식 베이스 정보를 우선시하세요\n'
+        updatedPrompt += '- 연결된 지식 베이스:\n'
+        activeIds.forEach(id => {
+          const name = selectedDatasetNames[id]
+          const desc = selectedDatasetDescriptions[id]
+          updatedPrompt += desc ? `  - ${name}: ${desc}\n` : `  - ${name}\n`
+        })
+        updatedPrompt += '- 사용자의 질문이 위 지식 베이스의 주제와 관련되면 먼저 검색하세요\n'
+        updatedPrompt += '- 검색 결과가 질문과 관련 있으면 그 내용을 바탕으로 답변하세요\n'
+        updatedPrompt += '- 검색 결과가 질문과 관련 없으면 검색 결과를 무시하세요\n'
+        updatedPrompt += '- 지식 베이스에 해당 정보가 없으면 솔직하게 안내하세요\n'
+        updatedPrompt += '- 일반 대화나 다른 도구로 처리할 수 있는 요청에는 검색하지 마세요\n'
       }
 
       // Only update if prompt changed
@@ -765,6 +771,12 @@ export default function Step4ToolsConfig() {
                 setSelectedDatasetNames(
                   datasets.reduce((acc, d) => {
                     acc[d.id] = d.name
+                    return acc
+                  }, {} as Record<string, string>)
+                )
+                setSelectedDatasetDescriptions(
+                  datasets.reduce((acc, d) => {
+                    if (d.description) acc[d.id] = d.description
                     return acc
                   }, {} as Record<string, string>)
                 )

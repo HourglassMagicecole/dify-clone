@@ -419,12 +419,12 @@ Your output must strictly follow the schema format, do not output any content ou
 """  # noqa: E501
 
 DATASET_DESCRIPTION_GENERATE_PROMPT = (
-    "Based on the following document excerpts from a knowledge base, generate a concise description "
-    "(1-2 sentences) of what topics and content this knowledge base contains. "
-    "The description should help an AI agent decide whether to search this knowledge base "
-    "for a given user question.\n\n"
-    "Excerpts:\n{chunks}\n\n"
-    "Description:"
+    "아래는 지식 베이스에 포함된 문서의 일부입니다. "
+    "이 지식 베이스에 어떤 주제와 내용이 포함되어 있는지 1~2문장으로 간결하게 요약하세요. "
+    "AI 에이전트가 사용자 질문에 대해 이 지식 베이스를 검색할지 판단하는 데 도움이 되도록 작성하세요. "
+    "반드시 한국어로 작성하세요.\n\n"
+    "문서 발췌:\n{chunks}\n\n"
+    "설명:"
 )
 
 INSTRUCTION_GENERATE_TEMPLATE_PROMPT = """The output of this prompt is not as expected: {{#last_run#}}.

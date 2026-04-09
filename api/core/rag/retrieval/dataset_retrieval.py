@@ -298,7 +298,9 @@ class DatasetRetrieval:
         for dataset in available_datasets:
             description = dataset.description
             if not description:
-                description = "useful for when you want to answer queries about the " + dataset.name
+                description = dataset.name + "에 관한 질문에 답변할 때 사용하세요."
+            else:
+                description = dataset.name + " 지식 베이스를 검색합니다. " + description
 
             description = description.replace("\n", "").replace("\r", "")
             message_tool = PromptMessageTool(

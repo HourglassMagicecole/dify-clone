@@ -27,7 +27,7 @@ default_retrieval_model: dict[str, Any] = {
 
 
 class DatasetRetrieverToolInput(BaseModel):
-    query: str = Field(..., description="Query for the dataset to be used to retrieve the dataset.")
+    query: str = Field(..., description="사용자의 질문을 그대로 전달하세요.")
 
 
 class DatasetRetrieverTool(DatasetRetrieverBaseTool):
@@ -45,7 +45,10 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
     def from_dataset(cls, dataset: Dataset, **kwargs):
         description = dataset.description
         if not description:
-            description = "useful for when you want to answer queries about the " + dataset.name
+            description = dataset.name + "에 관한 질문에 답변할 때 사용하세요."
+        else:
+            # Make description action-oriented for better tool calling
+            description = dataset.name + " 지식 베이스를 검색합니다. " + description
 
         description = description.replace("\n", "").replace("\r", "")
         return cls(

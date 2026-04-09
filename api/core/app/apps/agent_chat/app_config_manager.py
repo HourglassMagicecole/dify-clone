@@ -77,9 +77,7 @@ class AgentChatAppConfigManager(BaseAppConfigManager):
             opening_context = f'[The conversation already started with your greeting: "{opening_statement}". Do NOT repeat this greeting in your responses.]\n\n'
             prompt_template.simple_prompt_template = opening_context + prompt_template.simple_prompt_template
         elif opening_statement and not prompt_template.simple_prompt_template:
-            prompt_template.simple_prompt_template = (
-                f'[The conversation already started with your greeting: "{opening_statement}". Do NOT repeat this greeting in your responses.]'
-            )
+            prompt_template.simple_prompt_template = f'[The conversation already started with your greeting: "{opening_statement}". Do NOT repeat this greeting in your responses.]'
 
         app_config = AgentChatAppConfig(
             tenant_id=app_model.tenant_id,
