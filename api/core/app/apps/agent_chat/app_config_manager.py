@@ -74,11 +74,11 @@ class AgentChatAppConfigManager(BaseAppConfigManager):
         # If opening_statement exists, prepend it to the prompt as context
         # This helps LLM understand the conversation started with this greeting
         if opening_statement and prompt_template.simple_prompt_template:
-            opening_context = f'[대화 시작 시 당신은 다음과 같이 인사했습니다: "{opening_statement}"]\n\n'
+            opening_context = f'[The conversation already started with your greeting: "{opening_statement}". Do NOT repeat this greeting in your responses.]\n\n'
             prompt_template.simple_prompt_template = opening_context + prompt_template.simple_prompt_template
         elif opening_statement and not prompt_template.simple_prompt_template:
             prompt_template.simple_prompt_template = (
-                f'[대화 시작 시 당신은 다음과 같이 인사했습니다: "{opening_statement}"]'
+                f'[The conversation already started with your greeting: "{opening_statement}". Do NOT repeat this greeting in your responses.]'
             )
 
         app_config = AgentChatAppConfig(

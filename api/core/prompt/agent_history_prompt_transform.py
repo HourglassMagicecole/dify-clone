@@ -54,19 +54,22 @@ class AgentHistoryPromptTransform(PromptTransform):
 
         # number of prompt has been appended in current message
         num_prompt = 0
-        # append prompt messages in desc order
+        num_turns_kept = 0
+        # append prompt messages in desc order (most recent first)
         for prompt_message in self.history_messages[::-1]:
             if isinstance(prompt_message, SystemPromptMessage):
                 continue
             prompt_messages.append(prompt_message)
             num_prompt += 1
-            # a message is start with UserPromptMessage
+            # a message is start with UserPromptMessage (= one complete turn)
             if isinstance(prompt_message, UserPromptMessage):
+                num_turns_kept += 1
                 curr_message_tokens = model_type_instance.get_num_tokens(
                     self.memory.model_instance.model, self.memory.model_instance.credentials, prompt_messages
                 )
-                # if current message token is overflow, drop all the prompts in current message and break
-                if curr_message_tokens > max_token_limit:
+                # if current message token is overflow, drop this turn and break
+                # BUT always keep at least the most recent turn for conversation continuity
+                if curr_message_tokens > max_token_limit and num_turns_kept > 1:
                     prompt_messages = prompt_messages[:-num_prompt]
                     break
                 num_prompt = 0

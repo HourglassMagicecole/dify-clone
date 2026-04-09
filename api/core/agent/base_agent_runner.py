@@ -502,6 +502,9 @@ class BaseAgentRunner(AppRunner):
                         # Only add message if thought is not empty
                         if agent_thought.thought:
                             result.append(AssistantPromptMessage(content=agent_thought.thought))
+                # Always include the final answer so LLM sees its previous responses
+                if message.answer:
+                    result.append(AssistantPromptMessage(content=message.answer))
             else:
                 if message.answer:
                     result.append(AssistantPromptMessage(content=message.answer))
