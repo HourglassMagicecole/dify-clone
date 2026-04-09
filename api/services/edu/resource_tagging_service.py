@@ -64,9 +64,7 @@ class ResourceTaggingService:
             return tag, True
 
         # Check if the account has admin/owner role
-        tenant_join = (
-            db.session.query(TenantAccountJoin).filter_by(account_id=account_id, current=True).first()
-        )
+        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id, current=True).first()
         if not tenant_join:
             tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id).first()
 
@@ -90,9 +88,7 @@ class ResourceTaggingService:
         Returns:
             bool: True if the account has admin/owner role
         """
-        tenant_join = (
-            db.session.query(TenantAccountJoin).filter_by(account_id=account_id, current=True).first()
-        )
+        tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id, current=True).first()
         if not tenant_join:
             tenant_join = db.session.query(TenantAccountJoin).filter_by(account_id=account_id).first()
 

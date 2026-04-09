@@ -111,8 +111,7 @@ class TestGetUserIDOR:
         mock_tenant_join = MagicMock()
         mock_tenant_join.role = "normal"
 
-        with _patch_jwt_required(student), \
-                patch("controllers.console.edu.users.db") as mock_db:
+        with _patch_jwt_required(student), patch("controllers.console.edu.users.db") as mock_db:
             # First query returns tenant_join with normal role
             mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
 
@@ -133,9 +132,11 @@ class TestGetUserIDOR:
             "email": "other@example.com",
         }
 
-        with _patch_jwt_required(admin), \
-                patch("controllers.console.edu.users.db") as mock_db, \
-                patch("controllers.console.edu.users.UserManagementService") as mock_service_cls:
+        with (
+            _patch_jwt_required(admin),
+            patch("controllers.console.edu.users.db") as mock_db,
+            patch("controllers.console.edu.users.UserManagementService") as mock_service_cls,
+        ):
             mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
             mock_service_cls.return_value.get_user.return_value = mock_user_data
 
@@ -155,8 +156,10 @@ class TestGetUserIDOR:
             "email": "self@example.com",
         }
 
-        with _patch_jwt_required(user), \
-                patch("controllers.console.edu.users.UserManagementService") as mock_service_cls:
+        with (
+            _patch_jwt_required(user),
+            patch("controllers.console.edu.users.UserManagementService") as mock_service_cls,
+        ):
             mock_service_cls.return_value.get_user.return_value = mock_user_data
 
             with app.test_client() as client:
@@ -187,9 +190,11 @@ class TestBulkTaskAuthorization:
             mock_tenant_join.role = "normal"
             mock_tenant_join.tenant_id = "tenant-1"
 
-            with app.test_request_context(), \
-                    patch("controllers.console.edu.auth_decorators.db") as mock_db, \
-                    patch("controllers.console.edu.auth_decorators.request") as mock_req:
+            with (
+                app.test_request_context(),
+                patch("controllers.console.edu.auth_decorators.db") as mock_db,
+                patch("controllers.console.edu.auth_decorators.request") as mock_req,
+            ):
                 mock_req.user = student
                 mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
 
@@ -214,9 +219,11 @@ class TestBulkTaskAuthorization:
 
         from controllers.console.edu.auth_decorators import admin_required
 
-        with app.test_request_context(), \
-                patch("controllers.console.edu.auth_decorators.db") as mock_db, \
-                patch("controllers.console.edu.auth_decorators.request") as mock_req:
+        with (
+            app.test_request_context(),
+            patch("controllers.console.edu.auth_decorators.db") as mock_db,
+            patch("controllers.console.edu.auth_decorators.request") as mock_req,
+        ):
             mock_req.user = admin
             mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
 

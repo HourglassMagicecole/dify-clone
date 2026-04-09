@@ -10,7 +10,6 @@ from controllers.console.edu.auth_decorators import (
     admin_required,
     jwt_required,
 )
-from extensions.ext_database import db
 from extensions.ext_rate_limit import rate_limit
 from services.education_management.user_management_service import UserManagementService
 

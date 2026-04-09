@@ -27,7 +27,6 @@ from core.prompt.simple_prompt_transform import ModelMode
 from core.rag.datasource.retrieval_service import RetrievalService
 from core.rag.entities.metadata_entities import Condition, MetadataCondition
 from core.rag.retrieval.dataset_retrieval import DatasetRetrieval
-from core.rag.retrieval.retrieval_methods import RetrievalMethod
 from core.variables import (
     StringSegment,
 )

@@ -23,10 +23,13 @@ def app():
     app.config["SECRET_KEY"] = "test-secret"
 
     # Patch setup_required and account_initialization_required to be no-ops
-    with patch("controllers.console.edu.resource_tags.setup_required", lambda f: f), \
-            patch("controllers.console.edu.resource_tags.account_initialization_required", lambda f: f), \
-            patch("controllers.console.edu.resource_tags.login_required", lambda f: f):
+    with (
+        patch("controllers.console.edu.resource_tags.setup_required", lambda f: f),
+        patch("controllers.console.edu.resource_tags.account_initialization_required", lambda f: f),
+        patch("controllers.console.edu.resource_tags.login_required", lambda f: f),
+    ):
         from controllers.console.edu.resource_tags import bp
+
         app.register_blueprint(bp)
 
     return app
@@ -61,9 +64,11 @@ class TestCreateTagIDOR:
         mock_tag.tagged_at = None
 
         with app.test_request_context():
-            with patch("controllers.console.edu.resource_tags.current_user", mock_current_user), \
-                    patch("controllers.console.edu.resource_tags.db") as mock_db, \
-                    patch("controllers.console.edu.resource_tags.ResourceTaggingService") as mock_service_cls:
+            with (
+                patch("controllers.console.edu.resource_tags.current_user", mock_current_user),
+                patch("controllers.console.edu.resource_tags.db") as mock_db,
+                patch("controllers.console.edu.resource_tags.ResourceTaggingService") as mock_service_cls,
+            ):
                 # Membership check passes
                 mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_membership
                 mock_service_cls.return_value.add_tag.return_value = mock_tag
@@ -101,8 +106,10 @@ class TestCreateTagSessionMembership:
         resource_id = str(uuid.uuid4())
 
         with app.test_request_context():
-            with patch("controllers.console.edu.resource_tags.current_user", mock_current_user), \
-                    patch("controllers.console.edu.resource_tags.db") as mock_db:
+            with (
+                patch("controllers.console.edu.resource_tags.current_user", mock_current_user),
+                patch("controllers.console.edu.resource_tags.db") as mock_db,
+            ):
                 # Membership check returns None (not a member)
                 mock_db.session.query.return_value.filter_by.return_value.first.return_value = None
 
@@ -140,8 +147,10 @@ class TestDeleteTagAuthorization:
         mock_tenant_join.role = "normal"
 
         with app.test_request_context():
-            with patch("controllers.console.edu.resource_tags.current_user", mock_current_user), \
-                    patch("controllers.console.edu.resource_tags.db") as mock_db:
+            with (
+                patch("controllers.console.edu.resource_tags.current_user", mock_current_user),
+                patch("controllers.console.edu.resource_tags.db") as mock_db,
+            ):
                 # Mock tag lookup via select/scalar
                 mock_db.session.scalar.return_value = mock_tag
                 # Mock TenantAccountJoin query for role check
@@ -168,9 +177,11 @@ class TestDeleteTagAuthorization:
         mock_tenant_join.role = "admin"
 
         with app.test_request_context():
-            with patch("controllers.console.edu.resource_tags.current_user", mock_current_user), \
-                    patch("controllers.console.edu.resource_tags.db") as mock_db, \
-                    patch("controllers.console.edu.resource_tags.ResourceTaggingService") as mock_service_cls:
+            with (
+                patch("controllers.console.edu.resource_tags.current_user", mock_current_user),
+                patch("controllers.console.edu.resource_tags.db") as mock_db,
+                patch("controllers.console.edu.resource_tags.ResourceTaggingService") as mock_service_cls,
+            ):
                 mock_db.session.scalar.return_value = mock_tag
                 mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_tenant_join
                 mock_service_cls.return_value.remove_tag.return_value = None
