@@ -37,11 +37,25 @@ docker-up: init-docker-env
 	@echo "   - Access MAI: http://localhost"
 	@echo "   - Access API: http://localhost/v1"
 
+# Build and restart Docker containers (uses cache, fast)
+docker-build: init-docker-env
+	@echo "🔨 Building Docker images..."
+	@cd docker && docker-compose up -d --build
+	@echo "🧹 Cleaning unused images..."
+	@docker image prune -f
+	@echo "✅ Docker images built and containers started!"
+	@echo ""
+	@echo "📝 Next steps:"
+	@echo "   - Check logs: cd docker && docker-compose logs -f"
+
 # Rebuild Docker images without cache (slower but ensures fresh build)
 docker-rebuild: init-docker-env
 	@echo "🔨 Rebuilding Docker images without cache..."
 	@cd docker && docker-compose build --no-cache
 	@cd docker && docker-compose up -d --force-recreate
+	@echo "🧹 Cleaning unused images and build cache..."
+	@docker image prune -f
+	@docker builder prune -f
 	@echo "✅ Docker images rebuilt and containers started!"
 	@echo ""
 	@echo "📝 Next steps:"
@@ -269,7 +283,8 @@ help:
 	@echo "Docker Production Setup:"
 	@echo "  make init-docker-env - Initialize Docker production environment (generate keys & admin account)"
 	@echo "  make docker-up       - Start Docker containers (auto-initialize if needed)"
-	@echo "  make docker-rebuild  - Rebuild images without cache and start (slower, ensures fresh build)"
+	@echo "  make docker-build    - Build images with cache and start (fast, auto-cleanup)"
+	@echo "  make docker-rebuild  - Rebuild images without cache and start (slower, ensures fresh build, auto-cleanup)"
 	@echo "  make docker-down     - Stop Docker containers"
 	@echo "  make docker-restart  - Restart Docker containers"
 	@echo "  make docker-clean    - Remove containers, volumes, and volume directories"
@@ -290,4 +305,4 @@ help:
 	@echo "  make build-push-all - Build and push all Docker images"
 
 # Phony targets
-.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-rebuild docker-down docker-restart docker-clean docker-clean-all docker-prune dev-clean dev-clean-all help format check lint type-check
+.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-build docker-rebuild docker-down docker-restart docker-clean docker-clean-all docker-prune dev-clean dev-clean-all help format check lint type-check

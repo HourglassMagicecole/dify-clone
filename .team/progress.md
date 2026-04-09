@@ -6,12 +6,12 @@
 | Phase | Phase 0 |
 | Epic | — |
 | Story | — |
-| State | HOTFIX_USER_VERIFY |
+| State | PROJECT_COMPLETE |
 | Plan | — |
 | Mode | semi-auto |
-| Status | 사용자 확인 대기 |
-| Next Action | PROJECT_COMPLETE (Approved) / HOTFIX_USER_FIX (CR) |
-| Updated | 2026-04-08 11:02 |
+| Status | Hotfix 완료, 유지보수 모드 대기 |
+| Next Action | BUG_TRIAGE (버그 보고 시) / P0_BF_PRD (새 기능 요청 시) |
+| Updated | 2026-04-09 09:47 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
