@@ -104,6 +104,14 @@ def duplicate_document_indexing_task(dataset_id: str, document_ids: list, sessio
         indexing_runner.run(documents, session_id=session_id)
         end_at = time.perf_counter()
         logger.info(click.style(f"Processed dataset: {dataset_id} latency: {end_at - start_at}", fg="green"))
+
+        # Trigger auto-description generation if dataset has no description
+        try:
+            from tasks.generate_dataset_description_task import generate_dataset_description_task
+
+            generate_dataset_description_task.delay(dataset_id)
+        except Exception:
+            logger.exception("Failed to enqueue dataset description generation for dataset_id: %s", dataset_id)
     except DocumentIsPausedError as ex:
         logger.info(click.style(str(ex), fg="yellow"))
     except Exception:

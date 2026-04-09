@@ -418,6 +418,15 @@ When you are modifying the code, you should remember:
 Your output must strictly follow the schema format, do not output any content outside of the JSON body.
 """  # noqa: E501
 
+DATASET_DESCRIPTION_GENERATE_PROMPT = (
+    "Based on the following document excerpts from a knowledge base, generate a concise description "
+    "(1-2 sentences) of what topics and content this knowledge base contains. "
+    "The description should help an AI agent decide whether to search this knowledge base "
+    "for a given user question.\n\n"
+    "Excerpts:\n{chunks}\n\n"
+    "Description:"
+)
+
 INSTRUCTION_GENERATE_TEMPLATE_PROMPT = """The output of this prompt is not as expected: {{#last_run#}}.
 You should edit the prompt according to the IDEAL OUTPUT."""
 

@@ -10,6 +10,7 @@ from core.llm_generator.output_parser.rule_config_generator import RuleConfigGen
 from core.llm_generator.output_parser.suggested_questions_after_answer import SuggestedQuestionsAfterAnswerOutputParser
 from core.llm_generator.prompts import (
     CONVERSATION_TITLE_PROMPT,
+    DATASET_DESCRIPTION_GENERATE_PROMPT,
     GENERATOR_QA_PROMPT,
     JAVASCRIPT_CODE_GENERATOR_PROMPT_TEMPLATE,
     LLM_MODIFY_CODE_SYSTEM,
@@ -339,6 +340,43 @@ class LLMGenerator:
 
         answer = cast(str, response.message.content)
         return answer.strip()
+
+    @classmethod
+    def generate_dataset_description(cls, tenant_id: str, chunk_contents: list[str]) -> str:
+        """Generate a concise description for a dataset based on sample chunk contents.
+
+        Args:
+            tenant_id: The tenant ID for LLM model access.
+            chunk_contents: List of text content from document segments.
+
+        Returns:
+            A 1-2 sentence description of the knowledge base contents.
+        """
+        chunks_text = "\n---\n".join(chunk_contents)
+        # Truncate if too long to fit in context
+        if len(chunks_text) > 4000:
+            chunks_text = chunks_text[:4000] + "\n...[TRUNCATED]..."
+
+        prompt = DATASET_DESCRIPTION_GENERATE_PROMPT.format(chunks=chunks_text)
+
+        model_manager = ModelManager()
+        model_instance = model_manager.get_default_model_instance(
+            tenant_id=tenant_id,
+            model_type=ModelType.LLM,
+        )
+
+        prompt_messages = [UserPromptMessage(content=prompt)]
+        response: LLMResult = model_instance.invoke_llm(
+            prompt_messages=list(prompt_messages),
+            model_parameters={"max_tokens": 200, "temperature": 0.3},
+            stream=False,
+        )
+
+        description = cast(str, response.message.content).strip()
+        # Limit description length
+        if len(description) > 500:
+            description = description[:497] + "..."
+        return description
 
     @classmethod
     def generate_structured_output(cls, tenant_id: str, instruction: str, model_config: dict):

@@ -73,6 +73,14 @@ def document_indexing_update_task(dataset_id: str, document_id: str):
         indexing_runner.run([document])
         end_at = time.perf_counter()
         logger.info(click.style(f"update document: {document.id} latency: {end_at - start_at}", fg="green"))
+
+        # Trigger auto-description generation if dataset has no description
+        try:
+            from tasks.generate_dataset_description_task import generate_dataset_description_task
+
+            generate_dataset_description_task.delay(dataset_id)
+        except Exception:
+            logger.exception("Failed to enqueue dataset description generation for dataset_id: %s", dataset_id)
     except DocumentIsPausedError as ex:
         logger.info(click.style(str(ex), fg="yellow"))
     except Exception:
