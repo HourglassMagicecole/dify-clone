@@ -1348,7 +1348,7 @@ services:
       - ./elasticsearch/docker-entrypoint.sh:/docker-entrypoint-mount.sh
       - dify_es01_data:/usr/share/elasticsearch/data
     environment:
-      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic}
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:-}
       VECTOR_STORE: ${VECTOR_STORE:-}
       cluster.name: dify-es-cluster
       node.name: dify-es0
@@ -1358,7 +1358,7 @@ services:
       xpack.security.enrollment.enabled: "false"
       xpack.security.http.ssl.enabled: "false"
     ports:
-      - ${ELASTICSEARCH_PORT:-9200}:9200
+      - 127.0.0.1:${ELASTICSEARCH_PORT:-9200}:9200
     deploy:
       resources:
         limits:
