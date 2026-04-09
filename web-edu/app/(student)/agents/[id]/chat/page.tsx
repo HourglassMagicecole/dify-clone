@@ -419,7 +419,7 @@ export default function AgentChatPage() {
             savePendingMessage(agentId, chunk.conversation_id, message, files)
           }
 
-          // Handle both 'message' (completion) and 'agent_message' (agent-chat) events
+          // Handle 'message' (chat/completion) and 'agent_message' (agent-chat) events
           if (chunk.event === 'message' || chunk.event === 'agent_message') {
             const newContent = chunk.answer || chunk.data?.answer || ''
             fullContent += newContent

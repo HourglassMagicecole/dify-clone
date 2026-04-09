@@ -445,8 +445,8 @@ class FunctionCallAgentRunner(BaseAgentRunner):
         BUILTIN_CHAT_GUIDELINES = """
 
 ## Chat Guidelines
-- Answer the user's current question
-- Refer to previous conversation context when necessary
+- Answer ONLY the user's latest message. Do NOT repeat, summarize, or list answers you already gave in previous turns.
+- The conversation history exists so you understand context — never copy it into your response.
 - Do not use tools or knowledge bases that are not relevant to the question
 """
         # Append built-in guidelines to the prompt template

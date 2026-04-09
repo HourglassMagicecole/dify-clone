@@ -32,6 +32,9 @@ class CotChatAgentRunner(CotAgentRunner):
             .replace("{{tool_names}}", ", ".join([tool.name for tool in self._prompt_messages_tools]))
         )
 
+        # Append anti-repetition guideline for conversation-based agents
+        system_prompt += "\n\nAnswer ONLY the user's latest message. Do NOT repeat, summarize, or list answers you already gave in previous turns. The conversation history exists so you understand context — never copy it into your response."
+
         return SystemPromptMessage(content=system_prompt)
 
     def _organize_user_query(self, query, prompt_messages: list[PromptMessage]) -> list[PromptMessage]:

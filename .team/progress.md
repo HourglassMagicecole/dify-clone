@@ -11,7 +11,7 @@
 | Mode | semi-auto |
 | Status | Hotfix 완료, 유지보수 모드 대기 |
 | Next Action | BUG_TRIAGE (버그 보고 시) / P0_BF_PRD (새 기능 요청 시) |
-| Updated | 2026-04-09 09:47 |
+| Updated | 2026-04-09 11:39 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -28,3 +28,5 @@
 ## Maintenance Notes
 - triage recorded — severity: P0 — web-edu 컨테이너 암호화폐 채굴 악성코드 감염, 502 Bad Gateway 발생
 Route: full
+- triage recorded — severity: P1 — Agent 채팅 응답에 이전 답변 내용 누적 (web-edu)
+Route: lightweight
