@@ -31,6 +31,17 @@ from .types import StringUUID
 
 logger = logging.getLogger(__name__)
 
+# Single source of truth for default retrieval model configuration.
+# Used by Dataset.retrieval_model_dict (fallback) and the default-retrieval-config API.
+DEFAULT_DATASET_RETRIEVAL_MODEL: dict[str, Any] = {
+    "search_method": RetrievalMethod.HYBRID_SEARCH.value,
+    "reranking_enable": False,
+    "reranking_model": {"reranking_provider_name": "", "reranking_model_name": ""},
+    "top_k": 3,
+    "score_threshold_enabled": False,
+    "score_threshold": 0.5,
+}
+
 
 class DatasetPermissionEnum(enum.StrEnum):
     ONLY_ME = "only_me"
@@ -192,14 +203,7 @@ class Dataset(Base):
 
     @property
     def retrieval_model_dict(self):
-        default_retrieval_model = {
-            "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
-            "reranking_enable": False,
-            "reranking_model": {"reranking_provider_name": "", "reranking_model_name": ""},
-            "top_k": 2,
-            "score_threshold_enabled": False,
-        }
-        return self.retrieval_model or default_retrieval_model
+        return self.retrieval_model or DEFAULT_DATASET_RETRIEVAL_MODEL
 
     @property
     def tags(self):
@@ -327,7 +331,7 @@ class DatasetProcessRule(Base):
             {"id": "remove_extra_spaces", "enabled": True},
             {"id": "remove_urls_emails", "enabled": False},
         ],
-        "segmentation": {"delimiter": "\n", "max_tokens": 500, "chunk_overlap": 50},
+        "segmentation": {"delimiter": "\n\n", "max_tokens": 1024, "chunk_overlap": 50},
     }
 
     def to_dict(self) -> dict[str, Any]:

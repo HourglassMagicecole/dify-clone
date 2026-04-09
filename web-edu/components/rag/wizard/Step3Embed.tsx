@@ -132,6 +132,7 @@ export function Step3Embed(): React.ReactElement {
   }, [setEmbeddingModels, setSelectedEmbeddingModel, setError, t])
 
   // Load embedding models and rerank models on mount
+  // Note: Default retrieval config is loaded by RAGWizardProvider on mount (single source of truth)
   useEffect(() => {
     loadEmbeddingModels()
     loadRerankModels()

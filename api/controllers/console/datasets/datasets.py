@@ -905,6 +905,24 @@ class DatasetRetrievalSettingMockApi(Resource):
                 raise ValueError(f"Unsupported vector db type {vector_type}.")
 
 
+@console_ns.route("/datasets/default-config")
+class DatasetDefaultConfigApi(Resource):
+    @api.doc("get_dataset_default_config")
+    @api.doc(description="Get all default configurations for dataset creation (retrieval + chunking)")
+    @api.response(200, "Default config retrieved successfully")
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def get(self):
+        """Return all default configurations for dataset creation (single source of truth)."""
+        from models.dataset import DEFAULT_DATASET_RETRIEVAL_MODEL, DatasetProcessRule
+
+        return {
+            "retrieval_model": DEFAULT_DATASET_RETRIEVAL_MODEL,
+            "process_rule": DatasetProcessRule.AUTOMATIC_RULES,
+        }
+
+
 @console_ns.route("/datasets/<uuid:dataset_id>/error-docs")
 class DatasetErrorDocs(Resource):
     @api.doc("get_dataset_error_docs")

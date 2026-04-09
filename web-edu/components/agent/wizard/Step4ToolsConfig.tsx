@@ -17,6 +17,7 @@ import { toolsConfigSchema, type ToolsConfigFormData } from '@/schemas/agent-sch
 import { useAgentWizard } from '@/context/AgentWizardContext'
 import { useAuth } from '@/hooks/useAuth'
 import { listTools, getToolDetail } from '@/service/tool-api'
+import { datasetAPI } from '@/service/dataset-api'
 import ToolConfigModal from './ToolConfigModal'
 import { DatasetSelector } from './DatasetSelector'
 import { DEFAULT_RETRIEVAL_SETTINGS } from './DatasetRetrievalSettings'
@@ -144,11 +145,11 @@ export default function Step4ToolsConfig() {
   )
   const [retrievalSettings, setRetrievalSettings] = useState<DatasetRetrievalConfig>(
     datasetConfig ? {
-      search_method: 'semantic_search',
-      reranking_enable: datasetConfig.reranking_enabled ?? false,
-      top_k: datasetConfig.top_k ?? 4,
-      score_threshold_enabled: datasetConfig.score_threshold_enabled ?? false,
-      score_threshold: datasetConfig.score_threshold,
+      search_method: DEFAULT_RETRIEVAL_SETTINGS.search_method,
+      reranking_enable: datasetConfig.reranking_enabled ?? DEFAULT_RETRIEVAL_SETTINGS.reranking_enable,
+      top_k: datasetConfig.top_k ?? DEFAULT_RETRIEVAL_SETTINGS.top_k,
+      score_threshold_enabled: datasetConfig.score_threshold_enabled ?? DEFAULT_RETRIEVAL_SETTINGS.score_threshold_enabled,
+      score_threshold: datasetConfig.score_threshold ?? DEFAULT_RETRIEVAL_SETTINGS.score_threshold,
     } : DEFAULT_RETRIEVAL_SETTINGS
   )
 
@@ -167,6 +168,30 @@ export default function Step4ToolsConfig() {
   useEffect(() => {
     loadAvailableTools()
   }, [])
+
+  // Load default retrieval config from backend (single source of truth)
+  // Only applies when no datasetConfig exists (new agent creation without existing RAG settings)
+  useEffect(() => {
+    if (datasetConfig) return // Already have config from DB, don't overwrite
+    const loadDefaults = async () => {
+      try {
+        const response = await datasetAPI.getDefaultConfig()
+        if (response.result === 'success' && response.data) {
+          const rm = response.data.retrieval_model
+          setRetrievalSettings({
+            search_method: rm.search_method,
+            reranking_enable: rm.reranking_enable,
+            top_k: rm.top_k,
+            score_threshold_enabled: rm.score_threshold_enabled,
+            score_threshold: rm.score_threshold,
+          })
+        }
+      } catch {
+        // Fallback to DEFAULT_RETRIEVAL_SETTINGS (already set as initial state)
+      }
+    }
+    loadDefaults()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore previous selection (only once on mount)
   useEffect(() => {

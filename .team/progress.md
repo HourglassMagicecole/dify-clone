@@ -3,7 +3,7 @@
 
 | 항목 | 값 |
 |------|-----|
-| Phase | Phase 0 |
+| Phase | Maintenance |
 | Epic | — |
 | Story | — |
 | State | PROJECT_COMPLETE |
@@ -11,7 +11,7 @@
 | Mode | semi-auto |
 | Status | Hotfix 완료, 유지보수 모드 대기 |
 | Next Action | BUG_TRIAGE (버그 보고 시) / P0_BF_PRD (새 기능 요청 시) |
-| Updated | 2026-04-09 11:39 |
+| Updated | 2026-04-09 14:14 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08

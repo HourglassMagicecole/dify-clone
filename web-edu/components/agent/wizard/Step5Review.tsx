@@ -244,13 +244,15 @@ export default function Step5Review() {
               <div className="space-y-3">
                 {/* Selected Datasets */}
                 <div className="flex flex-wrap gap-2">
-                  {datasetConfig.datasets.datasets.map(item => (
+                  {datasetConfig.datasets.datasets
+                  .filter(item => item.dataset.name)
+                  .map(item => (
                     <span
                       key={item.dataset.id}
                       className="inline-flex items-center gap-1.5 px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-md dark:bg-blue-900/20 dark:text-blue-300"
                     >
                       <CircleStackIcon className="h-4 w-4" />
-                      {item.dataset.name || item.dataset.id.substring(0, 8) + '...'}
+                      {item.dataset.name}
                     </span>
                   ))}
                 </div>

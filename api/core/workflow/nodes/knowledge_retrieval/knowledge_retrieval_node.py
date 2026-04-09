@@ -71,13 +71,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-default_retrieval_model = {
-    "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
-    "reranking_enable": False,
-    "reranking_model": {"reranking_provider_name": "", "reranking_model_name": ""},
-    "top_k": 4,
-    "score_threshold_enabled": False,
-}
+from models.dataset import DEFAULT_DATASET_RETRIEVAL_MODEL
+
+default_retrieval_model = DEFAULT_DATASET_RETRIEVAL_MODEL
 
 
 class KnowledgeRetrievalNode(Node):

@@ -201,6 +201,27 @@ export function RAGWizardProvider({ children }: RAGWizardProviderProps): React.R
   // Step 3: Retrieval settings state
   const [retrievalConfig, setRetrievalConfigState] = useState<RetrievalModel>(DEFAULT_RETRIEVAL_MODEL)
 
+  // Load default config from backend API on provider mount (single source of truth)
+  useEffect(() => {
+    const loadDefaults = async () => {
+      try {
+        const { datasetAPI } = await import('@/service/dataset-api')
+        const response = await datasetAPI.getDefaultConfig()
+        const defaults = response.data
+        if (response.result === 'success' && defaults) {
+          setState(prev => ({
+            ...prev,
+            processRule: { mode: 'custom', rules: defaults.process_rule as typeof DEFAULT_PROCESS_RULE.rules },
+          }))
+          setRetrievalConfigState(defaults.retrieval_model)
+        }
+      } catch {
+        // Keep fallback defaults if API fails
+      }
+    }
+    loadDefaults()
+  }, [])
+
   // Story 3.2: Step 4 Store state
   const [createdDataset, setCreatedDatasetState] = useState<Dataset | null>(null)
   const [createdDocuments, setCreatedDocumentsState] = useState<DocumentInfo[]>([])

@@ -23,10 +23,14 @@ interface DatasetRetrievalSettingsProps {
   readOnly?: boolean
 }
 
+/**
+ * Fallback retrieval settings — used only while backend API is loading or fails.
+ * Real defaults come from GET /console/api/datasets/default-retrieval-config
+ */
 export const DEFAULT_RETRIEVAL_SETTINGS: DatasetRetrievalConfig = {
-  search_method: 'semantic_search',
+  search_method: 'hybrid_search',
   reranking_enable: false,
-  top_k: 4,
+  top_k: 3,
   score_threshold_enabled: false,
   score_threshold: 0.5,
 }

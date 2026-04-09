@@ -73,6 +73,10 @@ Dify 원본 web/에서는 agent 모드일 때 `lastThought.thought += message` �
 
 ## Lifecycle Log
 
+### HOTFIX_USER_FIX — 2026-04-09 14:14
+- Approved — RAG 기본값 리팩토링 + 지식베이스 삭제 시 Agent 참조 정리 완료
+
+
 ### HOTFIX_USER_VERIFY — 2026-04-09 11:39
 - Approved — 새 Agent에서 이전 답변 반복 현상 해결 확인
 

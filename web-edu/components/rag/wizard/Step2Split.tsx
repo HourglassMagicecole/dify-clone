@@ -18,7 +18,7 @@ import { Button } from '@/components/common/Button'
 import { Tooltip } from '@/components/common/Tooltip'
 import type { ProcessRuleLimits, IndexingEstimateRequest, ProcessRuleForAPI, FileChunkPreview } from '@/types/dataset'
 
-// Default values matching backend DocumentService.DEFAULT_RULES
+// Fallback values — real defaults come from GET /console/api/datasets/default-config
 const DEFAULT_RULES = {
   pre_processing_rules: [
     { id: 'remove_extra_spaces' as const, enabled: true },
@@ -118,18 +118,11 @@ export function Step2Split(): React.ReactElement {
   }, [uploadedFiles, prevFileIds, clearPreview, clearPreviewByFile])
 
   /**
-   * Initialize with default rules and load limits from API
+   * Initialize and load limits from API
+   * Note: Default process rules are loaded by RAGWizardProvider on mount (single source of truth)
    */
   useEffect(() => {
     const initialize = async () => {
-      // Set default rules if not already set
-      if (!processRule.rules) {
-        setProcessRule({
-          mode: 'custom',
-          rules: DEFAULT_RULES,
-        })
-      }
-
       // Load limits from API
       try {
         setLoading(true)

@@ -36,6 +36,8 @@ import type {
   // Story 3.4: RAG Search Test Interface types
   HitTestingRequest,
   HitTestingResponse,
+  // Retrieval config types
+  RetrievalModel,
 } from '@/types/dataset'
 
 // ============================================================================
@@ -444,6 +446,27 @@ export class DatasetAPI {
       `/console/api/datasets/${datasetId}/hit-testing`,
       request
     )
+  }
+
+  // ============================================================================
+  // Default Config API (single source of truth for dataset creation defaults)
+  // ============================================================================
+
+  /**
+   * Get all default configurations for dataset creation
+   * Endpoint: GET /console/api/datasets/default-config
+   *
+   * Returns retrieval model defaults AND process rule (chunking) defaults.
+   * This is the single source of truth — frontend should not hardcode these values.
+   */
+  async getDefaultConfig(): Promise<ApiResponse<{
+    retrieval_model: RetrievalModel
+    process_rule: {
+      pre_processing_rules: Array<{ id: string; enabled: boolean }>
+      segmentation: { delimiter: string; max_tokens: number; chunk_overlap: number }
+    }
+  }>> {
+    return apiClient.getDifyNative('/console/api/datasets/default-config')
   }
 
   // ============================================================================

@@ -990,6 +990,9 @@ class DatasetService:
 
         dataset_was_deleted.send(dataset)
 
+        # Clean up Agent references — remove AppDatasetJoin entries for this dataset
+        db.session.query(AppDatasetJoin).filter(AppDatasetJoin.dataset_id == dataset_id).delete()
+
         db.session.delete(dataset)
         db.session.commit()
         return True

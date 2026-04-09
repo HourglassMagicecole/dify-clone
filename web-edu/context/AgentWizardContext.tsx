@@ -311,9 +311,13 @@ export function AgentWizardProvider({
           // Dify stores datasets in modelConfig.dataset_configs.datasets (array of {dataset: {id, enabled}})
           // and retrieval settings in modelConfig.dataset_configs
           const rawDatasetConfigs = modelConfig.dataset_configs || {}
-          const datasetConfigs = rawDatasetConfigs.datasets?.datasets?.length
+          // Filter out deleted datasets (no name = dataset was deleted)
+          const rawDatasets = rawDatasetConfigs.datasets?.datasets?.filter(
+            (item: { dataset: { id: string; name?: string } }) => item.dataset.name
+          ) || []
+          const datasetConfigs = rawDatasets.length
             ? {
-                datasets: rawDatasetConfigs.datasets,
+                datasets: { ...rawDatasetConfigs.datasets, datasets: rawDatasets },
                 retrieval_model: rawDatasetConfigs.retrieval_model || 'single',
                 top_k: rawDatasetConfigs.top_k,
                 score_threshold_enabled: rawDatasetConfigs.score_threshold_enabled,
