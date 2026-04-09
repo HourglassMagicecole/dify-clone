@@ -19,7 +19,14 @@ set -euo pipefail
 # ──────────────────────────────────────────────
 
 HOST="${1:-localhost}"
-BASE_URL="http://${HOST}"
+# https:// 또는 http:// 접두어가 있으면 그대로 사용, 없으면 http:// 추가
+if [[ "$HOST" == https://* ]] || [[ "$HOST" == http://* ]]; then
+  BASE_URL="${HOST}"
+  HOST_ONLY=$(echo "$HOST" | sed -E 's|https?://||' | cut -d: -f1)
+else
+  BASE_URL="http://${HOST}"
+  HOST_ONLY=$(echo "$HOST" | cut -d: -f1)
+fi
 TIMEOUT=5
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -81,7 +88,7 @@ assert_connection_refused() {
   TOTAL_COUNT=$((TOTAL_COUNT + 1))
 
   local status
-  status=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 "$url" 2>/dev/null) || true
+  status=$(curl -s -L -k -o /dev/null -w "%{http_code}" --connect-timeout 3 "$url" 2>/dev/null) || true
 
   if [[ "$status" == "000" ]] || [[ -z "$status" ]]; then
     echo -e "  ${GREEN}[PASS]${NC} ${description} (연결 거부됨)"
@@ -111,7 +118,12 @@ assert_header_exists() {
 }
 
 get_status() {
-  curl -s -o /dev/null -w "%{http_code}" --connect-timeout "$TIMEOUT" --max-time "$TIMEOUT" "$@" 2>/dev/null || echo "000"
+  curl -s -k -o /dev/null -w "%{http_code}" --connect-timeout "$TIMEOUT" --max-time "$TIMEOUT" "$@" 2>/dev/null || echo "000"
+}
+
+# 리다이렉트를 따라가는 버전 (SSRF, 보안 헤더 등 최종 응답이 필요한 경우)
+get_status_follow() {
+  curl -s -L -k -o /dev/null -w "%{http_code}" --connect-timeout "$TIMEOUT" --max-time "$TIMEOUT" "$@" 2>/dev/null || echo "000"
 }
 
 # ──────────────────────────────────────────────
@@ -166,7 +178,7 @@ SSRF_URLS=(
 )
 
 for url in "${SSRF_URLS[@]}"; do
-  STATUS=$(get_status "${BASE_URL}/_next/image?url=${url}&w=256&q=75")
+  STATUS=$(get_status_follow "${BASE_URL}/_next/image?url=${url}&w=256&q=75")
   assert_status "SSRF 차단: ${url}" "$STATUS" "400" "500" "403"
 done
 
@@ -179,7 +191,7 @@ DOCKER_INTERNAL=(
 )
 
 for url in "${DOCKER_INTERNAL[@]}"; do
-  STATUS=$(get_status "${BASE_URL}/_next/image?url=${url}&w=256&q=75")
+  STATUS=$(get_status_follow "${BASE_URL}/_next/image?url=${url}&w=256&q=75")
   assert_status "SSRF 차단 (Docker 내부): ${url}" "$STATUS" "400" "500" "403"
 done
 
@@ -188,9 +200,6 @@ done
 # ──────────────────────────────────────────────
 
 print_section "AC2 & AC6: 포트 직접 접근 차단"
-
-# HOST에서 포트만 추출 (없으면 hostname 그대로 사용)
-HOST_ONLY="${HOST%%:*}"
 
 # web-edu 직접 접근 (3001 포트는 외부 바인딩 제거됨)
 assert_connection_refused "web-edu 직접 접근 차단 (포트 3001)" "http://${HOST_ONLY}:3001"
@@ -325,7 +334,7 @@ PUBLIC_PATHS=(
 )
 
 for path in "${PUBLIC_PATHS[@]}"; do
-  STATUS=$(get_status "${BASE_URL}${path}")
+  STATUS=$(get_status_follow "${BASE_URL}${path}")
   assert_status "공개 경로 ${path} 접근 허용" "$STATUS" "200" "304"
 done
 
@@ -351,7 +360,7 @@ done
 
 print_section "AC7: 보안 헤더 확인"
 
-HEADERS=$(curl -s -I --connect-timeout "$TIMEOUT" --max-time "$TIMEOUT" "${BASE_URL}/" 2>/dev/null || echo "")
+HEADERS=$(curl -s -L -k -I --connect-timeout "$TIMEOUT" --max-time 10 "${BASE_URL}/" 2>/dev/null || echo "")
 
 if [[ -z "$HEADERS" ]]; then
   echo -e "  ${RED}[FAIL]${NC} 응답 헤더를 가져올 수 없습니다."
@@ -377,7 +386,7 @@ GOT_429=false
 RESPONSES=""
 
 for i in $(seq 1 15); do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 --max-time 3 \
+  STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" --connect-timeout 3 --max-time 3 \
     -X POST \
     -H "Content-Type: application/json" \
     -d '{"email":"test@test.com","password":"wrong"}' \
@@ -406,7 +415,7 @@ fi
 print_section "보충: Next.js 버전 정보 노출 확인"
 
 TOTAL_COUNT=$((TOTAL_COUNT + 1))
-BODY=$(curl -s --connect-timeout "$TIMEOUT" --max-time "$TIMEOUT" "${BASE_URL}/signin" 2>/dev/null || echo "")
+BODY=$(curl -s -L -k --connect-timeout "$TIMEOUT" --max-time 10 "${BASE_URL}/signin" 2>/dev/null || echo "")
 VERSION_LEAK=$(echo "$BODY" | grep -oE 'next/[0-9]+\.[0-9]+' || true)
 
 if [[ -z "$VERSION_LEAK" ]]; then

@@ -11,6 +11,7 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+    proxy_hide_header X-Powered-By;
 
     # Rate-limited login endpoint (signin API)
     location /console/api/login {
