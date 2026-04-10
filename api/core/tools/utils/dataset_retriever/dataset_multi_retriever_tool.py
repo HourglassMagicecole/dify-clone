@@ -1,3 +1,4 @@
+import logging
 import threading
 from typing import Any
 
@@ -47,6 +48,12 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
         )
 
     def _run(self, query: str, app_id: str | None = None) -> str:
+        logger = logging.getLogger(__name__)
+        logger.info(
+            "[RAG:tool-call] Multi-dataset retriever tool invoked: dataset_ids_count=%d, query=%.100s",
+            len(self.dataset_ids),
+            query,
+        )
         threads = []
         all_documents: list[RagDocument] = []
         for dataset_id in self.dataset_ids:

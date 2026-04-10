@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import re
 import threading
@@ -60,6 +61,8 @@ from models.dataset import ChildChunk, Dataset, DatasetMetadata, DatasetQuery, D
 from models.dataset import Document as DatasetDocument
 from services.external_knowledge_service import ExternalDatasetService
 
+logger = logging.getLogger(__name__)
+
 default_retrieval_model: dict[str, Any] = {
     "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
     "reranking_enable": False,
@@ -106,6 +109,7 @@ class DatasetRetrieval:
         """
         dataset_ids = config.dataset_ids
         if len(dataset_ids) == 0:
+            logger.info("[RAG:auto-retrieve] No dataset_ids configured, skipping retrieval")
             return None
         retrieve_config = config.retrieve_config
 
@@ -146,6 +150,11 @@ class DatasetRetrieval:
                 continue
 
             available_datasets.append(dataset)
+        logger.info(
+            "[RAG:auto-retrieve] Available datasets: %d out of %d configured",
+            len(available_datasets),
+            len(dataset_ids),
+        )
         if inputs:
             inputs = {key: str(value) for key, value in inputs.items()}
         else:
@@ -197,6 +206,8 @@ class DatasetRetrieval:
                 metadata_filter_document_ids,
                 metadata_condition,
             )
+
+        logger.info("[RAG:auto-retrieve] Retrieval completed: total_documents=%d", len(all_documents))
 
         dify_documents = [item for item in all_documents if item.provider == "dify"]
         external_documents = [item for item in all_documents if item.provider == "external"]

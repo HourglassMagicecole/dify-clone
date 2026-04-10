@@ -1,3 +1,4 @@
+import logging
 from typing import Any, cast
 
 from pydantic import BaseModel, Field
@@ -60,6 +61,8 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
         )
 
     def _run(self, query: str, app_id: str | None = None) -> str:
+        logger = logging.getLogger(__name__)
+        logger.info("[RAG:tool-call] Dataset retriever tool invoked: dataset_id=%s, query=%.100s", self.dataset_id, query)
         dataset_stmt = select(Dataset).where(Dataset.tenant_id == self.tenant_id, Dataset.id == self.dataset_id)
         dataset = db.session.scalar(dataset_stmt)
 

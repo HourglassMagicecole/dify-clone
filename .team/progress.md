@@ -11,7 +11,7 @@
 | Mode | semi-auto |
 | Status | Hotfix 완료, 유지보수 모드 대기 |
 | Next Action | BUG_TRIAGE (버그 보고 시) / P0_BF_PRD (새 기능 요청 시) |
-| Updated | 2026-04-09 15:46 |
+| Updated | 2026-04-10 10:17 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -31,4 +31,6 @@ Route: full
 - triage recorded — severity: P1 — Agent 채팅 응답에 이전 답변 내용 누적 (web-edu)
 Route: lightweight
 - triage recorded — severity: P1 — Agent 대화 히스토리 초기화 (3~4턴 후 인사 반복)
+Route: lightweight
+- triage recorded — severity: P1 — Agent Chat RAG 검색 디버그 로깅 없음
 Route: lightweight

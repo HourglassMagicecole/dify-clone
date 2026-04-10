@@ -1,4 +1,5 @@
 import concurrent.futures
+import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, current_app
@@ -19,6 +20,8 @@ from extensions.ext_database import db
 from models.dataset import ChildChunk, Dataset, DocumentSegment
 from models.dataset import Document as DatasetDocument
 from services.external_knowledge_service import ExternalDatasetService
+
+logger = logging.getLogger(__name__)
 
 default_retrieval_model = {
     "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
@@ -50,10 +53,19 @@ class RetrievalService:
         session_id: str | None = None,
         invoke_source: str | None = None,
     ):
+        logger.info(
+            "[RAG] RetrievalService.retrieve called: method=%s, dataset_id=%s, query=%.100s",
+            retrieval_method,
+            dataset_id,
+            query,
+        )
+        logger.debug("[RAG] RetrievalService.retrieve full query: %s", query)
         if not query:
+            logger.info("[RAG] Empty query, returning empty results")
             return []
         dataset = cls._get_dataset(dataset_id)
         if not dataset:
+            logger.info("[RAG] Dataset not found: dataset_id=%s", dataset_id)
             return []
 
         all_documents: list[Document] = []
@@ -120,6 +132,7 @@ class RetrievalService:
             concurrent.futures.wait(futures, timeout=30, return_when=concurrent.futures.ALL_COMPLETED)
 
         if exceptions:
+            logger.error("[RAG] RetrievalService.retrieve exceptions: %s", "; ".join(exceptions))
             raise ValueError(";\n".join(exceptions))
 
         if retrieval_method == RetrievalMethod.HYBRID_SEARCH.value:
@@ -142,6 +155,11 @@ class RetrievalService:
                 top_n=top_k,
             )
 
+        logger.info(
+            "[RAG] RetrievalService.retrieve completed: dataset_id=%s, documents_count=%d",
+            dataset_id,
+            len(all_documents),
+        )
         return all_documents
 
     @classmethod
