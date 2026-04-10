@@ -11,7 +11,7 @@
 | Mode | semi-auto |
 | Status | Hotfix 완료, 유지보수 모드 대기 |
 | Next Action | BUG_TRIAGE (버그 보고 시) / P0_BF_PRD (새 기능 요청 시) |
-| Updated | 2026-04-10 16:12 |
+| Updated | 2026-04-10 16:38 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -35,4 +35,6 @@ Route: lightweight
 - triage recorded — severity: P1 — Agent Chat RAG 검색 디버그 로깅 없음
 Route: lightweight
 - triage recorded — severity: P1 — auto-retrieve 제거 및 KB 도구 hit rate 개선
+Route: lightweight
+- triage recorded — severity: P1 — Agent 채팅 D&D 파일 첨부 미동작 (web-edu)
 Route: lightweight

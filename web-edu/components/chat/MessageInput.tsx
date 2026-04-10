@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, KeyboardEvent, useRef, ChangeEvent } from 'react'
+import { useState, KeyboardEvent, useRef, ChangeEvent, DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface MessageInputProps {
@@ -18,6 +18,7 @@ export function MessageInput({ onSend, disabled, isSending = false, placeholder 
   const { t } = useTranslation('chat')
   const [message, setMessage] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [isDragActive, setIsDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -69,8 +70,55 @@ export function MessageInput({ onSend, disabled, isSending = false, placeholder 
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(true)
+  }
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+  }
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length === 0) return
+
+    // Validate file count (max 5)
+    if (files.length > 5) {
+      alert(t('error.tooManyFiles', { max: 5 }))
+      return
+    }
+
+    // Validate file size (max 10MB per file)
+    const oversizedFiles = files.filter((f) => f.size > 10 * 1024 * 1024)
+    if (oversizedFiles.length > 0) {
+      alert(t('error.fileTooLarge'))
+      return
+    }
+
+    setSelectedFiles((prev) => [...prev, ...files])
+  }
+
   return (
-    <div className="p-4">
+    <div
+      className={`p-4 rounded-lg border-2 transition-colors ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-transparent'}`}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Selected files preview */}
       {selectedFiles.length > 0 && (
         <div className="mb-2 flex gap-2 flex-wrap">
