@@ -13,6 +13,14 @@ import {
   KeyIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
+
+const RAG_INSTRUCTIONS = [
+  '- 절대 지식 베이스를 검색하지 않는 경우: (1) 사용자의 메시지에 이미지나 파일이 첨부되어 있을 때 (2) 다른 연결된 도구가 담당하는 요청(예: 이미지 생성) (3) 단순 인사/감사.',
+  '- 위 경우를 제외한 모든 텍스트 질문에는 답변 전에 항상 지식 베이스를 먼저 검색하세요.',
+  '- 검색 결과를 바탕으로 답변하세요.',
+  '- 검색 결과가 질문과 관련 없으면 그 사실을 밝히고 일반 지식으로 답변하세요.',
+  '- 지식 베이스에 해당 정보가 없으면 솔직하게 안내하세요.',
+] as const
 import { toolsConfigSchema, type ToolsConfigFormData } from '@/schemas/agent-schema'
 import { useAgentWizard } from '@/context/AgentWizardContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -530,10 +538,8 @@ export default function Step4ToolsConfig() {
         const desc = selectedDatasetDescriptions[id]
         preview += desc ? `  - ${name}: ${desc}\n` : `  - ${name}\n`
       })
-      preview += '- 중요: 사용자의 모든 질문에 대해 답변하기 전에 반드시 지식 베이스 검색 도구를 먼저 호출하세요. 검색 없이 바로 답변하지 마세요.\n'
-      preview += '- 검색 결과를 바탕으로 답변하세요\n'
-      preview += '- 검색 결과가 질문과 관련 없으면 그 사실을 밝히고 일반 지식으로 답변하세요\n'
-      preview += '- 지식 베이스에 해당 정보가 없으면 솔직하게 안내하세요\n'
+      preview += '\n'
+      preview += RAG_INSTRUCTIONS.map(line => line + '\n').join('')
     }
 
     return preview
@@ -596,10 +602,7 @@ export default function Step4ToolsConfig() {
           const desc = selectedDatasetDescriptions[id]
           updatedPrompt += desc ? `  - ${name}: ${desc}\n` : `  - ${name}\n`
         })
-        updatedPrompt += '- 중요: 사용자의 모든 질문에 대해 답변하기 전에 반드시 지식 베이스 검색 도구를 먼저 호출하세요. 검색 없이 바로 답변하지 마세요.\n'
-        updatedPrompt += '- 검색 결과를 바탕으로 답변하세요\n'
-        updatedPrompt += '- 검색 결과가 질문과 관련 없으면 그 사실을 밝히고 일반 지식으로 답변하세요\n'
-        updatedPrompt += '- 지식 베이스에 해당 정보가 없으면 솔직하게 안내하세요\n'
+        updatedPrompt += RAG_INSTRUCTIONS.map(line => line + '\n').join('')
       }
 
       // Only update if prompt changed

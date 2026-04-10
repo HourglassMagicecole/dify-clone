@@ -50,11 +50,11 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
         kb_desc = kb_desc[:200].strip()
 
         name = dataset.name.replace('"', "").replace("'", "")
-        guidance = "사용자의 질문에 답변하기 전에 이 도구로 먼저 검색하세요."
+        guidance = "사용자의 메시지에 이미지나 파일이 첨부되어 있으면 이 도구를 절대 호출하지 마세요. 다른 도구가 처리할 요청(이미지 생성 등)이나 단순 인사/감사에도 호출하지 마세요. 그 외 텍스트 질문에는 답변 전에 항상 이 도구로 먼저 검색하세요."
         if kb_desc:
-            description = f"{name} 지식 베이스를 검색합니다. 포함된 내용: {kb_desc}. {guidance}"
+            description = f"{name} 지식 베이스. 포함된 내용: {kb_desc}. {guidance}"
         else:
-            description = f"{name} 지식 베이스를 검색합니다. {guidance}"
+            description = f"{name} 지식 베이스. {guidance}"
         return cls(
             name=f"dataset_{dataset.id.replace('-', '_')}",
             tenant_id=dataset.tenant_id,

@@ -1,5 +1,6 @@
 import contextlib
 import json
+import logging
 from collections.abc import Generator, Iterable
 from copy import deepcopy
 from datetime import UTC, datetime
@@ -76,6 +77,13 @@ class ToolEngine:
                     raise ValueError(f"tool_parameters should be a dict, but got a string: {tool_parameters}")
 
         try:
+            logger = logging.getLogger(__name__)
+            logger.info(
+                "[TOOL:invoke] tool=%s, params=%s",
+                tool.entity.identity.name,
+                str(tool_parameters)[:200],
+            )
+
             # hit the callback handler
             agent_tool_callback.on_tool_start(tool_name=tool.entity.identity.name, tool_inputs=tool_parameters)
 
