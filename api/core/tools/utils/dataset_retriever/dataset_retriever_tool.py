@@ -44,14 +44,17 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
 
     @classmethod
     def from_dataset(cls, dataset: Dataset, **kwargs):
-        description = dataset.description
-        if not description:
-            description = dataset.name + "에 관한 질문에 답변할 때 사용하세요."
-        else:
-            # Make description action-oriented for better tool calling
-            description = dataset.name + " 지식 베이스를 검색합니다. " + description
+        kb_desc = dataset.description or ""
+        # Sanitize: remove control characters, limit length to avoid JSON serialization issues
+        kb_desc = kb_desc.replace("\n", " ").replace("\r", "").replace("\t", " ").replace('"', "").replace("'", "")
+        kb_desc = kb_desc[:200].strip()
 
-        description = description.replace("\n", "").replace("\r", "")
+        name = dataset.name.replace('"', "").replace("'", "")
+        guidance = "사용자의 질문에 답변하기 전에 이 도구로 먼저 검색하세요."
+        if kb_desc:
+            description = f"{name} 지식 베이스를 검색합니다. 포함된 내용: {kb_desc}. {guidance}"
+        else:
+            description = f"{name} 지식 베이스를 검색합니다. {guidance}"
         return cls(
             name=f"dataset_{dataset.id.replace('-', '_')}",
             tenant_id=dataset.tenant_id,
@@ -62,7 +65,11 @@ class DatasetRetrieverTool(DatasetRetrieverBaseTool):
 
     def _run(self, query: str, app_id: str | None = None) -> str:
         logger = logging.getLogger(__name__)
-        logger.info("[RAG:tool-call] Dataset retriever tool invoked: dataset_id=%s, query=%.100s", self.dataset_id, query)
+        logger.info(
+            "[RAG:tool-call] Dataset retriever tool invoked: dataset_id=%s, query=%.100s",
+            self.dataset_id,
+            query,
+        )
         dataset_stmt = select(Dataset).where(Dataset.tenant_id == self.tenant_id, Dataset.id == self.dataset_id)
         dataset = db.session.scalar(dataset_stmt)
 

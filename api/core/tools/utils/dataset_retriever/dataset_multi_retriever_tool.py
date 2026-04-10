@@ -28,7 +28,7 @@ default_retrieval_model: dict[str, Any] = {
 
 
 class DatasetMultiRetrieverToolInput(BaseModel):
-    query: str = Field(..., description="dataset multi retriever and rerank")
+    query: str = Field(..., description="사용자의 질문을 그대로 전달하세요.")
 
 
 class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
@@ -43,8 +43,34 @@ class DatasetMultiRetrieverTool(DatasetRetrieverBaseTool):
 
     @classmethod
     def from_dataset(cls, dataset_ids: list[str], tenant_id: str, **kwargs):
+        # Build a descriptive description from connected knowledge bases
+        kb_descriptions: list[str] = []
+        try:
+            datasets = db.session.scalars(
+                select(Dataset).where(Dataset.id.in_(dataset_ids), Dataset.tenant_id == tenant_id)
+            ).all()
+            for ds in datasets:
+                name = ds.name.replace('"', "").replace("'", "")
+                if ds.description:
+                    desc = ds.description.replace("\n", " ").replace("\r", "").replace('"', "").replace("'", "")
+                    desc = desc[:200].strip()
+                    kb_descriptions.append(f"{name} - {desc}")
+                else:
+                    kb_descriptions.append(name)
+        except Exception:
+            pass
+
+        if kb_descriptions:
+            description = "다음 지식 베이스를 검색합니다: " + ", ".join(kb_descriptions)
+        else:
+            description = "지식 베이스를 검색합니다."
+
         return cls(
-            name=f"dataset_{tenant_id.replace('-', '_')}", tenant_id=tenant_id, dataset_ids=dataset_ids, **kwargs
+            name=f"dataset_{tenant_id.replace('-', '_')}",
+            tenant_id=tenant_id,
+            dataset_ids=dataset_ids,
+            description=description,
+            **kwargs,
         )
 
     def _run(self, query: str, app_id: str | None = None) -> str:
