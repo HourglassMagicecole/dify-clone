@@ -68,8 +68,22 @@ def bulk_create_users_task(self, csv_content: str, session_id: str | None, creat
     logger = logging.getLogger(__name__)
     logger.info("Starting bulk user creation. CSV content length: %d", len(csv_content))
 
+    # BOM 제거 (엑셀이 UTF-8로 저장 시 헤더 앞에 \ufeff를 추가할 수 있음)
+    if csv_content.startswith("\ufeff"):
+        csv_content = csv_content.lstrip("\ufeff")
+
+    # 구분자 자동 감지: 헤더 라인만으로 Sniffer 수행. 실패 시 콤마 fallback.
+    # 허용 구분자: 콤마 / 탭 / 세미콜론 (엑셀/TSV/유럽 로케일 대응)
+    header_line = csv_content.split("\n", 1)[0]
+    try:
+        dialect = csv.Sniffer().sniff(header_line, delimiters=",\t;")
+        delimiter = dialect.delimiter
+    except csv.Error:
+        delimiter = ","
+    logger.info("Detected CSV delimiter: %r", delimiter)
+
     csv_file = io.StringIO(csv_content)
-    reader = csv.DictReader(csv_file)
+    reader = csv.DictReader(csv_file, delimiter=delimiter)
     users = list(reader)
 
     logger.info("Parsed CSV. Total users: %d", len(users))
