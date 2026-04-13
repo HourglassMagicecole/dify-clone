@@ -18,8 +18,7 @@ const RAG_INSTRUCTIONS = [
   '- 절대 지식 베이스를 검색하지 않는 경우: (1) 사용자의 메시지에 이미지나 파일이 첨부되어 있을 때 (2) 다른 연결된 도구가 담당하는 요청(예: 이미지 생성) (3) 단순 인사/감사.',
   '- 위 경우를 제외한 모든 텍스트 질문에는 답변 전에 항상 지식 베이스를 먼저 검색하세요.',
   '- 검색 결과를 바탕으로 답변하세요.',
-  '- 검색 결과가 질문과 관련 없으면 그 사실을 밝히고 일반 지식으로 답변하세요.',
-  '- 지식 베이스에 해당 정보가 없으면 솔직하게 안내하세요.',
+  '- 검색 결과가 질문과 관련 없거나 정보가 없으면, 지식 베이스에서 관련 정보를 찾지 못했다고 안내하세요. 일반 지식으로 추측하여 답변하지 마세요.',
 ] as const
 import { toolsConfigSchema, type ToolsConfigFormData } from '@/schemas/agent-schema'
 import { useAgentWizard } from '@/context/AgentWizardContext'
