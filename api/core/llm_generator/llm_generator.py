@@ -21,7 +21,11 @@ from core.llm_generator.prompts import (
 )
 from core.model_manager import ModelManager
 from core.model_runtime.entities.llm_entities import LLMResult
-from core.model_runtime.entities.message_entities import PromptMessage, SystemPromptMessage, UserPromptMessage
+from core.model_runtime.entities.message_entities import (
+    PromptMessage,
+    SystemPromptMessage,
+    UserPromptMessage,
+)
 from core.model_runtime.entities.model_entities import ModelType
 from core.model_runtime.errors.invoke import InvokeAuthorizationError, InvokeError
 from core.ops.entities.trace_entity import TraceTaskName
@@ -359,21 +363,42 @@ class LLMGenerator:
 
         prompt = DATASET_DESCRIPTION_GENERATE_PROMPT.format(chunks=chunks_text)
 
+        # Avoid get_default_model_instance: stale default model (e.g. disabled gpt-4) raises ValueError.
+        # Pick the first currently active LLM from the tenant's provider configurations instead.
+        from core.provider_manager import ProviderManager
+
+        provider_configurations = ProviderManager().get_configurations(tenant_id)
+        active_llm_models = provider_configurations.get_models(model_type=ModelType.LLM, only_active=True)
+        if not active_llm_models:
+            logger.warning(
+                "generate_dataset_description: no active LLM for tenant %s, skipping description generation",
+                tenant_id,
+            )
+            return ""
+
+        selected = active_llm_models[0]
+        logger.info(
+            "generate_dataset_description: selected LLM %s/%s for tenant %s",
+            selected.provider.provider,
+            selected.model,
+            tenant_id,
+        )
         model_manager = ModelManager()
-        model_instance = model_manager.get_default_model_instance(
+        model_instance = model_manager.get_model_instance(
             tenant_id=tenant_id,
+            provider=selected.provider.provider,
             model_type=ModelType.LLM,
+            model=selected.model,
         )
 
         prompt_messages = [UserPromptMessage(content=prompt)]
         response: LLMResult = model_instance.invoke_llm(
             prompt_messages=list(prompt_messages),
-            model_parameters={"max_tokens": 200, "temperature": 0.3},
+            model_parameters={"max_tokens": 1000, "temperature": 0.3},
             stream=False,
         )
 
-        description = cast(str, response.message.content).strip()
-        # Limit description length
+        description = response.message.get_text_content().strip()
         if len(description) > 500:
             description = description[:497] + "..."
         return description

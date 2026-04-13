@@ -10,8 +10,8 @@
 | Plan | — |
 | Mode | semi-auto |
 | Status | Hotfix 완료, 유지보수 모드 대기 |
-| Next Action | BUG_TRIAGE (버그 보고 시) / P0_BF_PRD (새 기능 요청 시) |
-| Updated | 2026-04-13 10:56 |
+| Next Action | BUG_TRIAGE / P0_BF_PRD |
+| Updated | 2026-04-13 16:32 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -41,4 +41,6 @@ Route: lightweight
 - triage recorded — severity: P1 — RAG KB 도구 과도 호출 (무관 질문에서도 검색)
 Route: lightweight
 - triage recorded — severity: P1 — 사용자 일괄 생성 CSV 업로드 실패 (탭 구분 파일 파싱 오류)
+Route: lightweight
+- triage recorded — severity: P1 — 지식베이스 자동 설명 생성이 stale default 모델(gpt-4 disabled) 사용 → 활성 모델 기반으로 변경 필요
 Route: lightweight
