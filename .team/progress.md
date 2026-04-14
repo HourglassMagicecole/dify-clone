@@ -9,9 +9,9 @@
 | State | PROJECT_COMPLETE |
 | Plan | — |
 | Mode | semi-auto |
-| Status | Hotfix 완료 — 판단 대기 3건 |
-| Next Action | 판단 대기: 백엔드 원자성/Zod raw/다른 타입 default |
-| Updated | 2026-04-14 17:24 |
+| Status | Hotfix 완료, 유지보수 모드 대기 |
+| Next Action | BUG_TRIAGE / P0_BF_PRD |
+| Updated | 2026-04-14 17:43 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -55,4 +55,8 @@ Route: lightweight
 - triage recorded — severity: P1 — 작업형 에이전트 생성 "검토 및 저장"에서 select 타입 default 검증 에러 + 에이전트는 생성되는 이중 상태
 Route: lightweight
 - triage recorded — severity: P1 — 작업형 에이전트 실행 화면에서 select 필드 default가 초깃값으로 반영 안 됨
+Route: lightweight
+- decision — 2026-04-14 — 백엔드 원자성(/apps + /model-config 트랜잭션 통합) → 버리기 (프론트 가드로 충분, 직접 API 호출 리스크 수용)
+- decision — 2026-04-14 — 다른 타입(text/paragraph/number 등) default 실제 값 주입 → 버리기 (placeholder만으로 충분)
+- triage recorded — severity: P1 — Zod error.message가 렌더 시 i18n 키로 raw 노출되는 잠재 버그 (pre_prompt/opening_statement)
 Route: lightweight

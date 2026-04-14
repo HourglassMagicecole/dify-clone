@@ -330,7 +330,7 @@ export default function Step2PromptSettings() {
             {prePromptValue?.length || 0} / 4000
           </span>
           {errors.pre_prompt && (
-            <span className="text-red-500">{errors.pre_prompt.message}</span>
+            <span className="text-red-500">{t(errors.pre_prompt.message as string)}</span>
           )}
         </div>
       </div>
@@ -354,7 +354,7 @@ export default function Step2PromptSettings() {
               {openingStatementValue?.length || 0} / 500
             </span>
             {errors.opening_statement && (
-              <span className="text-red-500">{errors.opening_statement.message}</span>
+              <span className="text-red-500">{t(errors.opening_statement.message as string)}</span>
             )}
           </div>
         </div>

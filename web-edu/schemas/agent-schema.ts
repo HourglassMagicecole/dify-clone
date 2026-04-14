@@ -41,26 +41,26 @@ export type BasicSettingsFormData = z.infer<typeof basicSettingsSchema>
  */
 export const promptSettingsSchema = z.object({
   pre_prompt: z.string()
-    .min(10, 'agent.validation.promptMinLength')
-    .max(4000, 'agent.validation.promptTooLong'),
+    .min(10, 'validation.promptMinLength')
+    .max(4000, 'validation.promptTooLong'),
   prompt_type: z.enum(['simple', 'advanced']),
   user_input_form: z.array(z.object({
-    variable: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'agent.validation.invalidVariableName'),
-    label: z.string().min(1, 'agent.validation.labelRequired'),
+    variable: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'validation.invalidVariableName'),
+    label: z.string().min(1, 'validation.labelRequired'),
     input_type: z.enum(['text-input', 'paragraph', 'select', 'number', 'checkbox', 'file']),
     required: z.boolean(),
     max_length: z.number().positive().optional(),
     options: z.array(z.string()).optional(),
     default_value: z.string().optional(),
   })).optional(),
-  opening_statement: z.string().max(500, 'agent.validation.openingStatementTooLong').optional(),
+  opening_statement: z.string().max(500, 'validation.openingStatementTooLong').optional(),
   suggested_questions: z.array(z.string().max(200)).max(5).optional(),
 }).superRefine((data, ctx) => {
   // Completion mode validation: user_input_form required
   if (data.prompt_type === 'advanced' && (!data.user_input_form || data.user_input_form.length === 0)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'agent.validation.userInputFormRequired',
+      message: 'validation.userInputFormRequired',
       path: ['user_input_form'],
     })
   }
