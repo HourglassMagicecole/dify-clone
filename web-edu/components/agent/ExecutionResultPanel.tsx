@@ -619,8 +619,24 @@ export function ExecutionResultPanel({
             </div>
           </div>
 
-          {/* Result content with format-specific rendering */}
-          <div className="prose prose-sm dark:prose-invert max-w-none bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700 max-h-[600px] overflow-y-auto">
+          {/* Result content with format-specific rendering
+              NOTE: web-edu is light-theme only. We intentionally drop all
+              `dark:` variants here and pin the result surface to a light
+              palette so LLM-generated HTML/markdown can't leak a dark
+              background into the light UI. The inline style overrides
+              @tailwindcss/typography's default dark <pre>/code background
+              tokens so fenced code blocks stay readable on the light surface. */}
+          <div
+            className="prose prose-sm max-w-none bg-white text-gray-900 p-4 rounded-lg border border-gray-200 max-h-[600px] overflow-y-auto [&_pre]:bg-gray-100 [&_pre]:text-gray-900 [&_code]:text-gray-900 [&_:where(code)]:before:content-none [&_:where(code)]:after:content-none"
+            style={{
+              // @tailwindcss/typography CSS variables — force light palette
+              ['--tw-prose-body' as string]: '#111827',
+              ['--tw-prose-headings' as string]: '#111827',
+              ['--tw-prose-pre-bg' as string]: '#f3f4f6',
+              ['--tw-prose-pre-code' as string]: '#111827',
+              ['--tw-prose-code' as string]: '#111827',
+            }}
+          >
             {textFormat === 'markdown' && (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -630,12 +646,13 @@ export function ExecutionResultPanel({
               </ReactMarkdown>
             )}
             {textFormat === 'plain_text' && (
-              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-900 dark:text-gray-100">
+              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-900 bg-transparent">
                 {result}
               </pre>
             )}
             {textFormat === 'html' && (
               <div
+                className="text-gray-900"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(result, {
                     ADD_TAGS: ['style'],

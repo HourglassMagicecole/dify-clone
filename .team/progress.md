@@ -11,7 +11,7 @@
 | Mode | semi-auto |
 | Status | Hotfix 완료, 유지보수 모드 대기 |
 | Next Action | BUG_TRIAGE / P0_BF_PRD |
-| Updated | 2026-04-13 16:32 |
+| Updated | 2026-04-14 10:29 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -43,4 +43,6 @@ Route: lightweight
 - triage recorded — severity: P1 — 사용자 일괄 생성 CSV 업로드 실패 (탭 구분 파일 파싱 오류)
 Route: lightweight
 - triage recorded — severity: P1 — 지식베이스 자동 설명 생성이 stale default 모델(gpt-4 disabled) 사용 → 활성 모델 기반으로 변경 필요
+Route: lightweight
+- triage recorded — severity: P1 — 작업형 에이전트 실행 결과 영역 배경 어두움 + 글자 가독성 저하 (web-edu)
 Route: lightweight
