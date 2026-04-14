@@ -9,9 +9,9 @@
 | State | PROJECT_COMPLETE |
 | Plan | — |
 | Mode | semi-auto |
-| Status | Hotfix 완료, 유지보수 모드 대기 |
-| Next Action | BUG_TRIAGE / P0_BF_PRD |
-| Updated | 2026-04-14 14:40 |
+| Status | Hotfix 완료, 다음 BUG_TRIAGE 대기 |
+| Next Action | BUG_TRIAGE (선택 타입 default validation) |
+| Updated | 2026-04-14 15:18 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -49,4 +49,6 @@ Route: lightweight
 - triage recorded — severity: P1 — Agent 생성/편집의 도구 구성 단계 도구 나열 순서 고정 (web-edu)
 Route: lightweight
 - triage recorded — severity: P1 — md_exporter (Markdown 변환기) provider 내부 tool 나열 순서 고정 (web-edu)
+Route: lightweight
+- triage recorded — severity: P1 — Agent 채팅 응답 본문에 내부 도구 호출 로그(Calling: ...) 노출 (2턴부터 재현)
 Route: lightweight

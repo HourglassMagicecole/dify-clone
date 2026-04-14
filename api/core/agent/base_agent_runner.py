@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import uuid
 from typing import Union, cast
 
@@ -44,6 +45,22 @@ from factories import file_factory
 from models.model import Conversation, Message, MessageAgentThought, MessageFile
 
 logger = logging.getLogger(__name__)
+
+
+# MAI hotfix (hotfix_20260414_agent-tool-call-leak):
+# 과거 오염 히스토리에 포함된 내부 툴 호출 로그 라인("Calling: <tools> for <args>")이
+# 다음 턴 프롬프트로 재주입되어 LLM이 동일 패턴을 재현하는 현상을 차단하기 위한 방어 필터.
+# - 줄 시작("^") + 대소문자 일치 "Calling:" + 임의 내용 매칭
+# - 일반 영어 문장에서 "calling"이 단어로 등장하는 경우와 구분하기 위해 라인 선두 + 콜론으로 엄격화.
+_AGENT_TOOL_CALL_LEAK_PATTERN = re.compile(r"(?m)^[ \t]*Calling:[^\n]*\n?")
+
+
+def _strip_tool_call_leak(text: str | None) -> str:
+    """Remove leaked 'Calling: ...' tool invocation lines from historical text."""
+    if not text:
+        return text or ""
+    cleaned = _AGENT_TOOL_CALL_LEAK_PATTERN.sub("", text)
+    return cleaned.strip()
 
 
 class BaseAgentRunner(AppRunner):
@@ -483,11 +500,16 @@ class BaseAgentRunner(AppRunner):
                                 )
                             )
 
-                        # Anthropic API requires non-empty content for non-final assistant messages
-                        # Use thought if available, otherwise use tool names as fallback
-                        thought_content = agent_thought.thought
+                        # MAI hotfix (hotfix_20260414_agent-tool-call-leak):
+                        # Anthropic API requires non-empty content for non-final assistant
+                        # messages that carry tool_calls. 과거 구현은 "Calling: <tools>" 문자열을
+                        # 폴백으로 주입했는데, 이 텍스트가 LLM 히스토리에 '어시스턴트가 한 말'로 보여
+                        # 다음 턴 응답 본문 첫 줄에 동일 패턴이 재현되는 누수를 유발함.
+                        # 1) 저장된 thought가 있다면 방어 필터로 누수 라인 제거 후 사용
+                        # 2) 남는 텍스트가 없으면 LLM이 학습/모방하지 못하도록 공백 한 글자만 사용
+                        thought_content = _strip_tool_call_leak(agent_thought.thought)
                         if not thought_content:
-                            thought_content = f"Calling: {', '.join(tools)}"
+                            thought_content = " "
 
                         result.extend(
                             [
@@ -500,14 +522,18 @@ class BaseAgentRunner(AppRunner):
                         )
                     if not tools:
                         # Only add message if thought is not empty
-                        if agent_thought.thought:
-                            result.append(AssistantPromptMessage(content=agent_thought.thought))
+                        cleaned_thought = _strip_tool_call_leak(agent_thought.thought)
+                        if cleaned_thought:
+                            result.append(AssistantPromptMessage(content=cleaned_thought))
                 # Always include the final answer so LLM sees its previous responses
-                if message.answer:
-                    result.append(AssistantPromptMessage(content=message.answer))
+                # MAI hotfix: 과거 오염된 answer에서 'Calling: ...' 누수 라인 제거.
+                cleaned_answer = _strip_tool_call_leak(message.answer)
+                if cleaned_answer:
+                    result.append(AssistantPromptMessage(content=cleaned_answer))
             else:
-                if message.answer:
-                    result.append(AssistantPromptMessage(content=message.answer))
+                cleaned_answer = _strip_tool_call_leak(message.answer)
+                if cleaned_answer:
+                    result.append(AssistantPromptMessage(content=cleaned_answer))
 
         db.session.close()
 
