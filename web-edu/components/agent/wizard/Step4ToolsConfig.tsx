@@ -28,6 +28,8 @@ import { datasetAPI } from '@/service/dataset-api'
 import ToolConfigModal from './ToolConfigModal'
 import { DatasetSelector } from './DatasetSelector'
 import { DEFAULT_RETRIEVAL_SETTINGS } from './DatasetRetrievalSettings'
+import { sortProviderTools } from './sortProviderTools'
+import { sortToolProviders } from './sortToolProviders'
 import type { Tool, ToolProvider } from '@/types/tool'
 import type { SelectedTool, AgentDatasetConfig, DatasetRetrievalConfig } from '@/types/agent'
 
@@ -390,7 +392,19 @@ export default function Step4ToolsConfig() {
           provider => !DISABLED_PROVIDERS.includes(provider.name)
         )
 
-        setToolProviders(filteredProviders)
+        // Apply the fixed display order (hotfix: agent-tool-order)
+        // Shared by both create wizard and edit screen — same component.
+        const orderedProviders = sortToolProviders(filteredProviders)
+
+        // Apply per-provider internal tool ordering
+        // (hotfix: md-exporter-tool-order — currently scoped to md_exporter).
+        // Unknown providers are returned as-is (noop).
+        const orderedProvidersWithSortedTools = orderedProviders.map(provider => ({
+          ...provider,
+          tools: sortProviderTools(provider.name, provider.tools),
+        }))
+
+        setToolProviders(orderedProvidersWithSortedTools)
       }
       else {
         throw new Error(response.message || 'Failed to load tools')

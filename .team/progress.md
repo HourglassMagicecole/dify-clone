@@ -11,7 +11,7 @@
 | Mode | semi-auto |
 | Status | Hotfix 완료, 유지보수 모드 대기 |
 | Next Action | BUG_TRIAGE / P0_BF_PRD |
-| Updated | 2026-04-14 10:29 |
+| Updated | 2026-04-14 14:40 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -45,4 +45,8 @@ Route: lightweight
 - triage recorded — severity: P1 — 지식베이스 자동 설명 생성이 stale default 모델(gpt-4 disabled) 사용 → 활성 모델 기반으로 변경 필요
 Route: lightweight
 - triage recorded — severity: P1 — 작업형 에이전트 실행 결과 영역 배경 어두움 + 글자 가독성 저하 (web-edu)
+Route: lightweight
+- triage recorded — severity: P1 — Agent 생성/편집의 도구 구성 단계 도구 나열 순서 고정 (web-edu)
+Route: lightweight
+- triage recorded — severity: P1 — md_exporter (Markdown 변환기) provider 내부 tool 나열 순서 고정 (web-edu)
 Route: lightweight
