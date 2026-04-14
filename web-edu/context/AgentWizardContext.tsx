@@ -29,6 +29,7 @@ import { difyAPI } from '@/service/dify-api'
 import { agentAPI } from '@/service/agent-api'
 import { listTools } from '@/service/tool-api'
 import { handleAPIError } from '@/utils/api-error'
+import { validateUserInputForm, firstValidationError } from '@/utils/user-input-form-validation'
 
 /**
  * Wizard state interface
@@ -578,6 +579,27 @@ export function AgentWizardProvider({
       // 1. Validate all steps are completed
       if (!state.basicSettings || !state.promptSettings || !state.modelConfig || !state.toolsConfig) {
         throw new Error(t('validation.allStepsRequired'))
+      }
+
+      // 1-1. Final user_input_form guard (hotfix_20260414_agent-select-input-default)
+      //  - 백엔드 규칙과 동일한 검사(select options 필수 + default가 options에 포함)를
+      //    저장 직전에 수행한다.
+      //  - 실패 시 API 요청 자체를 막아 "createApp 성공 + updateModelConfig 실패"로
+      //    인한 이중 상태(에러 + 에이전트 생성됨)를 원천 차단한다.
+      const formErrors = validateUserInputForm(state.promptSettings.user_input_form)
+      if (formErrors.length > 0) {
+        const firstErr = firstValidationError(formErrors)!
+        const specificMsg = t(firstErr.messageKey, firstErr.params as Record<string, unknown>)
+        const summary = `${t('validation.userInputFormInvalid')} (${firstErr.variable}: ${specificMsg})`
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: summary,
+          // 사용자가 바로 고칠 수 있도록 Step2로 복귀
+          currentStep: AgentWizardStep.PROMPT,
+        }))
+        showToast(summary, 'error')
+        return null
       }
 
       // 2. Validate current session (only for create mode)

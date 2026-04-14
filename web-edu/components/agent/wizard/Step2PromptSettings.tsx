@@ -12,6 +12,7 @@ import { UserInputFormBuilder } from './UserInputFormBuilder'
 import { InputFieldPreview } from './InputFieldPreview'
 import { OutputFormatBuilder } from './OutputFormatBuilder'
 import { Modal } from '@/components/common/Modal'
+import { validateUserInputForm } from '@/utils/user-input-form-validation'
 
 /**
  * Step 2: Prompt Configuration Component
@@ -427,28 +428,69 @@ export default function Step2PromptSettings() {
         </div>
       )}
 
-      {/* Generate Template Button (Completion mode only) */}
-      {isCompletionMode && (
-        <div className="flex flex-col items-center space-y-2">
-          <button
-            type="button"
-            onClick={generatePromptTemplate}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg"
-          >
-            📝 {hasGeneratedTemplate ? t('promptSettings.regenerateTemplateButton') : t('promptSettings.generateTemplateButton')}
-          </button>
-          {checkPromptSyncNeeded() && (
-            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-              ⚠️ {t('promptSettings.promptSyncRequired')}
-            </p>
-          )}
-          {(userInputFormFields.length > 0 || outputFormat) && !hasGeneratedTemplate && !checkPromptSyncNeeded() && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              💡 {t('promptSettings.templateGeneratedNotice')}
-            </p>
-          )}
-        </div>
-      )}
+      {/* Generate Template Button (Completion mode only)
+          hotfix_20260414_agent-select-input-default HOTFIX_USER_FIX (CR2):
+            - 사용자 입력 폼 + 출력 형식 정의부 양쪽이 정합 상태일 때만 활성화
+            - disabled 사유는 보조 텍스트(tooltip + 라벨)로 노출 */}
+      {isCompletionMode && (() => {
+        const inputFormErrors = validateUserInputForm(userInputFormFields)
+        const isInputFormValid = inputFormErrors.length === 0
+
+        // 출력 형식 정의부 validation:
+        //   - format_type이 'text'이면 text_format 필수
+        //   - 다른 format_type은 현재 UI에서 비활성 (OutputFormatBuilder 참조)
+        //   - outputFormat 자체가 undefined여도 generatePromptTemplate은 동작하므로 통과로 본다
+        const outputFormatValid = (() => {
+          if (!outputFormat) return true
+          if (outputFormat.format_type === 'text') return !!outputFormat.text_format
+          if (outputFormat.format_type === 'image') return !!outputFormat.image_format
+          if (outputFormat.format_type === 'audio') return !!outputFormat.audio_format
+          if (outputFormat.format_type === 'file') return !!outputFormat.file_format
+          return true
+        })()
+
+        const buttonDisabled = !isInputFormValid || !outputFormatValid
+        // HOTFIX_USER_FIX (CR4, 2026-04-14): 보조 텍스트·tooltip에서 `(변수명: 사유)` 괄호 블록 제거.
+        // 사용자 보고에 따라 앞 안내 문장만 노출. 실제 필드 단위 오류는 UserInputFormBuilder의
+        // per-field 에러 표시가 이미 담당한다. tooltip은 Option A(동일 문구) 채택: 버튼은 단일
+        // `disabledReason` 문자열을 title/보조텍스트 양쪽에 공유하고 있으며, 분리하려면 추가 변수/
+        // 로직이 필요해 스코프("괄호 제거 외 변경 금지")에서 벗어난다.
+        const disabledReason = !isInputFormValid
+          ? t('validation.templateApplyDisabledReason')
+          : !outputFormatValid
+            ? t('validation.outputFormatInvalid')
+            : ''
+
+        return (
+          <div className="flex flex-col items-center space-y-2">
+            <button
+              type="button"
+              onClick={generatePromptTemplate}
+              disabled={buttonDisabled}
+              title={buttonDisabled ? disabledReason : undefined}
+              aria-disabled={buttonDisabled}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-purple-600 disabled:hover:to-blue-600 disabled:hover:shadow-md"
+            >
+              📝 {hasGeneratedTemplate ? t('promptSettings.regenerateTemplateButton') : t('promptSettings.generateTemplateButton')}
+            </button>
+            {buttonDisabled && (
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium" role="alert">
+                ⚠️ {disabledReason}
+              </p>
+            )}
+            {!buttonDisabled && checkPromptSyncNeeded() && (
+              <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                ⚠️ {t('promptSettings.promptSyncRequired')}
+              </p>
+            )}
+            {!buttonDisabled && (userInputFormFields.length > 0 || outputFormat) && !hasGeneratedTemplate && !checkPromptSyncNeeded() && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                💡 {t('promptSettings.templateGeneratedNotice')}
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Navigation Buttons */}
       <div className="flex justify-between pt-6 border-t dark:border-gray-700">

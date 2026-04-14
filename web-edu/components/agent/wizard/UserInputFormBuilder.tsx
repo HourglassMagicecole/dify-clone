@@ -110,9 +110,30 @@ export function UserInputFormBuilder({ fields, onChange, onPreview }: UserInputF
       [property]: value,
     } as UserInputForm
 
-    // Special handling for input_type: clear options if not select
-    if (property === 'input_type' && value !== 'select') {
-      delete updatedField.options
+    // Special handling for input_type: clear type-incompatible residue
+    // (hotfix_20260414_agent-select-input-default HOTFIX_USER_FIX:
+    //  타입 전환 시 default_value/options 잔여 데이터가 백엔드 검증을 트리거하는 회귀 방지)
+    if (property === 'input_type') {
+      // 옵션은 select 타입에만 의미가 있다
+      if (value !== 'select') {
+        delete updatedField.options
+      }
+      // file/checkbox는 default_value 의미 없음
+      if (value === 'file' || value === 'checkbox') {
+        updatedField.default_value = ''
+      }
+      // 새 타입에서 기존 default가 부적합하면 비운다
+      const oldType = newFields[index]?.input_type
+      const def = (updatedField.default_value || '').trim()
+      if (oldType !== value && def) {
+        if (value === 'number' && !Number.isFinite(Number(def))) {
+          updatedField.default_value = ''
+        }
+        if (value === 'select') {
+          // select로 전환 시 default는 옵션 목록에 의해 결정되어야 함
+          updatedField.default_value = ''
+        }
+      }
     }
 
     newFields[index] = updatedField
@@ -304,40 +325,129 @@ export function UserInputFormBuilder({ fields, onChange, onPreview }: UserInputF
                   </div>
                 </div>
 
-                {/* Default Value (not for file type) */}
-                {field.input_type !== 'file' && field.input_type !== 'checkbox' && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      {t('wizard.step2UserInputForm.defaultValue')}
-                    </label>
-                    <input
-                      type="text"
-                      value={field.default_value || ''}
-                      onChange={(e) => handleFieldChange(index, 'default_value', e.target.value)}
-                      placeholder={t('wizard.step2UserInputForm.defaultValuePlaceholder')}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                  </div>
-                )}
+                {/* Default Value (not for file type, not for checkbox, and NOT select — select has its own below)
+                    hotfix_20260414_agent-select-input-default HOTFIX_USER_FIX (CR1):
+                      - number 타입은 <input type="number">로 제한해 비숫자 입력 자체를 차단
+                      - text-input/paragraph는 max_length가 있으면 길이 경계 표시 + 초과 시 빨간 경고 */}
+                {field.input_type !== 'file' && field.input_type !== 'checkbox' && field.input_type !== 'select' && (() => {
+                  const def = field.default_value || ''
+                  const maxLen = field.max_length
+                  const hasMax = typeof maxLen === 'number' && Number.isInteger(maxLen) && maxLen > 0
+                  const exceedsMax = hasMax && def.length > (maxLen as number)
+                  const isNumberType = field.input_type === 'number'
+                  const numberInvalid =
+                    isNumberType && def.trim() !== '' && !Number.isFinite(Number(def.trim()))
 
-                {/* Options (for select type only) */}
-                {field.input_type === 'select' && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      {t('wizard.step2UserInputForm.options')}
-                      <span className="text-red-500 ml-1">*</span>
-                    </label>
-                    <OptionsInput
-                      value={field.options || []}
-                      onChange={(options) => handleFieldChange(index, 'options', options)}
-                      placeholder={t('wizard.step2UserInputForm.optionsPlaceholder')}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t('wizard.step2UserInputForm.optionsHelp')}
-                    </p>
-                  </div>
-                )}
+                  return (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {t('wizard.step2UserInputForm.defaultValue')}
+                      </label>
+                      <input
+                        type={isNumberType ? 'number' : 'text'}
+                        value={def}
+                        onChange={(e) => handleFieldChange(index, 'default_value', e.target.value)}
+                        placeholder={t('wizard.step2UserInputForm.defaultValuePlaceholder')}
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                          (exceedsMax || numberInvalid)
+                            ? 'border-red-500 dark:border-red-500'
+                            : 'border-gray-300 dark:border-gray-600'
+                        }`}
+                      />
+                      {hasMax && !isNumberType && (
+                        <p className={`text-xs mt-1 ${exceedsMax ? 'text-red-500' : 'text-gray-400'}`}>
+                          {def.length} / {maxLen}
+                        </p>
+                      )}
+                      {exceedsMax && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {t('validation.defaultExceedsMaxLength', { length: def.length, max_length: maxLen })}
+                        </p>
+                      )}
+                      {numberInvalid && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {t('validation.numberDefaultMustBeNumeric', { default: def })}
+                        </p>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* Options + Default (for select type only)
+                    hotfix_20260414_agent-select-input-default:
+                      - options가 비어있으면 default 입력을 비활성화해 구조적 불일치 방지
+                      - default를 options 기반 <select>로 제한해 options에 없는 값 입력 자체를 차단
+                      - options가 변경되어 기존 default가 더 이상 존재하지 않으면 자동으로 비운다 */}
+                {field.input_type === 'select' && (() => {
+                  const currentOptions = field.options || []
+                  const hasOptions = currentOptions.length > 0
+                  const defaultValue = field.default_value || ''
+                  const defaultInvalid = !!defaultValue && !currentOptions.includes(defaultValue)
+
+                  return (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          {t('wizard.step2UserInputForm.options')}
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <OptionsInput
+                          value={currentOptions}
+                          onChange={(options) => {
+                            // options 변경 시, 기존 default가 더 이상 존재하지 않으면 비운다
+                            const currentDefault = field.default_value || ''
+                            if (currentDefault && !options.includes(currentDefault)) {
+                              handleFieldChange(index, 'default_value', '')
+                            }
+                            handleFieldChange(index, 'options', options)
+                          }}
+                          placeholder={t('wizard.step2UserInputForm.optionsPlaceholder')}
+                          className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                            !hasOptions
+                              ? 'border-red-500 dark:border-red-500'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {t('wizard.step2UserInputForm.optionsHelp')}
+                        </p>
+                        {!hasOptions && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {t('validation.selectOptionsRequired')}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          {t('wizard.step2UserInputForm.defaultValue')}
+                        </label>
+                        <select
+                          value={hasOptions && currentOptions.includes(defaultValue) ? defaultValue : ''}
+                          onChange={(e) => handleFieldChange(index, 'default_value', e.target.value)}
+                          disabled={!hasOptions}
+                          className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:bg-gray-100 disabled:cursor-not-allowed dark:disabled:bg-gray-800 ${
+                            defaultInvalid
+                              ? 'border-red-500 dark:border-red-500'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        >
+                          <option value="">
+                            {t('wizard.step2UserInputForm.defaultValuePlaceholder')}
+                          </option>
+                          {currentOptions.map((opt, optIdx) => (
+                            <option key={`${opt}-${optIdx}`} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                        {defaultInvalid && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {t('validation.selectDefaultMustBeInOptions')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             )
           })

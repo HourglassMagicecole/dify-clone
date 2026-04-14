@@ -3,7 +3,8 @@
  */
 
 import { z } from 'zod'
-import { AgentType } from '@/types/agent'
+import { AgentType, type UserInputForm } from '@/types/agent'
+import { validateUserInputForm } from '@/utils/user-input-form-validation'
 
 /**
  * Basic settings validation schema for Step 1
@@ -63,16 +64,17 @@ export const promptSettingsSchema = z.object({
       path: ['user_input_form'],
     })
   }
-  // Select type validation: options required
-  data.user_input_form?.forEach((field, index) => {
-    if (field.input_type === 'select' && (!field.options || field.options.length === 0)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'agent.validation.selectOptionsRequired',
-        path: ['user_input_form', index, 'options'],
-      })
-    }
-  })
+  // 모든 입력 타입에 대한 옵션·기본값 무결성 체크
+  // (hotfix_20260414_agent-select-input-default HOTFIX_USER_FIX —
+  //  타입별 규칙 테이블로 일반화. 단일 진실 공급원: utils/user-input-form-validation.ts)
+  const formErrors = validateUserInputForm(data.user_input_form as UserInputForm[] | undefined)
+  for (const err of formErrors) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: err.messageKey,
+      path: ['user_input_form', err.fieldIndex],
+    })
+  }
 })
 
 export type PromptSettingsFormData = z.infer<typeof promptSettingsSchema>
