@@ -9,9 +9,9 @@
 | State | PROJECT_COMPLETE |
 | Plan | — |
 | Mode | semi-auto |
-| Status | Hotfix 완료, 다음 BUG_TRIAGE 대기 |
-| Next Action | BUG_TRIAGE (선택 타입 default validation) |
-| Updated | 2026-04-14 15:18 |
+| Status | Hotfix 완료 — 판단 대기 3건 |
+| Next Action | 판단 대기: 백엔드 원자성/Zod raw/다른 타입 default |
+| Updated | 2026-04-14 17:24 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -51,4 +51,8 @@ Route: lightweight
 - triage recorded — severity: P1 — md_exporter (Markdown 변환기) provider 내부 tool 나열 순서 고정 (web-edu)
 Route: lightweight
 - triage recorded — severity: P1 — Agent 채팅 응답 본문에 내부 도구 호출 로그(Calling: ...) 노출 (2턴부터 재현)
+Route: lightweight
+- triage recorded — severity: P1 — 작업형 에이전트 생성 "검토 및 저장"에서 select 타입 default 검증 에러 + 에이전트는 생성되는 이중 상태
+Route: lightweight
+- triage recorded — severity: P1 — 작업형 에이전트 실행 화면에서 select 필드 default가 초깃값으로 반영 안 됨
 Route: lightweight

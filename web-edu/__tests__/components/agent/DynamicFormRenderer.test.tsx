@@ -408,4 +408,172 @@ describe('DynamicFormRenderer', () => {
       expect(screen.getByLabelText('나이')).toHaveValue(30)
     })
   })
+
+  // Regression suite for hotfix_20260414_agent-execute-select-default
+  describe('Select field default value (hotfix)', () => {
+    it('select field initializes with field.default_value when present in options', () => {
+      const formSchema: UserInputForm[] = [
+        {
+          variable: 'language',
+          label: '언어',
+          input_type: 'select',
+          required: true,
+          options: ['English', 'Korean', 'Japanese'],
+          default_value: 'Korean',
+        },
+      ]
+
+      render(
+        <DynamicFormRenderer
+          formSchema={formSchema}
+          onSubmit={mockOnSubmit}
+          isSubmitting={false}
+        />,
+      )
+
+      const select = screen.getByLabelText('언어*') as HTMLSelectElement
+      expect(select.value).toBe('Korean')
+    })
+
+    it('select field stays empty when no default_value is provided', () => {
+      const formSchema: UserInputForm[] = [
+        {
+          variable: 'language',
+          label: '언어',
+          input_type: 'select',
+          required: true,
+          options: ['English', 'Korean'],
+        },
+      ]
+
+      render(
+        <DynamicFormRenderer
+          formSchema={formSchema}
+          onSubmit={mockOnSubmit}
+          isSubmitting={false}
+        />,
+      )
+
+      const select = screen.getByLabelText('언어*') as HTMLSelectElement
+      expect(select.value).toBe('')
+    })
+
+    it('select field falls back to empty when default_value is not in options (stale default)', () => {
+      const formSchema: UserInputForm[] = [
+        {
+          variable: 'language',
+          label: '언어',
+          input_type: 'select',
+          required: true,
+          options: ['English', 'Korean'],
+          default_value: 'French', // No longer in options
+        },
+      ]
+
+      render(
+        <DynamicFormRenderer
+          formSchema={formSchema}
+          onSubmit={mockOnSubmit}
+          isSubmitting={false}
+        />,
+      )
+
+      const select = screen.getByLabelText('언어*') as HTMLSelectElement
+      expect(select.value).toBe('')
+    })
+
+    it('explicit defaultValues prop overrides schema-derived select default', () => {
+      const formSchema: UserInputForm[] = [
+        {
+          variable: 'language',
+          label: '언어',
+          input_type: 'select',
+          required: true,
+          options: ['English', 'Korean', 'Japanese'],
+          default_value: 'Korean',
+        },
+      ]
+
+      render(
+        <DynamicFormRenderer
+          formSchema={formSchema}
+          onSubmit={mockOnSubmit}
+          isSubmitting={false}
+          defaultValues={{ language: 'Japanese' }}
+        />,
+      )
+
+      const select = screen.getByLabelText('언어*') as HTMLSelectElement
+      expect(select.value).toBe('Japanese')
+    })
+
+    it('user can change select after default is applied (interaction not broken)', async () => {
+      const user = userEvent.setup()
+      const formSchema: UserInputForm[] = [
+        {
+          variable: 'language',
+          label: '언어',
+          input_type: 'select',
+          required: true,
+          options: ['English', 'Korean', 'Japanese'],
+          default_value: 'Korean',
+        },
+      ]
+
+      render(
+        <DynamicFormRenderer
+          formSchema={formSchema}
+          onSubmit={mockOnSubmit}
+          isSubmitting={false}
+        />,
+      )
+
+      const select = screen.getByLabelText('언어*') as HTMLSelectElement
+      expect(select.value).toBe('Korean')
+      await user.selectOptions(select, 'Japanese')
+      expect(select.value).toBe('Japanese')
+
+      const submitButton = screen.getByRole('button', { name: /실행/i })
+      await user.click(submitButton)
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalled()
+        const callArgs = mockOnSubmit.mock.calls[0]
+        expect(callArgs[0]).toEqual({ language: 'Japanese' })
+      })
+    })
+
+    it('does not regress non-select types (text/number left untouched by schema defaults)', () => {
+      // Other types currently expose default_value as placeholder only; this hotfix
+      // intentionally does not change that behavior. This test guards against
+      // accidental over-application of schema defaults to non-select inputs.
+      const formSchema: UserInputForm[] = [
+        {
+          variable: 'name',
+          label: '이름',
+          input_type: 'text-input',
+          required: false,
+          default_value: 'placeholder-name',
+        },
+        {
+          variable: 'age',
+          label: '나이',
+          input_type: 'number',
+          required: false,
+          default_value: '42',
+        },
+      ]
+
+      render(
+        <DynamicFormRenderer
+          formSchema={formSchema}
+          onSubmit={mockOnSubmit}
+          isSubmitting={false}
+        />,
+      )
+
+      expect(screen.getByLabelText('이름')).toHaveValue('')
+      expect(screen.getByLabelText('나이')).toHaveValue(null)
+    })
+  })
 })

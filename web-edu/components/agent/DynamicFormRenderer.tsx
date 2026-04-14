@@ -118,6 +118,31 @@ export function DynamicFormRenderer({
   }, [formSchema, t])
 
   /**
+   * Compute schema-derived defaults (e.g., field.default_value for select fields).
+   *
+   * Precedence: explicit `defaultValues` prop wins over schema defaults so that
+   * caller-supplied values (e.g., rerun with previous inputs) are preserved.
+   *
+   * Scope (hotfix_20260414_agent-execute-select-default):
+   * - Select fields populate the dropdown initial value from `field.default_value`
+   *   only when it appears in `field.options`. Stale defaults that are no longer
+   *   in the options list fall back to an empty value (placeholder).
+   * - Other input types are intentionally untouched to avoid regressions.
+   */
+  const mergedDefaults = useMemo(() => {
+    const fromSchema: Record<string, unknown> = {}
+    formSchema.forEach((field) => {
+      if (field.input_type === 'select') {
+        const candidate = field.default_value
+        if (candidate && field.options?.includes(candidate)) {
+          fromSchema[field.variable] = candidate
+        }
+      }
+    })
+    return { ...fromSchema, ...defaultValues }
+  }, [formSchema, defaultValues])
+
+  /**
    * Initialize React Hook Form
    */
   const {
@@ -128,17 +153,18 @@ export function DynamicFormRenderer({
     watch,
   } = useForm({
     resolver: zodResolver(zodSchema),
-    defaultValues,
+    defaultValues: mergedDefaults,
   })
 
   /**
-   * Update default values when changed
+   * Update default values when changed (keeps form in sync with caller-driven
+   * defaultValues, e.g., rerun-from-history).
    */
   useEffect(() => {
-    Object.entries(defaultValues).forEach(([key, value]) => {
+    Object.entries(mergedDefaults).forEach(([key, value]) => {
       setValue(key, value)
     })
-  }, [defaultValues, setValue])
+  }, [mergedDefaults, setValue])
 
   /**
    * Render field based on input type
