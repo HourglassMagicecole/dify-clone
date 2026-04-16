@@ -239,7 +239,6 @@ scripts/stress-test/reports/
 
 .bmad-core
 .claude
-docs/
 *.png
 docker/volumes
 *.pem

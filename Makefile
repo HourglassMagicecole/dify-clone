@@ -27,6 +27,10 @@ init-docker-env:
 	@./docker/init-env.sh
 
 # Start Docker production environment (with auto-initialization)
+# 📌 When to use:
+#   - First-time deployment on a new server (cache is empty anyway)
+#   - Normal start/restart of the stack
+#   - Fastest option — reuses existing images, only builds what's missing
 docker-up: init-docker-env
 	@echo "🚀 Starting Docker containers..."
 	@cd docker && docker-compose up -d
@@ -38,6 +42,10 @@ docker-up: init-docker-env
 	@echo "   - Access API: http://localhost/v1"
 
 # Build and restart Docker containers (uses cache, fast)
+# 📌 When to use:
+#   - After pulling code changes that affect Dockerfiles or app source
+#   - Always rebuilds buildable services (api, worker, web-edu) but reuses layer cache
+#   - For targeted rebuilds of specific services, prefer deploy-api / deploy-web / deploy-all
 docker-build: init-docker-env
 	@echo "🔨 Building Docker images..."
 	@cd docker && docker-compose up -d --build
@@ -49,6 +57,12 @@ docker-build: init-docker-env
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
 
 # Rebuild Docker images without cache (slower but ensures fresh build)
+# 📌 When to use (NOT for first-time deployment — use docker-up instead):
+#   - After `make docker-clean-all` (volumes + .env reset → start completely fresh)
+#   - When build cache appears corrupted and builds fail mysteriously
+#   - When you suspect stale layers are causing unexpected runtime behavior
+#   - For release builds where reproducibility matters more than speed
+# ⚠️  Slow: --no-cache + --force-recreate + prunes images/build cache (15~30 min)
 docker-rebuild: init-docker-env
 	@echo "🔨 Rebuilding Docker images without cache..."
 	@cd docker && docker-compose build --no-cache
