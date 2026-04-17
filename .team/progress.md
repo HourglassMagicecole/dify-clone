@@ -11,7 +11,7 @@
 | Mode | semi-auto |
 | Status | Hotfix 완료, 유지보수 모드 대기 |
 | Next Action | BUG_TRIAGE / P0_BF_PRD |
-| Updated | 2026-04-17 10:20 |
+| Updated | 2026-04-17 12:05 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -61,4 +61,6 @@ Route: lightweight
 - triage recorded — severity: P1 — Zod error.message가 렌더 시 i18n 키로 raw 노출되는 잠재 버그 (pre_prompt/opening_statement)
 Route: lightweight
 - triage recorded — severity: P1 — 에이전트 채팅 '새 대화 생성' CTA 시인성 약함 (web-edu) — 버튼 재배치 + 빈 상태 박스 클릭 활성화
+Route: lightweight
+- triage recorded — severity: P1 — web-edu 전 페이지 새로고침 시 이전 스크롤 위치 복원되어 GNB 미노출 — 새로고침 감지 후 최상단 이동
 Route: lightweight

@@ -38,7 +38,7 @@ export function NavigationHeader() {
   // Don't render on server or before mount
   if (!isMounted) {
     return (
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="px-4 py-3">
           <div className="flex items-center justify-end">
             <div className="text-sm text-gray-500">Loading...</div>
@@ -51,7 +51,7 @@ export function NavigationHeader() {
   // Loading state display (AC: 7)
   if (isLoading) {
     return (
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="px-4 py-3">
           <div className="flex items-center justify-end">
             <div className="text-sm text-gray-500">{t('header.loading')}</div>
@@ -75,7 +75,7 @@ export function NavigationHeader() {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
       {/* Top bar: Logo + Language + User */}
       <div className="px-4 md:px-6 lg:px-8 py-3 border-b border-gray-100">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
