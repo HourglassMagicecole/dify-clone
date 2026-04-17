@@ -1,11 +1,10 @@
 description:
   human:
-    en_US: A tool for get analytics about a ticker from Yahoo Finance.
-    pt_BR: Uma ferramenta para obter análises sobre um ticker do Yahoo Finance.
-    zh_Hans: 一个用于从雅虎财经获取分析数据的工具。
-    ko_KR: Yahoo 파이낸스에서 분석 데이터를 가져오는 도구입니다.
-  llm: A tool for get analytics from Yahoo Finance. Input should be the ticker symbol
-    like AAPL.
+    en_US: Fetch Yahoo Finance analytics for a ticker — price/volume statistics, recent quarterly financials (revenue, operating income, net income, basic/diluted EPS), and upcoming-quarter EPS consensus.
+    pt_BR: Busca análises do Yahoo Finance para um ticker — estatísticas de preço/volume, resultados trimestrais recentes (receita, lucro operacional, lucro líquido, EPS básico/diluído) e consenso de EPS do próximo trimestre.
+    zh_Hans: 从雅虎财经获取股票代码的分析数据——价格/成交量统计、最近的季度财务（营收、营业利润、净利润、基本/稀释每股收益）以及下一季度每股收益共识预期。
+    ko_KR: Yahoo 파이낸스에서 티커의 분석 데이터를 가져옵니다 — 주가/거래량 통계, 최근 분기별 재무(매출, 영업이익, 순이익, 기본/희석 EPS), 다음 분기 EPS 컨센서스를 포함합니다.
+  llm: "Fetch Yahoo Finance analytics for a ticker: price/volume statistics over the given date range, the most recent quarterly financials (total revenue, operating income, net income, basic/diluted EPS for up to 4 quarters), and EPS history with the nearest upcoming quarter consensus estimate. Input the ticker symbol like AAPL or 005930.KS."
 extra:
   python:
     source: tools/analytics.py

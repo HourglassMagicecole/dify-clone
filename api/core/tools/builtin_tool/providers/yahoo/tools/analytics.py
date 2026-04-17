@@ -1,12 +1,23 @@
 from collections.abc import Generator
 from datetime import datetime, timedelta
+from operator import itemgetter
 from typing import Any
 
+import pandas as pd
 from requests.exceptions import ConnectionError, HTTPError, ReadTimeout
-from yfinance import download  # pyright: ignore[reportMissingTypeStubs]
+from yfinance import Ticker, download  # pyright: ignore[reportMissingTypeStubs]
 
 from core.tools.builtin_tool.tool import BuiltinTool
 from core.tools.entities.tool_entities import ToolInvokeMessage
+
+# yfinance quarterly_income_stmt row labels; declared here to keep run() readable.
+# Some labels may be absent for a given ticker — we look them up with fallback and
+# skip fields we cannot resolve rather than failing the whole response.
+_REVENUE_KEYS = ("Total Revenue", "Operating Revenue")
+_OPERATING_INCOME_KEYS = ("Operating Income", "Total Operating Income As Reported")
+_NET_INCOME_KEYS = ("Net Income", "Net Income Common Stockholders")
+_BASIC_EPS_KEYS = ("Basic EPS",)
+_DILUTED_EPS_KEYS = ("Diluted EPS",)
 
 
 class YahooFinanceAnalyticsTool(BuiltinTool):
@@ -58,6 +69,12 @@ class YahooFinanceAnalyticsTool(BuiltinTool):
         """
         Run the analytics calculation for the given symbol and date range.
 
+        Returns price/volume statistics (kept verbatim for backward compatibility)
+        plus the most recent quarterly financials and EPS history/estimates when
+        yfinance exposes them. Each optional section is emitted only when data
+        is actually available — transient yfinance errors for one section never
+        block the rest of the payload.
+
         Args:
             symbol: Stock ticker symbol
             start_date: Start date (YYYY-MM-DD)
@@ -102,9 +119,192 @@ class YahooFinanceAnalyticsTool(BuiltinTool):
                 }
                 summary_data.append(segment_summary)
 
-            yield self.create_json_message({"analytics": summary_data})
+            payload: dict[str, Any] = {"analytics": summary_data}
+
+            ticker = Ticker(symbol)  # type: ignore
+
+            quarterly = _extract_quarterly_financials(ticker)
+            if quarterly:
+                payload["quarterly_financials"] = quarterly
+
+            earnings = _extract_earnings_history_and_estimates(ticker)
+            if earnings:
+                payload["earnings_history_and_estimates"] = earnings
+
+            yield self.create_json_message(payload)
 
         except (HTTPError, ReadTimeout, ConnectionError):
             yield self.create_text_message(f"Failed to fetch data for symbol {symbol}")
         except Exception:
             yield self.create_text_message("An unexpected error occurred while processing the data")
+
+
+def _extract_quarterly_financials(ticker: Any) -> list[dict[str, Any]]:
+    """Pull up to the 4 most recent quarters from ``Ticker.quarterly_income_stmt``.
+
+    The DataFrame has row-labels like "Total Revenue" and Timestamp columns. We
+    sort columns descending (most recent first) and emit one dict per quarter,
+    skipping NaN fields and skipping the whole section if the DataFrame itself
+    is missing or raises during access.
+    """
+    try:
+        df = ticker.quarterly_income_stmt
+    except Exception:
+        return []
+
+    if df is None:
+        return []
+    try:
+        if df.empty:
+            return []
+    except Exception:
+        return []
+
+    try:
+        columns = sorted(df.columns, reverse=True)[:4]
+    except Exception:
+        return []
+
+    quarters: list[dict[str, Any]] = []
+    for col in columns:
+        try:
+            period_end = _format_date(col)
+        except Exception:
+            continue
+        if not period_end:
+            continue
+
+        entry: dict[str, Any] = {"period_end": period_end}
+        _assign_first_available(entry, "total_revenue", df, col, _REVENUE_KEYS)
+        _assign_first_available(entry, "operating_income", df, col, _OPERATING_INCOME_KEYS)
+        _assign_first_available(entry, "net_income", df, col, _NET_INCOME_KEYS)
+        _assign_first_available(entry, "basic_eps", df, col, _BASIC_EPS_KEYS)
+        _assign_first_available(entry, "diluted_eps", df, col, _DILUTED_EPS_KEYS)
+
+        # period_end alone is not informative — drop quarters with no resolved metric.
+        if len(entry) > 1:
+            quarters.append(entry)
+
+    return quarters
+
+
+def _extract_earnings_history_and_estimates(ticker: Any) -> dict[str, list[dict[str, Any]]]:
+    """Split ``Ticker.earnings_dates`` into recent actuals and upcoming estimates.
+
+    - ``reported``: up to 4 past rows with a non-NaN reported EPS, newest first.
+    - ``upcoming``: up to 3 future rows with a non-NaN EPS estimate, soonest first.
+    An empty or raising dataset yields an empty dict so the caller omits the key.
+    """
+    try:
+        df = ticker.earnings_dates
+    except Exception:
+        return {}
+
+    if df is None:
+        return {}
+    try:
+        if df.empty:
+            return {}
+    except Exception:
+        return {}
+
+    # Compare without tz so naive fixtures and tz-aware real data both work.
+    now = pd.Timestamp(datetime.now())
+
+    reported: list[dict[str, Any]] = []
+    upcoming: list[dict[str, Any]] = []
+
+    try:
+        rows = list(df.iterrows())
+    except Exception:
+        return {}
+
+    for idx, row in rows:
+        try:
+            earnings_ts = pd.Timestamp(idx)
+        except Exception:
+            continue
+
+        earnings_date = _format_date(earnings_ts)
+        if not earnings_date:
+            continue
+
+        # Strip timezone info for a direct comparison.
+        compare_ts = earnings_ts.tz_localize(None) if earnings_ts.tzinfo is not None else earnings_ts
+
+        reported_eps = _get_cell(row, "Reported EPS")
+        eps_estimate = _get_cell(row, "EPS Estimate")
+        surprise_pct = _get_cell(row, "Surprise(%)")
+
+        if compare_ts <= now:
+            if reported_eps is None:
+                continue
+            entry: dict[str, Any] = {"earnings_date": earnings_date, "reported_eps": reported_eps}
+            if eps_estimate is not None:
+                entry["eps_estimate"] = eps_estimate
+            if surprise_pct is not None:
+                entry["surprise_pct"] = surprise_pct
+            reported.append(entry)
+        else:
+            if eps_estimate is None:
+                continue
+            upcoming.append({"earnings_date": earnings_date, "eps_estimate": eps_estimate})
+
+    reported.sort(key=itemgetter("earnings_date"), reverse=True)
+    upcoming.sort(key=itemgetter("earnings_date"))
+
+    result: dict[str, list[dict[str, Any]]] = {}
+    if reported:
+        result["reported"] = reported[:4]
+    if upcoming:
+        result["upcoming"] = upcoming[:3]
+    return result
+
+
+def _assign_first_available(
+    target: dict[str, Any],
+    key: str,
+    df: Any,
+    column: Any,
+    candidates: tuple[str, ...],
+) -> None:
+    for label in candidates:
+        if label not in df.index:
+            continue
+        try:
+            value = df.at[label, column]
+        except Exception:
+            continue
+        coerced = _coerce_number(value)
+        if coerced is not None:
+            target[key] = coerced
+            return
+
+
+def _coerce_number(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _get_cell(row: Any, key: str) -> float | None:
+    try:
+        value = row[key]
+    except Exception:
+        return None
+    return _coerce_number(value)
+
+
+def _format_date(value: Any) -> str:
+    try:
+        return pd.Timestamp(value).strftime("%Y-%m-%d")
+    except Exception:
+        return ""
