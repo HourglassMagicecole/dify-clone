@@ -53,14 +53,15 @@ export function ConversationHistory({
   return (
     <aside className="w-64 border-r bg-gray-50 flex flex-col h-full">
       {/* Header with New Conversation button - Sticky */}
-      <div className="p-4 border-b bg-white flex justify-between items-center sticky top-0 z-10 flex-shrink-0 h-[85px]">
-        <h3 className="font-bold text-gray-900">{t('conversationHistory')}</h3>
+      <div className="px-4 py-3 border-b bg-white flex flex-col gap-2 sticky top-0 z-10 flex-shrink-0 h-[85px] justify-center">
+        <h3 className="font-bold text-gray-900 text-sm">{t('conversationHistory')}</h3>
         <button
           onClick={onNewConversation}
-          className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+          className="w-full flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 transition-colors"
           aria-label={t('newConversationButton')}
         >
-          +
+          <span aria-hidden="true">+</span>
+          <span>{t('newConversationButton')}</span>
         </button>
       </div>
 

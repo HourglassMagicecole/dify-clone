@@ -17,6 +17,7 @@ interface MessageListProps {
   streamingContent: string
   onRegenerate?: () => void
   hasConversationSelected?: boolean
+  onNewConversation?: () => void
 }
 
 /**
@@ -29,6 +30,7 @@ export function MessageList({
   streamingContent,
   onRegenerate,
   hasConversationSelected = false,
+  onNewConversation,
 }: MessageListProps) {
   const { t } = useTranslation('chat')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -87,15 +89,32 @@ export function MessageList({
       {/* No conversation selected state */}
       {!hasConversationSelected && messages.length === 0 && !isStreaming && (
         <div className="flex flex-col items-center justify-center h-full">
-          <div className="text-center p-8 bg-blue-50 rounded-xl border-2 border-dashed border-blue-200 max-w-lg">
-            <div className="text-5xl mb-4">💬</div>
-            <p className="text-lg font-medium text-gray-700">
-              {t('selectConversation')}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              ← {t('conversationHistory')}
-            </p>
-          </div>
+          {onNewConversation ? (
+            <button
+              type="button"
+              onClick={onNewConversation}
+              className="text-center p-8 bg-blue-50 rounded-xl border-2 border-dashed border-blue-200 max-w-lg cursor-pointer hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
+              aria-label={t('newConversationButton')}
+            >
+              <div className="text-5xl mb-4" aria-hidden="true">💬</div>
+              <p className="text-lg font-medium text-gray-700">
+                {t('selectConversation')}
+              </p>
+              <p className="text-sm text-blue-600 mt-2 font-medium">
+                + {t('newConversationButton')}
+              </p>
+            </button>
+          ) : (
+            <div className="text-center p-8 bg-blue-50 rounded-xl border-2 border-dashed border-blue-200 max-w-lg">
+              <div className="text-5xl mb-4">💬</div>
+              <p className="text-lg font-medium text-gray-700">
+                {t('selectConversation')}
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                ← {t('conversationHistory')}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

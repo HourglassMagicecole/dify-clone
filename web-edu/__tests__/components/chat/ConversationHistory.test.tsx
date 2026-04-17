@@ -222,4 +222,61 @@ describe('ConversationHistory', () => {
 
     expect(conversationButtons).toHaveLength(2)
   })
+
+  // Regression tests for hotfix_20260417_chat-new-conversation-cta
+  describe('new conversation CTA (hotfix_20260417)', () => {
+    it('should place the new conversation button below the title in DOM order', () => {
+      render(
+        <ConversationHistory
+          conversations={[]}
+          currentConversationId={null}
+          onSelect={mockOnSelect}
+          onNewConversation={mockOnNewConversation}
+        />
+      )
+
+      const title = screen.getByText('conversationHistory')
+      const newButton = screen.getByLabelText('newConversationButton')
+
+      // Title and button share the same header container
+      const header = title.parentElement
+      expect(header).toBe(newButton.parentElement)
+
+      // Button comes after the title in document order
+      // Node.DOCUMENT_POSITION_FOLLOWING === 4
+      const following = title.compareDocumentPosition(newButton)
+      expect(following & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('should render the new conversation button with w-full class to fill sidebar width', () => {
+      render(
+        <ConversationHistory
+          conversations={[]}
+          currentConversationId={null}
+          onSelect={mockOnSelect}
+          onNewConversation={mockOnNewConversation}
+        />
+      )
+
+      const newButton = screen.getByLabelText('newConversationButton')
+      expect(newButton).toHaveClass('w-full')
+    })
+
+    it('should keep existing click behavior (calls onNewConversation once) after re-layout', async () => {
+      const user = userEvent.setup()
+      render(
+        <ConversationHistory
+          conversations={[]}
+          currentConversationId={null}
+          onSelect={mockOnSelect}
+          onNewConversation={mockOnNewConversation}
+        />
+      )
+
+      const newButton = screen.getByLabelText('newConversationButton')
+      await user.click(newButton)
+
+      expect(mockOnNewConversation).toHaveBeenCalledTimes(1)
+    })
+  })
 })

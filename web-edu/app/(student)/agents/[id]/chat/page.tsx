@@ -783,6 +783,7 @@ export default function AgentChatPage() {
             isStreaming={isStreaming}
             streamingContent={streamingContent}
             hasConversationSelected={currentConversationId !== null}
+            onNewConversation={handleNewConversation}
           />
         </div>
 

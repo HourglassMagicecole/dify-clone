@@ -284,4 +284,76 @@ describe('MessageList', () => {
     const contentElement = screen.getByText(/Line 1/)
     expect(contentElement).toHaveClass('whitespace-pre-wrap', 'break-words')
   })
+
+  // Regression tests for hotfix_20260417_chat-new-conversation-cta
+  describe('no-conversation-selected empty state CTA (hotfix_20260417)', () => {
+    it('should call onNewConversation when the empty-state CTA is clicked', async () => {
+      const user = userEvent.setup()
+      const mockOnNewConversation = jest.fn()
+
+      render(
+        <MessageList
+          messages={[]}
+          isStreaming={false}
+          streamingContent=""
+          hasConversationSelected={false}
+          onNewConversation={mockOnNewConversation}
+        />
+      )
+
+      const cta = screen.getByLabelText('newConversationButton')
+      await user.click(cta)
+
+      expect(mockOnNewConversation).toHaveBeenCalledTimes(1)
+    })
+
+    it('should render CTA as a button with accessible label when onNewConversation is provided', () => {
+      render(
+        <MessageList
+          messages={[]}
+          isStreaming={false}
+          streamingContent=""
+          hasConversationSelected={false}
+          onNewConversation={jest.fn()}
+        />
+      )
+
+      const cta = screen.getByLabelText('newConversationButton')
+      expect(cta.tagName).toBe('BUTTON')
+      // Still shows the original guiding text
+      expect(screen.getByText('selectConversation')).toBeInTheDocument()
+    })
+
+    it('should render non-interactive fallback when onNewConversation is not provided', () => {
+      render(
+        <MessageList
+          messages={[]}
+          isStreaming={false}
+          streamingContent=""
+          hasConversationSelected={false}
+        />
+      )
+
+      // Guiding text still visible for backward compatibility
+      expect(screen.getByText('selectConversation')).toBeInTheDocument()
+      // No CTA button labeled as newConversationButton in this mode
+      expect(screen.queryByLabelText('newConversationButton')).not.toBeInTheDocument()
+    })
+
+    it('should not render the empty-state CTA once a conversation is selected', () => {
+      render(
+        <MessageList
+          messages={[]}
+          isStreaming={false}
+          streamingContent=""
+          hasConversationSelected={true}
+          onNewConversation={jest.fn()}
+        />
+      )
+
+      expect(screen.queryByLabelText('newConversationButton')).not.toBeInTheDocument()
+      // Instead, the noMessages state is shown
+      expect(screen.getByText('noMessages')).toBeInTheDocument()
+    })
+  })
 })
