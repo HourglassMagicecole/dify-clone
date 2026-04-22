@@ -109,17 +109,36 @@ curl -SL https://github.com/docker/compose/releases/latest/download/docker-compo
   -o $DOCKER_CONFIG/cli-plugins/docker-compose
 chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 
-# 2-4. 프로젝트 Makefile이 `docker-compose`(하이픈) 명령을 사용하므로 shim 생성
+# 2-4. Docker Buildx 플러그인 설치
+# Docker Compose v2는 내부적으로 `docker buildx`를 사용하며 0.17.0 이상을 요구합니다.
+# AL2023 기본 docker 패키지에는 buildx가 구버전이거나 미포함이므로 Compose v2와 동일한 방식으로 플러그인을 추가합니다.
+
+# 1차 시도 — AL2023 저장소 패키지 (있으면 설치, 없으면 아래 수동 설치로 진행)
+sudo dnf install -y docker-buildx-plugin || true
+docker buildx version 2>/dev/null || echo "→ 저장소에 패키지가 없으므로 아래 수동 설치로 진행"
+
+# 2차 — GitHub 릴리스 최신판 수동 설치
+DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+mkdir -p $DOCKER_CONFIG/cli-plugins
+
+LATEST_BUILDX=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest \
+  | grep '"tag_name"' | head -1 | cut -d'"' -f4)
+curl -SL "https://github.com/docker/buildx/releases/download/${LATEST_BUILDX}/buildx-${LATEST_BUILDX}.linux-amd64" \
+  -o $DOCKER_CONFIG/cli-plugins/docker-buildx
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-buildx
+
+# 2-5. 프로젝트 Makefile이 `docker-compose`(하이픈) 명령을 사용하므로 shim 생성
 sudo tee /usr/local/bin/docker-compose >/dev/null <<'EOF'
 #!/bin/sh
 exec docker compose "$@"
 EOF
 sudo chmod +x /usr/local/bin/docker-compose
 
-# 2-5. 설치 검증
+# 2-6. 설치 검증
 docker --version
 docker compose version
 docker-compose version   # shim 동작 확인
+docker buildx version    # 0.17.0 이상
 ```
 
 ---
@@ -627,6 +646,21 @@ sudo setsebool -P httpd_can_network_connect 1
 - AWS SG에 80 포트가 열려있는지 확인 (certbot HTTP-01 검증용)
 - 방화벽에 80 포트 허용되어 있는지: `sudo ss -tlnp | grep :80`
 
+### `compose build requires buildx 0.17.0 or later`
+
+Docker Compose v2가 내부적으로 buildx를 호출하지만, AL2023 기본 docker 패키지의 buildx가 구버전이거나 미포함일 때 발생. 2단계의 Buildx 플러그인 설치 블록을 실행해 `~/.docker/cli-plugins/docker-buildx`를 최신으로 덮어쓰면 해결:
+
+```bash
+DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+mkdir -p $DOCKER_CONFIG/cli-plugins
+LATEST_BUILDX=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest \
+  | grep '"tag_name"' | head -1 | cut -d'"' -f4)
+curl -SL "https://github.com/docker/buildx/releases/download/${LATEST_BUILDX}/buildx-${LATEST_BUILDX}.linux-amd64" \
+  -o $DOCKER_CONFIG/cli-plugins/docker-buildx
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-buildx
+docker buildx version
+```
+
 ### 컨테이너 기동 실패
 
 ```bash
@@ -755,6 +789,7 @@ make deploy-all
 ### OS 및 런타임
 - [ ] AL2023 최신 패치 적용
 - [ ] Docker + Compose v2 설치
+- [ ] Buildx 플러그인 설치 (≥ 0.17.0)
 - [ ] `docker-compose` shim 설치 (Makefile 호환)
 - [ ] 호스트 nginx 설치
 - [ ] certbot 설치
@@ -798,3 +833,4 @@ make deploy-all
 | 날짜 | 내용 | 작성자 |
 |---|---|---|
 | 2026-04-16 | 초안 작성 (AL2023, 호스트 nginx + certbot 패턴 기준) | — |
+| 2026-04-17 | Docker Buildx 플러그인 설치 단계 추가 (compose build ≥ buildx 0.17.0 요구) | — |

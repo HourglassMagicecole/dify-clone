@@ -7,11 +7,11 @@
 | Epic | — |
 | Story | — |
 | State | PROJECT_COMPLETE |
-| Plan | — |
+| Plan | _bmad-output/stories/hotfix_20260417_docs-buildx-prerequisite.md |
 | Mode | semi-auto |
-| Status | Hotfix 완료, 유지보수 모드 대기 |
-| Next Action | BUG_TRIAGE / P0_BF_PRD |
-| Updated | 2026-04-17 13:55 |
+| Status | Hotfix deployment-guide buildx 완료, 재진입 대기 |
+| Next Action | 대기 (새 요청 수신 시 BUG_TRIAGE) |
+| Updated | 2026-04-22 09:24 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -65,4 +65,6 @@ Route: lightweight
 - triage recorded — severity: P1 — web-edu 전 페이지 새로고침 시 이전 스크롤 위치 복원되어 GNB 미노출 — 새로고침 감지 후 최상단 이동
 Route: lightweight
 - triage recorded — severity: P1 — yahoo_finance_analytics 도구가 분기별 재무(매출/EPS) 미제공 → 에이전트가 "진행할까요?" 확인 루프. yfinance quarterly_income_stmt / earnings_dates 호출 추가
+Route: lightweight
+- triage recorded — severity: P1 — deployment-guide.md 2단계에 Docker Buildx 플러그인 설치 누락 → 고객사 배포 시 "compose build requires buildx 0.17.0 or later" 실패
 Route: lightweight
