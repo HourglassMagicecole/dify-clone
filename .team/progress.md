@@ -6,12 +6,12 @@
 | Phase | Maintenance |
 | Epic | — |
 | Story | rocky-deployment-docs |
-| State | HOTFIX_STORY_REVIEW |
+| State | HOTFIX_USER_VERIFY |
 | Plan | _bmad-output/stories/hotfix_20260424_rocky-deployment-docs.md |
 | Mode | semi-auto |
-| Status | 스토리 검토 대기 — Rocky Linux 9 배포/이전 가이드 신규 2파일 (Ubuntu Hotfix는 Approved로 마감) |
-| Next Action | 사용자가 스토리(AC·범위·OS 대상) 검토 후 Approved/CR 회신 |
-| Updated | 2026-04-24 |
+| Status | HOTFIX_COMPLETE — Rocky Linux 9 배포/이전 가이드 신규 2파일 승인 및 실서버 배포 검증 완료 |
+| Next Action | 다음 hotfix/maintenance 이슈 도착 시 triage 진행 |
+| Updated | 2026-04-24 (완료) |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -73,3 +73,4 @@ Route: lightweight
 - hotfix completed — 2026-04-24 — ubuntu-deployment-docs — Approved (신규 파일 2개: docs/deployment-guide-ubuntu.md, docs/migration-notes-ubuntu.md)
 - triage recorded — severity: P1 — Rocky Linux 9 기반 배포 가이드 + 이전 노트 신규 작성 (기존 AL2023/Ubuntu 문서 유지, 별도 파일 추가, Rocky 9만 지원)
 Route: lightweight
+- hotfix completed — 2026-04-24 — rocky-deployment-docs — Approved (신규 파일 2개: docs/deployment-guide-rocky.md, docs/migration-notes-rocky.md). 실서버 배포까지 검증 완료. 4차 개정에서 firewalld/SELinux Disabled 환경 대응 + init-env.sh 동기화 주의 + make docker-clean-all 권한 거부 복구 순서 등 필드 피드백 흡수.

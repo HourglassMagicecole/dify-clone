@@ -132,10 +132,15 @@ Rocky 9 버전 가이드를 별도 파일로 추가해 OS별 분기를 제공한
 ### 품질 검사
 - Lint: 해당 없음 (docs-only)
 - 테스트: 해당 없음 (docs-only)
-- `git diff docs/deployment-guide.md docs/migration-notes.md docs/deployment-guide-ubuntu.md docs/migration-notes-ubuntu.md`: 변경 0 기대
-- 금지 패턴 스캔 (예정):
-  - deployment-guide-rocky.md: `ec2-user` 0건, AL2023 단순 참조 0건(단, 비교 각주 허용)
-  - migration-notes-rocky.md: `ec2-user@` 0건 (4단계), 단독 `deployment-guide.md` 참조 0건
+- `git diff docs/deployment-guide.md docs/migration-notes.md docs/deployment-guide-ubuntu.md docs/migration-notes-ubuntu.md`: 변경 0 확인 (diff empty)
+- 신규 파일 2개 존재 확인:
+  - `docs/deployment-guide-rocky.md` (894 lines)
+  - `docs/migration-notes-rocky.md` (312 lines)
+- 금지 패턴 스캔 결과:
+  - `ec2-user`: 두 파일 모두 0건
+  - `dnf install -y docker` (AL2023 Docker 설치 패턴): 0건
+  - `apt-get`, `ufw `, `AppArmor` (Ubuntu 전용 패턴): 0건
+  - migration-notes-rocky.md에서 단독 `deployment-guide.md` 링크 참조: 0건 (모두 `deployment-guide-rocky.md`로 링크)
 - 변경 이력 테이블에 `2026-04-24` 행 두 파일 모두 포함 확인
 
 ### User Briefing
@@ -147,7 +152,10 @@ Rocky 9 버전 가이드를 별도 파일로 추가해 OS별 분기를 제공한
   - CentOS용 Docker 저장소를 Rocky 9에 사용 (공식 관행)
 
 ### 이슈 기록
-- (구현 단계에서 추가)
+- Rocky Linux 9의 기본 계정명을 `rocky`로 기재했으나, 실제 고객사 클라우드 제공자의 공식 이미지(AWS Marketplace Rocky AMI, Azure/GCP Rocky 이미지 등)에 따라 기본 계정이 다를 가능성이 있음. 고객사가 Rocky 공식 이미지를 사용하면 `rocky`가 맞으나, 자체 커스텀 이미지 사용 시 실제 SSH 접속 시점에 계정명 확인 필요. 본문에서는 공식 이미지 기준 단정 표현 사용, 배포자가 실제 접속 시 계정명을 자연스럽게 치환하도록 의존함.
+- Docker 공식이 Rocky 전용 저장소를 별도 제공하지 않아 CentOS용 `docker-ce.repo`를 Rocky 9에 그대로 사용. 이는 Docker 커뮤니티 공식 권장 방식이며 Rocky 9는 CentOS Stream 9와 동일한 ABI라 안정적으로 동작. "알려진 제약" 섹션과 2단계 본문에 근거 주석 포함.
+- 6-1에서 EPEL/CRB 활성화를 nginx 설치 블록 앞으로 끌어올림. 원래 AL2023 가이드는 8단계(certbot)에서만 EPEL 언급하지만, Rocky 9는 EPEL 없이는 certbot·fail2ban이 모두 실패하므로 앞단으로 이동. 단 CRB는 엄밀히는 nginx 기본 설치에 필수는 아니나 추후 모듈 확장 대비 함께 활성화 (한 번만 실행).
+- 최종 체크리스트에 "firewalld HTTP/HTTPS 허용"과 "EPEL + CRB 저장소 활성화" 항목을 OS 및 런타임 섹션에 신규 추가. AL2023 체크리스트와 달리 Rocky는 이 두 항목이 누락되면 502가 재현됨.
 
 ## Lifecycle Log
 
@@ -156,3 +164,38 @@ Rocky 9 버전 가이드를 별도 파일로 추가해 OS별 분기를 제공한
 - Ubuntu Hotfix(`hotfix_20260422_ubuntu-deployment-docs.md`)와 동일한 네이밍 방식 채택: 기존 파일 유지 + Rocky 9 버전 신규 추가
 - 대상 OS 협소화: Rocky 9 단독 (8/10 제외)
 - 스토리 작성 완료 (리더 직접)
+
+### HOTFIX_IMPL — 2026-04-24
+- Lightweight docs-only. 신규 2파일 작성. 기존 AL2023/Ubuntu 문서 무변경(git diff 0). Dev Agent Record 채움.
+
+### HOTFIX_USER_VERIFY (1차) → HOTFIX_IMPL (2차 개정) — 2026-04-24
+- 실배포 검증 중 발견된 피드백 반영 (범위 ①):
+  - 보안 5번 "API 컨테이너 비-root 실행 (미완료 과제)" 블록을 한 줄에서 현상·임시 우회·근본 해결 예정 3개 절로 확장
+  - 트러블슈팅에 "`make docker-clean-all` 권한 거부로 실패" 블록 신규 추가 (증상 로그·우회 명령·안전 주석·근본 원인 교차 참조)
+  - 변경 이력에 2026-04-24 개정 행 1줄 추가
+- AC 영향: "기존 AL2023/Ubuntu 문서 무변경" 조건은 그대로 유지 (이번 수정은 Rocky 가이드 단독)
+- 범위 ②(3개 OS 가이드 일괄) / 범위 ③(entrypoint.sh gosu 패턴 코드 수정)은 별도 Hotfix로 예약 — 사용자 선택 대기
+
+### HOTFIX_USER_VERIFY (2차) → HOTFIX_IMPL (3차 개정) — 2026-04-24
+- 실배포 필드 피드백 2건 추가 반영:
+  - **4단계 신규 블록**: "`make docker-up` 이후 포트 수정이 누락된 걸 발견했다면" — `.env` 값 확인/수정/`docker-compose up -d --force-recreate nginx` 3단계 절차. `restart` 대비 `force-recreate` 필수성 주석 포함. 이유: 실제 배포에서 4단계 `.env` 수정을 빠뜨린 채 `make docker-up` 을 실행해 nginx 가 80/443에 바인딩된 사례 재현.
+  - **트러블슈팅 블록 전체 재작성**: 기존 2단계(sudo rm → up) 를 **4+1단계**(`docker-compose down → sudo rm → git restore → up → 검증`)로 확장. 사유: 실제 배포에서 컨테이너 실행 중 `sudo rm -rf docker/volumes/` 실행 → Docker daemon이 root 권한으로 마운트 경로 자동 재생성 → 이후 `git restore` 가 막히는 순서 오류 재현. 또한 `docker/volumes/` 에 포함된 Git-tracked 파일(sandbox `conf/config.yaml` 등)이 함께 삭제되어 sandbox PANIC 재시작 루프에 빠지는 부작용 확인. `git restore` 단계와 검증(`ls` + `git status`)을 필수로 편입.
+  - 변경 이력에 2026-04-24 (3차) 개정 행 1줄 추가
+- AC 영향: "기존 AL2023/Ubuntu 문서 무변경" 조건 그대로 유지 (이번 수정도 Rocky 가이드 단독)
+- 이 두 블록은 실배포 필드에서 직접 재현된 장애 시나리오를 문서화한 것으로, 다음 배포자 또는 재배포 시 재발 방지 효과가 큼
+
+### HOTFIX_USER_VERIFY (3차) → HOTFIX_IMPL (4차 개정) — 2026-04-24
+- 근본 원인 추가 발견 및 경고 블록 반영:
+  - 사용자 지적으로 `docker/init-env.sh` 동기화 로직 재검토 → `.env` 가 이미 있을 때 `cp docker/.env.example docker/.env`로 전체 덮어쓰기 후 13개 키만 복원하는 구조 확인 (라인 32~111). **`EXPOSE_NGINX_PORT`, `EXPOSE_NGINX_SSL_PORT` 는 백업 대상에 없음** → 4단계 안내에 따라 `.env` 를 수정해도 `make docker-up` 시 80/443 으로 되돌아가는 실제 동작 확인.
+  - **4단계 "⚠️ 중요 — init-env.sh 동기화" 경고 블록 신규**: 백업 대상 13개 키 명시, 포트 2개가 누락됨을 명시, "실전 권장 경로" 로 복구 블록 연결, "운영 주의 — 운영 중 재기동 시 `make docker-up` 대신 `docker-compose restart/up -d <서비스명>` 사용" 권고, 근본 해결은 차기 Hotfix 예약이라는 메모.
+  - 변경 이력에 2026-04-24 (4차) 개정 행 1줄 추가
+- AC 영향: "기존 AL2023/Ubuntu 문서 무변경" 조건 그대로 유지 (이번 수정도 Rocky 가이드 단독)
+- 근본 해결(`init-env.sh` 수정 또는 `.env.example` 기본값 변경)은 별도 Hotfix 범위. 사용자 결정 대기.
+
+### HOTFIX_USER_VERIFY (4차) → HOTFIX_COMPLETE — 2026-04-24
+- 사용자 검증 통과. 실제 고객사 Rocky Linux 9 서버(175.126.189.248)에 배포까지 성공적으로 완료.
+  - HTTPS 최종 응답 확인: `curl -I https://mai-studio.lcampus.co.kr` → `HTTP/1.1 307 /signin` + HSTS 헤더
+  - 배포 중 드러난 고객사 환경 특수성: firewalld Disabled, SELinux Disabled, 기본 계정 `mai`, 사설/국내 IDC 대역 공인 IP. 현 Rocky 가이드는 이 상황에서도 트러블슈팅 블록(SELinux/firewalld 경우 분기)을 통해 대응 가능했음.
+  - 실배포에서 재현된 장애/혼란 2건은 가이드에 흡수 완료: (1) `.env` 수정이 `make docker-up` 시 덮여지는 동기화 동작 (라인 269 경고 블록), (2) `sudo rm -rf docker/volumes/` 후 git-tracked 파일 재복원 순서 (트러블슈팅 블록).
+- 4차 개정 상태로 Approved, 커밋 진행.
+- 별도 Hotfix triage(`.env.example` 기본값 변경 + `init-env.sh` 포트 백업 추가 + 3개 OS 가이드 정비 + API 비-root gosu 전환 + certbot timer start 가이드 보강 + SELinux Disabled 대응 문구 등)은 **사용자 결정에 따라 기록하지 않음**. 필요 시 추후 별도 triage로 수기 기록.
