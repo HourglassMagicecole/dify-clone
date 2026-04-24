@@ -5,13 +5,13 @@
 |------|-----|
 | Phase | Maintenance |
 | Epic | — |
-| Story | — |
-| State | PROJECT_COMPLETE |
-| Plan | _bmad-output/stories/hotfix_20260417_docs-buildx-prerequisite.md |
+| Story | rocky-deployment-docs |
+| State | HOTFIX_STORY_REVIEW |
+| Plan | _bmad-output/stories/hotfix_20260424_rocky-deployment-docs.md |
 | Mode | semi-auto |
-| Status | Hotfix deployment-guide buildx 완료, 재진입 대기 |
-| Next Action | 대기 (새 요청 수신 시 BUG_TRIAGE) |
-| Updated | 2026-04-22 09:24 |
+| Status | 스토리 검토 대기 — Rocky Linux 9 배포/이전 가이드 신규 2파일 (Ubuntu Hotfix는 Approved로 마감) |
+| Next Action | 사용자가 스토리(AC·범위·OS 대상) 검토 후 Approved/CR 회신 |
+| Updated | 2026-04-24 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -67,4 +67,9 @@ Route: lightweight
 - triage recorded — severity: P1 — yahoo_finance_analytics 도구가 분기별 재무(매출/EPS) 미제공 → 에이전트가 "진행할까요?" 확인 루프. yfinance quarterly_income_stmt / earnings_dates 호출 추가
 Route: lightweight
 - triage recorded — severity: P1 — deployment-guide.md 2단계에 Docker Buildx 플러그인 설치 누락 → 고객사 배포 시 "compose build requires buildx 0.17.0 or later" 실패
+Route: lightweight
+- triage recorded — severity: P1 — Ubuntu 22.04/24.04 기반 배포 가이드 + 이전 노트 신규 작성 (기존 AL2023 문서 유지, 별도 파일 추가)
+Route: lightweight
+- hotfix completed — 2026-04-24 — ubuntu-deployment-docs — Approved (신규 파일 2개: docs/deployment-guide-ubuntu.md, docs/migration-notes-ubuntu.md)
+- triage recorded — severity: P1 — Rocky Linux 9 기반 배포 가이드 + 이전 노트 신규 작성 (기존 AL2023/Ubuntu 문서 유지, 별도 파일 추가, Rocky 9만 지원)
 Route: lightweight
