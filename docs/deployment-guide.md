@@ -3,11 +3,7 @@
 MAI Studio를 고객사 서버(Rocky Linux 9)에 배포하기 위한 단계별 가이드.
 
 - **예시 도메인**: `mai-studio.lcampus.co.kr`
-- **참조 배포**: `moai.magicecole.com` (매직에콜 운영 서버 — 동일 패턴, AL2023 기반)
 - **대상 OS**: Rocky Linux 9 (RHEL 9 계열)
-- **Rocky 8/10**: 범위 외. Rocky 8은 EOL 임박, Rocky 10은 일부 패키지가 아직 안정화되지 않아 이 가이드는 9 전용입니다.
-- **AL2023 버전**: `deployment-guide.md` 참조
-- **Ubuntu 버전**: `deployment-guide-ubuntu.md` 참조
 - **예상 소요 시간**: 약 2~3시간 (DNS 전파 대기 포함)
 
 ---
@@ -235,7 +231,7 @@ git pull origin moai-v2
 
 ### 5단계에서 변경할 값 (nginx 포트 2개)
 
-호스트 nginx와의 포트 충돌을 피하기 위해 5단계 `nginx 포트 노출 변경` 절에서 다음 두 값을 수정합니다.
+호스트 nginx와의 포트 충돌을 피하기 위해 5단계에서 다음 두 값을 입력합니다 (실수했을 때의 복구 절차는 5단계 `nginx 포트 노출 복구` 절 참조).
 
 | 키 | 변경할 값 | 이유 |
 |---|---|---|
@@ -308,8 +304,9 @@ cd docker
 
 # 모든 컨테이너 Up 상태 확인 (최초 1~3분 소요 — 이미지 pull + 초기화)
 docker-compose ps
-# → 이 시점 nginx 컨테이너의 PORTS는 0.0.0.0:80->80/tcp, ...:443->443/tcp 입니다.
-#   다음 "nginx 포트 노출 변경" 절에서 8080/8443으로 옮깁니다.
+# → 권장대로 init-env.sh 프롬프트에서 8080/8443을 입력했다면
+#   nginx 컨테이너의 PORTS는 0.0.0.0:8080->80/tcp, ...:8443->443/tcp 여야 합니다.
+#   다른 값(예: 0.0.0.0:80->80/tcp)이 보이면 다음 "nginx 포트 노출 복구" 절을 따라 수정합니다.
 
 # api 컨테이너 로그 모니터링 (Ctrl+C로 종료)
 docker-compose logs -f api
@@ -327,9 +324,11 @@ curl -I http://127.0.0.1
 grep -E "^(SECRET_KEY|API_KEY_ENCRYPTION_KEY|DB_PASSWORD|REDIS_PASSWORD|ELASTICSEARCH_PASSWORD|SANDBOX_API_KEY|PLUGIN_DAEMON_KEY|PLUGIN_DIFY_INNER_API_KEY|INITIAL_ADMIN_EMAIL)=" docker/.env
 ```
 
-### nginx 포트 노출 변경 (호스트 80/443 자리 비우기)
+### nginx 포트 노출 복구 (실수로 default 80/443 또는 다른 값을 입력한 경우)
 
-`make docker-first-deploy` 직후 nginx 컨테이너는 호스트의 80/443 포트를 점유한 상태입니다. 이대로 6단계로 가면 호스트 nginx 설치 시 **80/443 포트 충돌로 실패**하므로, 컨테이너 노출 포트를 8080/8443으로 옮겨 호스트 자리를 비워둡니다.
+`init-env.sh` 프롬프트에서 빈 입력으로 default 80/443이 적용됐거나, 의도와 다른 포트를 입력한 경우 이 절을 따릅니다. (권장 흐름대로 8080/8443을 입력했다면 이 절은 건너뜁니다.)
+
+실수한 상태로 6단계로 가면 호스트 nginx가 80/443에 listen할 자리가 없어 **포트 충돌로 nginx 설치/기동에 실패**하므로, .env를 수정하고 nginx 컨테이너만 재생성합니다.
 
 ```bash
 # 1) .env 수정
@@ -349,7 +348,9 @@ curl -I http://127.0.0.1:8080   # → 307 Temporary Redirect (Docker nginx 응�
 curl -I http://127.0.0.1        # → curl: (7) Failed to connect (호스트 nginx 자리 비어 있음)
 ```
 
-**⚠️ 운영 주의 — `init-docker-env`/`docker-first-deploy`/`docker-build-no-cache` 재실행 시 포트 초기화**: 위 명령들은 모두 내부적으로 `init-env.sh`를 호출하며, 이때 포트 값을 다시 80/443으로 되돌려 호스트 nginx와 충돌이 납니다. 운영 중 재기동이 필요하면 `make docker-up`(init-env.sh를 타지 않음) 또는 `docker-compose restart <서비스명>` / `docker-compose up -d <서비스명>`을 사용하세요.
+**또는 더 간단히**: `make init-docker-env`를 다시 실행해 프롬프트에서 8080/8443을 명시 입력 → `cd /opt/mai-studio/docker && docker-compose up -d --force-recreate nginx`로 적용해도 동일한 결과가 됩니다.
+
+**⚠️ 운영 중 재기동에는 `make docker-up`을 사용하세요** — `init-docker-env`/`docker-first-deploy`는 매번 두 포트를 묻고, 빈 입력 시 default 80/443으로 reset됩니다.
 
 이 시점에서는 아직 HTTPS 접속이 불가능합니다. 호스트 nginx 설정 후 가능해집니다.
 
@@ -926,7 +927,7 @@ make deploy-all
 
 ### 애플리케이션
 - [ ] 소스 배포 (`/opt/mai-studio`, `moai-v2` 브랜치)
-- [ ] `docker/.env` 포트 값 2개 수정 (`EXPOSE_NGINX_PORT=8080`, `EXPOSE_NGINX_SSL_PORT=8443`)
+- [ ] `init-docker-env` 프롬프트에서 `EXPOSE_NGINX_PORT=8080`, `EXPOSE_NGINX_SSL_PORT=8443` 입력 (실수했으면 5단계 "nginx 포트 노출 복구" 절 참조)
 - [ ] Docker 스택 기동 (`make docker-first-deploy`) — 관리자 계정 대화형 입력 완료
 - [ ] 자동 생성된 키 별도 백업 (`SECRET_KEY`, `API_KEY_ENCRYPTION_KEY`, DB/Redis/ES 비밀번호 등)
 - [ ] 모든 컨테이너 `Up` 상태 확인
@@ -969,3 +970,4 @@ make deploy-all
 | 2026-04-24 | 4단계의 역할을 "행동 단계"에서 "참고 카탈로그"로 재정의: 제목 → `.env 환경변수 카탈로그 (참고용)`, 첫머리에 "이 단계에서 작업 없음, 5단계에서 실제 수정" 안내 박스. 4단계 내부 절 톤도 행동 → 참고로 조정(`사용자가 직접 수정해야 하는 값` → `5단계에서 변경할 값 미리보기`). 5단계 시작에 4단계 카탈로그 역참조 안내 추가. 단계 번호는 유지 | — |
 | 2026-04-27 | Makefile docker target 정리 hotfix 반영: 5단계 권장 명령을 `make docker-first-deploy`로 교체(init-docker-env + 스택 기동), `docker-up`/`docker-build`는 init을 타지 않도록 의미 변경, 캐시 없는 재빌드 명령 이름을 `docker-build-no-cache`로 통일(구 명칭 → 신규 이름). 4개 명령 차이 비교 표 신설 + 운영 노트(`docker/.env.example` 갱신 시 `make init-docker-env` 별도 실행) 추가. 빠른 참조/체크리스트의 명령어 일관성 보정 | — |
 | 2026-04-27 | `init-docker-env`에 `EXPOSE_NGINX_PORT`/`EXPOSE_NGINX_SSL_PORT` 대화형 입력 추가. 4단계 카탈로그의 두 포트 항목에 "init 실행 시 대화형 입력" 안내 한 줄 추가, 5단계 "이때 일어나는 일" 박스에 포트 프롬프트 예시 추가. 4단계의 "포트 수정 누락 시" 트러블슈팅 블록은 보완 메커니즘으로서 그대로 유지 | — |
+| 2026-04-27 | 5단계 포트 흐름을 권장 입력(8080/8443) 단일 경로로 정리. "nginx 포트 노출 변경" 절을 "nginx 포트 노출 복구"로 재정의(실수 시 절차로 명확화) + `make init-docker-env` 재실행 보조 경로 추가. 운영 주의 박스를 한 문장으로 단순화. 체크리스트 한 줄 갱신 | — |
