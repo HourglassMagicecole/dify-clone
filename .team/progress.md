@@ -7,11 +7,11 @@
 | Epic | — |
 | Story | — |
 | State | PROJECT_COMPLETE |
-| Plan | _bmad-output/stories/hotfix_20260424_rocky-deployment-docs.md |
+| Plan | _bmad-output/stories/hotfix_20260427_makefile-first-deploy-target.md |
 | Mode | semi-auto |
-| Status | Maintenance idle — Rocky Linux 9 hotfix 4차 개정 Approved 후 PROJECT_COMPLETE 복귀 |
-| Next Action | 다음 hotfix/maintenance 이슈 도착 시 BUG_TRIAGE 진입 |
-| Updated | 2026-04-27 11:00 |
+| Status | Maintenance idle — makefile-first-deploy-target hotfix Approved 후 PROJECT_COMPLETE 복귀 |
+| Next Action | init-env.sh 포트 백업 추가 hotfix 진입 (옵션 B 대화형 입력 합의) |
+| Updated | 2026-04-27 12:11 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -74,3 +74,6 @@ Route: lightweight
 - triage recorded — severity: P1 — Rocky Linux 9 기반 배포 가이드 + 이전 노트 신규 작성 (기존 AL2023/Ubuntu 문서 유지, 별도 파일 추가, Rocky 9만 지원)
 Route: lightweight
 - hotfix completed — 2026-04-24 — rocky-deployment-docs — Approved (신규 파일 2개: docs/deployment-guide-rocky.md, docs/migration-notes-rocky.md). 실서버 배포까지 검증 완료. 4차 개정에서 firewalld/SELinux Disabled 환경 대응 + init-env.sh 동기화 주의 + make docker-clean-all 권한 거부 복구 순서 등 필드 피드백 흡수.
+- triage recorded — severity: P1 — Makefile docker target 정리: docker-first-deploy 신규 + docker-up/docker-build에서 init-docker-env 의존성 제거 + docker-clean-all에 builder cache prune 추가 + docker-rebuild → docker-build-no-cache 이름 변경. 5개 파일(Makefile, deployment-guide.md, CLAUDE.md, security-test.sh, codebase-analysis.md) 동기화.
+Route: lightweight
+- hotfix completed — 2026-04-27 — makefile-first-deploy-target — Approved (5개 활성 파일 + hotfix story). 검증 6/6 PASS. Dev가 deployment-guide.md 정합성 보정을 line 263-266 외 6곳(line 205, 321, 341, 517, 848, 870, 918)으로 확장 — AC "문서 내 docker-rebuild grep 0건" 충족 위해 정합성 차원에서 수용.
