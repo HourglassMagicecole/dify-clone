@@ -7,11 +7,11 @@
 | Epic | — |
 | Story | — |
 | State | PROJECT_COMPLETE |
-| Plan | _bmad-output/stories/hotfix_20260427_makefile-first-deploy-target.md |
+| Plan | _bmad-output/stories/hotfix_20260427_init-env-port-prompt.md |
 | Mode | semi-auto |
-| Status | Maintenance idle — makefile-first-deploy-target hotfix Approved 후 PROJECT_COMPLETE 복귀 |
-| Next Action | init-env.sh 포트 백업 추가 hotfix 진입 (옵션 B 대화형 입력 합의) |
-| Updated | 2026-04-27 12:11 |
+| Status | Maintenance idle — init-env-port-prompt hotfix Approved (2차) 후 PROJECT_COMPLETE 복귀 |
+| Next Action | 다음 hotfix/maintenance 이슈 도착 시 BUG_TRIAGE 진입 |
+| Updated | 2026-04-27 14:17 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -77,3 +77,6 @@ Route: lightweight
 - triage recorded — severity: P1 — Makefile docker target 정리: docker-first-deploy 신규 + docker-up/docker-build에서 init-docker-env 의존성 제거 + docker-clean-all에 builder cache prune 추가 + docker-rebuild → docker-build-no-cache 이름 변경. 5개 파일(Makefile, deployment-guide.md, CLAUDE.md, security-test.sh, codebase-analysis.md) 동기화.
 Route: lightweight
 - hotfix completed — 2026-04-27 — makefile-first-deploy-target — Approved (5개 활성 파일 + hotfix story). 검증 6/6 PASS. Dev가 deployment-guide.md 정합성 보정을 line 263-266 외 6곳(line 205, 321, 341, 517, 848, 870, 918)으로 확장 — AC "문서 내 docker-rebuild grep 0건" 충족 위해 정합성 차원에서 수용.
+- triage recorded — severity: P1 — init-env.sh가 EXPOSE_NGINX_PORT/SSL_PORT를 대화형으로 입력받도록 추가. 사용자 결정: 무인 배포 미고려, 항상 물음, default 80/443만 표시, 숫자 검증만, Lightweight. 2개 파일(docker/init-env.sh, docs/deployment-guide.md) 수정.
+Route: lightweight
+- hotfix completed — 2026-04-27 — init-env-port-prompt — Approved (2차 개정 후, 3개 활성 파일 + hotfix story). 1차 init-env.sh 대화형 입력 검증 6/6 PASS. 1차 CR(Makefile Access 안내가 입력 포트 미반영) → 2차 옵션 A 패턴(80 생략, 그 외 :port)을 docker-first-deploy/docker-up/docker-build-no-cache 3군데 일관 적용 + docker-build-no-cache에 Access API 한 줄 추가. 검증 4/4 PASS.
