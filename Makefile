@@ -148,13 +148,14 @@ docker-clean:
 	@read dummy
 	@echo "🧹 Cleaning Docker containers and volumes..."
 	@cd docker && docker-compose down -v
+	@echo "⚠️  sudo password may be required for volume cleanup (root-owned files)"
 	@echo "🗑️  Removing volume directories..."
-	@rm -rf docker/volumes/app
-	@rm -rf docker/volumes/db
-	@rm -rf docker/volumes/redis
-	@rm -rf docker/volumes/elasticsearch
-	@rm -rf docker/volumes/plugin_daemon
-	@rm -rf docker/volumes/certbot
+	@sudo rm -rf docker/volumes/app
+	@sudo rm -rf docker/volumes/db
+	@sudo rm -rf docker/volumes/redis
+	@sudo rm -rf docker/volumes/elasticsearch
+	@sudo rm -rf docker/volumes/plugin_daemon
+	@sudo rm -rf docker/volumes/certbot
 	@echo "✅ Docker containers and volumes removed"
 
 # Clean everything (containers, volumes, images, admin credentials)
@@ -164,13 +165,14 @@ docker-clean-all:
 	@read dummy
 	@echo "🧹 Cleaning all Docker resources..."
 	@cd docker && docker-compose down -v --rmi all
+	@echo "⚠️  sudo password may be required for volume cleanup (root-owned files)"
 	@echo "🗑️  Removing volume directories..."
-	@rm -rf docker/volumes/app
-	@rm -rf docker/volumes/db
-	@rm -rf docker/volumes/redis
-	@rm -rf docker/volumes/elasticsearch
-	@rm -rf docker/volumes/plugin_daemon
-	@rm -rf docker/volumes/certbot
+	@sudo rm -rf docker/volumes/app
+	@sudo rm -rf docker/volumes/db
+	@sudo rm -rf docker/volumes/redis
+	@sudo rm -rf docker/volumes/elasticsearch
+	@sudo rm -rf docker/volumes/plugin_daemon
+	@sudo rm -rf docker/volumes/certbot
 	@echo "🗑️  Removing docker/.env file..."
 	@rm -f docker/.env
 	@echo "🧹 Pruning Docker builder cache..."
