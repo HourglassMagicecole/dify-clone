@@ -1,11 +1,11 @@
-# MAI Studio 서버 이전 노트 (매직에콜 → 고객사)
+# MAI Studio 서버 이전 노트 (매직에콜 → 고객사 Rocky Linux 9)
 
 매직에콜 서버에서 임시로 서비스하던 `mai-studio.lcampus.co.kr`을 고객사(LCampus) 클라우드 서버로 정식 이전하는 작업 기록 및 절차.
 
 - **대상 도메인**: `mai-studio.lcampus.co.kr`
-- **출발 서버**: 매직에콜 클라우드 서버 (주 서비스 `moai.magicecole.com`과 공존하던 임시 세팅)
-- **도착 서버**: 고객사 AWS EC2 (Amazon Linux 2023)
-- **함께 참조**: [`docs/deployment-guide.md`](./deployment-guide.md) — 고객사 서버에 MAI Studio 설치하는 절차
+- **출발 서버**: 매직에콜 클라우드 서버 (주 서비스 `moai.magicecole.com`과 공존하던 임시 세팅, AL2023)
+- **도착 서버**: 고객사 Rocky Linux 9
+- **함께 참조**: [`docs/deployment-guide-rocky.md`](./deployment-guide-rocky.md) — 고객사 Rocky 9 서버에 MAI Studio 설치하는 절차
 
 ---
 
@@ -53,11 +53,13 @@
 
 ## 1단계 — 고객사 서버 배포
 
-[`docs/deployment-guide.md`](./deployment-guide.md) **1~6단계**를 진행합니다. **7단계(SSL 발급)는 DNS 변경 후에 하므로 아직 하지 않습니다** — DNS가 매직에콜을 가리키는 상태에선 certbot 검증이 실패합니다.
+[`docs/deployment-guide-rocky.md`](./deployment-guide-rocky.md) **1~6단계**(및 7단계 SELinux 조치)를 진행합니다. **8단계(SSL 발급)는 DNS 변경 후에 하므로 아직 하지 않습니다** — DNS가 매직에콜을 가리키는 상태에선 certbot 검증이 실패합니다.
 
 이 단계 완료 시 고객사 서버 상태:
 - Docker 스택 기동 완료
 - 호스트 nginx 리버스 프록시 설정 완료
+- SELinux `httpd_can_network_connect` 허용 완료
+- firewalld에 80/443 허용 완료
 - HTTP 응답은 서버 IP로 직접 접속 시 가능
 - HTTPS는 아직 불가
 
@@ -71,7 +73,7 @@ DNS를 바꾸기 **전에** 고객사 서버가 정상 동작하는지 반드시
 
 ```bash
 # 로컬 PC에서 실행
-curl --resolve mai-studio.lcampus.co.kr:80:<고객사 EC2 IP> \
+curl --resolve mai-studio.lcampus.co.kr:80:<고객사 서버 IP> \
      -I http://mai-studio.lcampus.co.kr
 
 # → HTTP/1.1 200 또는 302 응답이면 정상
@@ -81,7 +83,7 @@ curl --resolve mai-studio.lcampus.co.kr:80:<고객사 EC2 IP> \
 
 ```bash
 # 로컬 PC에서
-echo "<고객사 EC2 IP> mai-studio.lcampus.co.kr" | sudo tee -a /etc/hosts
+echo "<고객사 서버 IP> mai-studio.lcampus.co.kr" | sudo tee -a /etc/hosts
 
 # 브라우저로 http://mai-studio.lcampus.co.kr 접속 확인
 #   (HTTPS는 아직 불가 — 아직 SSL 발급 전)
@@ -130,7 +132,7 @@ dig +short mai-studio.lcampus.co.kr
 mai-studio.lcampus.co.kr  CNAME  moai.magicecole.com.
 
 [신규 등록]
-mai-studio.lcampus.co.kr  A      <고객사 EC2 공인 IP>
+mai-studio.lcampus.co.kr  A      <고객사 서버 공인 IP>
 ```
 
 대부분 DNS 관리 UI에서는 "레코드 타입 변경"으로 한 번에 처리 가능합니다.
@@ -153,10 +155,10 @@ TTL에 따라 다르지만 보통 수 분 ~ 수십 분 내에 전 지역 전파�
 
 ## 4단계 — 고객사 서버에서 SSL 인증서 발급
 
-DNS가 고객사 서버를 가리키면 certbot의 HTTP-01 검증이 성공합니다. [`docs/deployment-guide.md`](./deployment-guide.md) **7단계**를 진행:
+DNS가 고객사 서버를 가리키면 certbot의 HTTP-01 검증이 성공합니다. [`docs/deployment-guide-rocky.md`](./deployment-guide-rocky.md) **8단계**를 진행:
 
 ```bash
-ssh magic@<고객사 EC2 IP>
+ssh rocky@<고객사 서버 IP>
 sudo certbot --nginx \
   -d mai-studio.lcampus.co.kr \
   --email <운영자 이메일> \
@@ -167,7 +169,8 @@ sudo certbot --nginx \
 
 **발급이 실패한다면**:
 - DNS 전파가 덜 됐을 수 있음 → 5~10분 대기 후 재시도
-- AWS 보안 그룹에 80/tcp가 열려있는지 확인
+- 네트워크 인바운드 규칙(AWS SG 등)에 80/tcp가 열려있는지 확인
+- OS 방화벽(firewalld)에 80 포트 허용되어 있는지: `sudo firewall-cmd --list-all`
 - 호스트 nginx가 80 포트에서 listen 중인지 확인: `sudo ss -tlnp | grep :80`
 
 ---
@@ -182,7 +185,7 @@ curl -I https://mai-studio.lcampus.co.kr
 # 브라우저로 https://mai-studio.lcampus.co.kr 접속 → 자물쇠 아이콘 녹색
 ```
 
-[`docs/deployment-guide.md`](./deployment-guide.md) **10단계(배포 후 검증 체크리스트)** 전체를 수행합니다.
+[`docs/deployment-guide-rocky.md`](./deployment-guide-rocky.md) **10단계(배포 후 검증 체크리스트)** 전체를 수행합니다.
 
 이 단계를 통과해야 6단계(매직에콜 정리)로 넘어갑니다.
 
@@ -190,7 +193,7 @@ curl -I https://mai-studio.lcampus.co.kr
 
 ## 6단계 — 매직에콜 서버 정리
 
-5단계 검증이 통과한 후 매직에콜 서버에서 `mai-studio.lcampus.co.kr` 관련 설정을 제거합니다.
+매직에콜 서버는 **AL2023 그대로**이므로 이하 명령은 AL2023 기준입니다 (고객사 서버만 Rocky 9). 5단계 검증이 통과한 후 매직에콜 서버에서 `mai-studio.lcampus.co.kr` 관련 설정을 제거합니다.
 
 ### 6-1. 사전 백업 (만약을 위한 기록)
 
@@ -270,21 +273,21 @@ rm /tmp/certbot-before-cleanup.txt
   ```bash
   sudo certbot update_account --email <고객사 운영 이메일>
   ```
-- [ ] `deployment-guide.md` 문서 공유
+- [ ] `deployment-guide-rocky.md` 문서 공유
 
 ---
 
 ## 최종 체크리스트
 
 ### 고객사 서버 배포 및 전환
-- [ ] [`deployment-guide.md`](./deployment-guide.md) 1~6단계 완료
+- [ ] [`deployment-guide-rocky.md`](./deployment-guide-rocky.md) 1~7단계 완료 (1~6 배포 + 7 SELinux)
 - [ ] `curl --resolve`로 HTTP 응답 정상 확인
 - [ ] 로그인 페이지/관리자 계정 정상 동작 확인
 - [ ] DNS CNAME 삭제 + 고객사 IP로 A 레코드 신설
 - [ ] 공용 DNS에서 전파 확인 (`dig`로 고객사 IP만 나오는지)
 - [ ] 고객사 서버에서 certbot SSL 발급 성공
 - [ ] HTTPS 접속 + 자물쇠 녹색 확인
-- [ ] [`deployment-guide.md`](./deployment-guide.md) 10단계 전체 검증 통과
+- [ ] [`deployment-guide-rocky.md`](./deployment-guide-rocky.md) 10단계 전체 검증 통과
 
 ### 매직에콜 서버 정리
 - [ ] `mai-studio` nginx 설정 백업(텍스트 보관)
@@ -298,7 +301,7 @@ rm /tmp/certbot-before-cleanup.txt
 ### 운영 이관
 - [ ] 고객사 운영자에게 접속 정보/비밀키 인수인계
 - [ ] certbot 알림 이메일 변경
-- [ ] 운영 문서(`deployment-guide.md`) 공유
+- [ ] 운영 문서(`deployment-guide-rocky.md`) 공유
 
 ---
 
@@ -306,6 +309,4 @@ rm /tmp/certbot-before-cleanup.txt
 
 | 날짜 | 내용 | 작성자 |
 |---|---|---|
-| 2026-04-16 | 초안 작성 | — |
-| 2026-04-16 | 롤백 계획 제거 및 타임라인 단순화 (매직에콜은 moai.magicecole.com으로 메인 서비스 계속하므로 mai-studio는 단순 제거) | — |
-| 2026-04-16 | 실제 DNS/인증서 확인 결과 반영: mai-studio는 CNAME으로 등록됨 → A 레코드로 교체 필요 명시, 두 도메인 인증서는 별도 발급 확인 | — |
+| 2026-04-24 | Rocky Linux 9 환경용 초안 작성 (AL2023 버전 미러링, 고객사 서버만 Rocky 9 / 매직에콜 서버는 AL2023 그대로 유지, 4단계 SSH 예시 `rocky@` 치환) | — |
