@@ -92,7 +92,7 @@ cd api && uv run flask db downgrade                   # 마이그레이션 롤�
 ### Docker 프로덕션
 ```bash
 make docker-up              # 프로덕션 컨테이너 시작 (자동 초기화)
-make docker-rebuild         # 캐시 없이 재빌드
+make docker-build-no-cache  # 캐시 없이 재빌드
 make docker-down            # 컨테이너 중지
 make docker-restart         # 컨테이너 재시작
 make docker-clean           # 컨테이너 + 볼륨 제거
@@ -111,7 +111,7 @@ make dev-clean-all          # 전체 리셋 (.env, volumes 포함)
 - **배치**: Dev 1인 (유지보수 모드)
 - **작업 흐름**: 기능 브랜치 -> PR -> moai-v2 머지
 - **Hotfix**: moai-v2에서 직접 수정 후 즉시 배포
-- **배포**: `make docker-rebuild` 또는 CI/CD 파이프라인
+- **배포**: `make docker-build-no-cache` 또는 CI/CD 파이프라인
 
 ## System Reminders
 

@@ -26,12 +26,31 @@ init-docker-env:
 	@echo "🔧 Initializing Docker production environment..."
 	@./docker/init-env.sh
 
-# Start Docker production environment (with auto-initialization)
+# First-time deployment (initialize .env + start stack)
 # 📌 When to use:
-#   - First-time deployment on a new server (cache is empty anyway)
-#   - Normal start/restart of the stack
+#   - First deployment on a new server (no docker/.env yet)
+#   - After `make docker-clean-all` removed docker/.env and you want a clean restart
+# 📌 What it does:
+#   - Runs init-docker-env to generate keys/passwords and prompt for admin credentials
+#   - Starts the full Docker stack (uses cache if available, pulls official images as needed)
+docker-first-deploy: init-docker-env
+	@echo "🚀 First-time deployment — starting Docker containers..."
+	@cd docker && docker-compose up -d
+	@echo "✅ Docker containers started successfully!"
+	@echo ""
+	@echo "📝 Next steps:"
+	@echo "   - Check logs: cd docker && docker-compose logs -f"
+	@echo "   - Access MAI: http://localhost"
+	@echo "   - Access API: http://localhost/v1"
+	@echo "   - On upstream merge or docker/.env.example update, run 'make init-docker-env' separately to sync new keys"
+
+# Start Docker production environment (does NOT run init-docker-env)
+# 📌 When to use:
+#   - Normal start/restart of the stack (existing docker/.env)
 #   - Fastest option — reuses existing images, only builds what's missing
-docker-up: init-docker-env
+# ⚠️  Does not run init-docker-env, so operator-edited keys in docker/.env are preserved.
+#     For the very first deployment (no docker/.env yet), use 'make docker-first-deploy' instead.
+docker-up:
 	@echo "🚀 Starting Docker containers..."
 	@cd docker && docker-compose up -d
 	@echo "✅ Docker containers started successfully!"
@@ -46,7 +65,8 @@ docker-up: init-docker-env
 #   - After pulling code changes that affect Dockerfiles or app source
 #   - Always rebuilds buildable services (api, worker, web-edu) but reuses layer cache
 #   - For targeted rebuilds of specific services, prefer deploy-api / deploy-web / deploy-all
-docker-build: init-docker-env
+# ⚠️  Does not run init-docker-env, so operator-edited keys in docker/.env are preserved.
+docker-build:
 	@echo "🔨 Building Docker images..."
 	@cd docker && docker-compose up -d --build
 	@echo "🧹 Cleaning unused images..."
@@ -57,13 +77,13 @@ docker-build: init-docker-env
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
 
 # Rebuild Docker images without cache (slower but ensures fresh build)
-# 📌 When to use (NOT for first-time deployment — use docker-up instead):
+# 📌 When to use (NOT for first-time deployment — use docker-first-deploy instead):
 #   - After `make docker-clean-all` (volumes + .env reset → start completely fresh)
 #   - When build cache appears corrupted and builds fail mysteriously
 #   - When you suspect stale layers are causing unexpected runtime behavior
 #   - For release builds where reproducibility matters more than speed
 # ⚠️  Slow: --no-cache + --force-recreate + prunes images/build cache (15~30 min)
-docker-rebuild: init-docker-env
+docker-build-no-cache: init-docker-env
 	@echo "🔨 Rebuilding Docker images without cache..."
 	@cd docker && docker-compose build --no-cache
 	@cd docker && docker-compose up -d --force-recreate
@@ -143,11 +163,13 @@ docker-clean-all:
 	@rm -rf docker/volumes/certbot
 	@echo "🗑️  Removing docker/.env file..."
 	@rm -f docker/.env
+	@echo "🧹 Pruning Docker builder cache..."
+	@docker builder prune -af
 	@echo "✅ All Docker resources and .env file removed"
 	@echo ""
 	@echo "💡 Next steps:"
-	@echo "   Run 'make docker-rebuild' to rebuild without cache (recommended after clean-all)"
-	@echo "   Or  'make docker-up' for faster start (uses cache if available)"
+	@echo "   Run 'make docker-first-deploy' to re-initialize .env and start fresh (recommended)"
+	@echo "   Use 'make docker-build-no-cache' only if build cache appears corrupted or for release builds"
 
 # Prune all Docker resources system-wide (affects other projects too)
 docker-prune:
@@ -318,18 +340,19 @@ help:
 	@echo "  make dev-clean-all   - Complete reset (removes everything)"
 	@echo ""
 	@echo "Docker Production Setup:"
-	@echo "  make init-docker-env - Initialize Docker production environment (generate keys & admin account)"
-	@echo "  make docker-up       - Start Docker containers (auto-initialize if needed)"
-	@echo "  make deploy-api      - Rebuild API + Worker + restart nginx"
-	@echo "  make deploy-web      - Rebuild web-edu + restart nginx"
-	@echo "  make deploy-all      - Rebuild all services + restart nginx"
-	@echo "  make docker-build    - Build images with cache and start (fast, auto-cleanup)"
-	@echo "  make docker-rebuild  - Rebuild images without cache and start (slower, ensures fresh build, auto-cleanup)"
-	@echo "  make docker-down     - Stop Docker containers"
-	@echo "  make docker-restart  - Restart Docker containers"
-	@echo "  make docker-clean    - Remove containers, volumes, and volume directories"
-	@echo "  make docker-clean-all - Remove all Docker resources + .env file"
-	@echo "  make docker-prune    - Prune system-wide Docker resources (WARNING: affects other projects)"
+	@echo "  make init-docker-env      - Initialize Docker production environment (generate keys & admin account)"
+	@echo "  make docker-first-deploy  - First-time deployment (init-docker-env + start stack)"
+	@echo "  make docker-up            - Start Docker containers (no init, preserves docker/.env)"
+	@echo "  make deploy-api           - Rebuild API + Worker + restart nginx"
+	@echo "  make deploy-web           - Rebuild web-edu + restart nginx"
+	@echo "  make deploy-all           - Rebuild all services + restart nginx"
+	@echo "  make docker-build         - Build images with cache and start (fast, auto-cleanup)"
+	@echo "  make docker-build-no-cache - Rebuild images without cache (slow, for corrupted cache or release builds)"
+	@echo "  make docker-down          - Stop Docker containers"
+	@echo "  make docker-restart       - Restart Docker containers"
+	@echo "  make docker-clean         - Remove containers, volumes, and volume directories"
+	@echo "  make docker-clean-all     - Remove all Docker resources + .env file + builder cache"
+	@echo "  make docker-prune         - Prune system-wide Docker resources (WARNING: affects other projects)"
 	@echo ""
 	@echo "Backend Code Quality:"
 	@echo "  make format         - Format code with ruff"
@@ -345,4 +368,4 @@ help:
 	@echo "  make build-push-all - Build and push all Docker images"
 
 # Phony targets
-.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-up docker-build docker-rebuild docker-down docker-restart docker-clean docker-clean-all docker-prune deploy-api deploy-web deploy-all dev-clean dev-clean-all help format check lint type-check
+.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-first-deploy docker-up docker-build docker-build-no-cache docker-down docker-restart docker-clean docker-clean-all docker-prune deploy-api deploy-web deploy-all dev-clean dev-clean-all help format check lint type-check

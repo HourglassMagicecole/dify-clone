@@ -202,7 +202,7 @@ git pull origin moai-v2
 
 ### 자동 처리되는 값 (손대지 말 것)
 
-`make docker-up` 실행 시 `docker/init-env.sh`가 **아래 값들을 자동 생성**합니다. 직접 수정할 필요가 없고, 오히려 수동으로 건드리지 않는 것이 안전합니다.
+`make docker-first-deploy`(또는 `make init-docker-env`) 실행 시 `docker/init-env.sh`가 **아래 값들을 자동 생성**합니다. 직접 수정할 필요가 없고, 오히려 수동으로 건드리지 않는 것이 안전합니다.
 
 | 키 | 자동 처리 방식 |
 |---|---|
@@ -257,13 +257,24 @@ git pull origin moai-v2
 
 ```bash
 cd /opt/mai-studio
-make docker-up
+make docker-first-deploy
 ```
 
-> 💡 **왜 `make docker-rebuild`가 아닌 `make docker-up`인가?**
-> 새 서버는 어차피 빌드 캐시가 없어 두 명령의 결과가 **사실상 동일**합니다. 그런데 `docker-rebuild`는 `--no-cache` + `--force-recreate`를 쓰기 때문에 불필요하게 느리고, pull 가능한 공식 이미지조차 무조건 재빌드하지 않습니다 (애초에 공식 이미지는 빌드 대상이 아님). 첫 배포에는 `docker-up`이 효율적입니다.
+> 💡 **첫 배포에는 반드시 `make docker-first-deploy`를 사용하세요.**
+> 이 명령은 `init-docker-env`(키/비밀번호 자동 생성 + 관리자 계정 대화형 입력)를 먼저 실행한 뒤 스택을 기동합니다. 새 서버는 빌드 캐시가 없으므로 `docker-build-no-cache`처럼 `--no-cache`를 쓸 이유도 없고, 공식 이미지(postgres/redis 등)는 어차피 빌드 대상이 아니라 pull로 받습니다. 따라서 첫 배포는 `docker-first-deploy`가 가장 빠르고 정확합니다.
 >
-> `docker-rebuild`는 `make docker-clean-all`로 볼륨까지 리셋한 뒤나, 빌드 캐시가 꼬여 문제가 생겼을 때 사용합니다.
+> `docker-build-no-cache`는 `make docker-clean-all`로 볼륨까지 리셋한 뒤나, 빌드 캐시가 꼬여 문제가 생겼을 때만 사용합니다.
+
+### 4개 명령의 차이 (한눈에)
+
+| 명령 | init-docker-env | 빌드 옵션 | 주 용도 |
+|---|---|---|---|
+| `make docker-first-deploy` | ✅ 실행 | 캐시 사용 | **첫 배포** (docker/.env 없을 때) |
+| `make docker-up` | ❌ 미실행 | 빌드 안 함 (없는 것만) | 일반 시작/재시작 (운영자 수정 키 보존) |
+| `make docker-build` | ❌ 미실행 | `--build`로 항상 빌드 (캐시 사용) | 코드 변경 후 재빌드 + 시작 |
+| `make docker-build-no-cache` | ✅ 실행 | `--no-cache` + `--force-recreate` | 빌드 캐시 손상 시·릴리즈 빌드 |
+
+> ⚠️ **운영 노트** — Dify 업스트림 머지 또는 `docker/.env.example` 갱신 후에는 `make init-docker-env`를 **별도 실행**해 새 환경변수를 `docker/.env`에 동기화하세요. `docker-up`/`docker-build`는 init을 타지 않으므로, 새로 추가된 환경변수가 자동 반영되지 않습니다.
 
 ### 이때 일어나는 일
 
@@ -307,7 +318,7 @@ grep -E "^(SECRET_KEY|API_KEY_ENCRYPTION_KEY|DB_PASSWORD|REDIS_PASSWORD|ELASTICS
 
 ### nginx 포트 노출 변경 (호스트 80/443 자리 비우기)
 
-`make docker-up` 직후 nginx 컨테이너는 호스트의 80/443 포트를 점유한 상태입니다. 이대로 6단계로 가면 호스트 nginx 설치 시 **80/443 포트 충돌로 실패**하므로, 컨테이너 노출 포트를 8080/8443으로 옮겨 호스트 자리를 비워둡니다.
+`make docker-first-deploy` 직후 nginx 컨테이너는 호스트의 80/443 포트를 점유한 상태입니다. 이대로 6단계로 가면 호스트 nginx 설치 시 **80/443 포트 충돌로 실패**하므로, 컨테이너 노출 포트를 8080/8443으로 옮겨 호스트 자리를 비워둡니다.
 
 ```bash
 # 1) .env 수정
@@ -327,7 +338,7 @@ curl -I http://127.0.0.1:8080   # → 307 Temporary Redirect (Docker nginx 응�
 curl -I http://127.0.0.1        # → curl: (7) Failed to connect (호스트 nginx 자리 비어 있음)
 ```
 
-**⚠️ 운영 주의 — 추후 `make docker-up` 재실행 시 포트 초기화**: 배포 완료 후 운영 중에 `make docker-up`을 다시 실행하면 `init-env.sh`가 포트 값을 다시 80/443으로 되돌려 호스트 nginx와 충돌이 납니다. 운영 중 재기동이 필요하면 `make docker-up` 대신 `docker-compose restart <서비스명>` 또는 `docker-compose up -d <서비스명>`(init-env.sh를 안 탐)을 사용하세요.
+**⚠️ 운영 주의 — `init-docker-env`/`docker-first-deploy`/`docker-build-no-cache` 재실행 시 포트 초기화**: 위 명령들은 모두 내부적으로 `init-env.sh`를 호출하며, 이때 포트 값을 다시 80/443으로 되돌려 호스트 nginx와 충돌이 납니다. 운영 중 재기동이 필요하면 `make docker-up`(init-env.sh를 타지 않음) 또는 `docker-compose restart <서비스명>` / `docker-compose up -d <서비스명>`을 사용하세요.
 
 이 시점에서는 아직 HTTPS 접속이 불가능합니다. 호스트 nginx 설정 후 가능해집니다.
 
@@ -503,7 +514,7 @@ sudo certbot renew --dry-run
 
 ## 9단계 — 관리자 계정 확인 및 로그인
 
-관리자 계정은 **5단계(`make docker-up`) 실행 시 이미 자동 생성**됩니다. 별도 등록 절차 없이 바로 로그인 가능합니다.
+관리자 계정은 **5단계(`make docker-first-deploy`) 실행 시 이미 자동 생성**됩니다. 별도 등록 절차 없이 바로 로그인 가능합니다.
 
 ```
 URL:      https://mai-studio.lcampus.co.kr
@@ -834,7 +845,7 @@ chmod 600 /opt/mai-studio/docker/.env
 ```bash
 cd /opt/mai-studio
 sudo rm -rf docker/volumes/
-make docker-up
+make docker-first-deploy
 ```
 
 **근본 해결 예정**: `api/docker/entrypoint.sh`에 `gosu` 패턴을 도입해 컨테이너 내부에서 non-root 사용자로 프로세스를 전환합니다. 기존 볼륨 파일 소유권 마이그레이션 전략을 포함한 별도 Hotfix로 처리합니다 (이 가이드 범위 밖).
@@ -856,7 +867,8 @@ make deploy-all
 
 | 목적 | 명령 |
 |---|---|
-| 전체 시작 | `make docker-up` |
+| 첫 배포 | `make docker-first-deploy` |
+| 전체 시작 (운영 중) | `make docker-up` |
 | 전체 재배포 | `make deploy-all` |
 | API만 재배포 | `make deploy-api` |
 | web-edu만 재배포 | `make deploy-web` |
@@ -904,7 +916,7 @@ make deploy-all
 ### 애플리케이션
 - [ ] 소스 배포 (`/opt/mai-studio`, `moai-v2` 브랜치)
 - [ ] `docker/.env` 포트 값 2개 수정 (`EXPOSE_NGINX_PORT=8080`, `EXPOSE_NGINX_SSL_PORT=8443`)
-- [ ] Docker 스택 기동 (`make docker-up`) — 관리자 계정 대화형 입력 완료
+- [ ] Docker 스택 기동 (`make docker-first-deploy`) — 관리자 계정 대화형 입력 완료
 - [ ] 자동 생성된 키 별도 백업 (`SECRET_KEY`, `API_KEY_ENCRYPTION_KEY`, DB/Redis/ES 비밀번호 등)
 - [ ] 모든 컨테이너 `Up` 상태 확인
 - [ ] 호스트 nginx `/etc/nginx/conf.d/*.conf` 작성
@@ -944,3 +956,4 @@ make deploy-all
 | 2026-04-24 | 4단계에 "⚠️ 중요 — `init-env.sh`가 `.env`를 `.env.example` 기반으로 동기화" 경고 블록 신규. 포트 키가 백업 대상 13개에 없어 `.env` 수동 수정이 `make docker-up` 시 되돌려지는 실제 동작을 명시. 운영 중 재기동은 `make docker-up` 대신 `docker-compose restart/up -d <서비스>` 사용 권고. 근본 해결은 차기 Hotfix 예약 | — |
 | 2026-04-24 | 배포 아키텍처 다이어그램의 nginx 포트 표기 수정 (Docker nginx 컨테이너의 호스트 노출 포트 = 8080 명시). 4단계 사전 수정 안내(.env 미리 만들고 포트 수정) 제거, "init-env.sh 보존 정책" 절로 축약. 5단계에 "nginx 포트 노출 변경" 절 신설(force-recreate 절차 + 운영 중 `make docker-up` 재실행 주의 통합). 사전/사후 두 갈래 안내를 사후 수정 단일 경로로 통합 | — |
 | 2026-04-24 | 4단계의 역할을 "행동 단계"에서 "참고 카탈로그"로 재정의: 제목 → `.env 환경변수 카탈로그 (참고용)`, 첫머리에 "이 단계에서 작업 없음, 5단계에서 실제 수정" 안내 박스. 4단계 내부 절 톤도 행동 → 참고로 조정(`사용자가 직접 수정해야 하는 값` → `5단계에서 변경할 값 미리보기`). 5단계 시작에 4단계 카탈로그 역참조 안내 추가. 단계 번호는 유지 | — |
+| 2026-04-27 | Makefile docker target 정리 hotfix 반영: 5단계 권장 명령을 `make docker-first-deploy`로 교체(init-docker-env + 스택 기동), `docker-up`/`docker-build`는 init을 타지 않도록 의미 변경, 캐시 없는 재빌드 명령 이름을 `docker-build-no-cache`로 통일(구 명칭 → 신규 이름). 4개 명령 차이 비교 표 신설 + 운영 노트(`docker/.env.example` 갱신 시 `make init-docker-env` 별도 실행) 추가. 빠른 참조/체크리스트의 명령어 일관성 보정 | — |

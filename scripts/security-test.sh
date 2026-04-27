@@ -142,7 +142,7 @@ if command -v docker &>/dev/null; then
   RUNNING=$(docker ps --format '{{.Names}}' 2>/dev/null | head -20)
   if [[ -z "$RUNNING" ]]; then
     echo -e "  ${RED}[경고]${NC} 실행 중인 Docker 컨테이너가 없습니다."
-    echo "  'make docker-rebuild'로 먼저 실행해주세요."
+    echo "  'make docker-build-no-cache'로 먼저 실행해주세요."
     exit 1
   fi
   echo -e "  ${GREEN}[확인]${NC} Docker 컨테이너 실행 중"

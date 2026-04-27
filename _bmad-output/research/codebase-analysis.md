@@ -94,7 +94,7 @@
 - `make dev-setup` - 전체 개발 환경 셋업 (docker + web + api + web-edu)
 - `make prepare-api` - API 환경 준비 (uv sync, flask db upgrade, init-tenant)
 - `make docker-up` - 프로덕션 Docker 환경 시작
-- `make docker-rebuild` - 캐시 없이 재빌드
+- `make docker-build-no-cache` - 캐시 없이 재빌드
 - `make format` / `make lint` / `make type-check` - 코드 품질
 
 ### 1.6 테스트 프레임워크
