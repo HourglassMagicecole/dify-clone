@@ -7,11 +7,11 @@
 | Epic | — |
 | Story | — |
 | State | PROJECT_COMPLETE |
-| Plan | _bmad-output/stories/hotfix_20260427_deployment-guide-port-flow-update.md |
+| Plan | _bmad-output/stories/hotfix_20260427_readme-mai-studio-rewrite.md |
 | Mode | semi-auto |
-| Status | Maintenance idle — deployment-guide-port-flow-update Approved 후 PROJECT_COMPLETE 복귀. README hotfix 진입 대기 |
-| Next Action | 사용자 결정(README 변경 범위) 후 BUG_TRIAGE 진입 |
-| Updated | 2026-04-27 15:14 |
+| Status | Maintenance idle — readme-mai-studio-rewrite Approved 후 PROJECT_COMPLETE 복귀. 누적 unpushed 5 commits 대기 |
+| Next Action | 사용자 push 확인 또는 다음 hotfix/maintenance 이슈 |
+| Updated | 2026-04-27 15:42 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -86,3 +86,6 @@ Route: lightweight
 - triage recorded — severity: P1 — deployment-guide.md 5단계 포트 흐름이 init-env-port-prompt hotfix 이전 동작 가정에 머물러 있음. 권장 입력(8080/8443) 단일 경로로 정리 + 절 제목/도입부를 실수 복구로 재정의 + 운영 주의 박스 단순화(시안 A) + 체크리스트 한 줄 갱신. Lightweight, docs-only. 1개 파일 수정.
 Route: lightweight
 - hotfix completed — 2026-04-27 — deployment-guide-port-flow-update — Approved (docs/deployment-guide.md 1개 + hotfix story). 7개 영역 갱신(코멘트/절 제목/도입부/보조 경로/운영 주의 시안 A/체크리스트/변경 이력). 검증 6/6 PASS. Dev가 line 238 본문 참조도 정합성 차원에서 동반 보정 — 수용.
+- triage recorded — severity: P1 — README가 오리지널 Dify 그대로. 사용자 결정: private 저장소이므로 사내 가이드 톤으로 전체 재작성, 한국어 메인(README.md) + 영어 보조(README/README_EN.md), 기타 다국어 README 12개 + CONTRIBUTING(메인+다국어 11개) 모두 폐기, 자산 없이 텍스트 위주, Community/Security 섹션 제외, LICENSE 보존. 신규 2개 + 삭제 26개(README_KR.md 포함). Lightweight, docs-only.
+Route: lightweight
+- hotfix completed — 2026-04-27 — readme-mai-studio-rewrite — Approved (신규 2개 + 삭제 25개 + hotfix story). 검증 7/7 PASS. 명세-실제 차이 1건(Contributing 명세 12 vs 실제 11, KL 부재) 사전 카운트 오류로 비차단 수용. 다른 .md 깨진 인용 0건.
