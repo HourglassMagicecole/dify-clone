@@ -159,6 +159,10 @@ Rocky 9 버전 가이드를 별도 파일로 추가해 OS별 분기를 제공한
 
 ## Lifecycle Log
 
+### HOTFIX_USER_VERIFY — 2026-04-27 11:00
+- Approved — 사용자 직접 검증 (실서버 175.126.189.248 배포 성공, HTTPS 응답 확인)
+
+
 ### BUG_TRIAGE — 2026-04-24
 - P1, Lightweight 경로 (docs 신규 2개, 런타임 영향 0)
 - Ubuntu Hotfix(`hotfix_20260422_ubuntu-deployment-docs.md`)와 동일한 네이밍 방식 채택: 기존 파일 유지 + Rocky 9 버전 신규 추가

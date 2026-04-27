@@ -5,13 +5,13 @@
 |------|-----|
 | Phase | Maintenance |
 | Epic | — |
-| Story | rocky-deployment-docs |
-| State | HOTFIX_USER_VERIFY |
+| Story | — |
+| State | PROJECT_COMPLETE |
 | Plan | _bmad-output/stories/hotfix_20260424_rocky-deployment-docs.md |
 | Mode | semi-auto |
-| Status | HOTFIX_COMPLETE — Rocky Linux 9 배포/이전 가이드 신규 2파일 승인 및 실서버 배포 검증 완료 |
-| Next Action | 다음 hotfix/maintenance 이슈 도착 시 triage 진행 |
-| Updated | 2026-04-24 (완료) |
+| Status | Maintenance idle — Rocky Linux 9 hotfix 4차 개정 Approved 후 PROJECT_COMPLETE 복귀 |
+| Next Action | 다음 hotfix/maintenance 이슈 도착 시 BUG_TRIAGE 진입 |
+| Updated | 2026-04-27 11:00 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
