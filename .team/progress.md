@@ -7,11 +7,11 @@
 | Epic | — |
 | Story | — |
 | State | PROJECT_COMPLETE |
-| Plan | _bmad-output/stories/hotfix_20260427_init-env-port-prompt.md |
+| Plan | _bmad-output/stories/hotfix_20260427_clean-volumes-sudo.md |
 | Mode | semi-auto |
-| Status | Maintenance idle — init-env-port-prompt hotfix Approved (2차) 후 PROJECT_COMPLETE 복귀 |
-| Next Action | 다음 hotfix/maintenance 이슈 도착 시 BUG_TRIAGE 진입 |
-| Updated | 2026-04-27 14:17 |
+| Status | Maintenance idle — clean-volumes-sudo Approved 후 PROJECT_COMPLETE 복귀. 후속 docs hotfix 진입 대기 |
+| Next Action | deployment-guide 5단계 흐름 갱신(init-env-port-prompt follow-up) BUG_TRIAGE 진입 또는 다른 hotfix |
+| Updated | 2026-04-27 14:54 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -80,3 +80,6 @@ Route: lightweight
 - triage recorded — severity: P1 — init-env.sh가 EXPOSE_NGINX_PORT/SSL_PORT를 대화형으로 입력받도록 추가. 사용자 결정: 무인 배포 미고려, 항상 물음, default 80/443만 표시, 숫자 검증만, Lightweight. 2개 파일(docker/init-env.sh, docs/deployment-guide.md) 수정.
 Route: lightweight
 - hotfix completed — 2026-04-27 — init-env-port-prompt — Approved (2차 개정 후, 3개 활성 파일 + hotfix story). 1차 init-env.sh 대화형 입력 검증 6/6 PASS. 1차 CR(Makefile Access 안내가 입력 포트 미반영) → 2차 옵션 A 패턴(80 생략, 그 외 :port)을 docker-first-deploy/docker-up/docker-build-no-cache 3군데 일관 적용 + docker-build-no-cache에 Access API 한 줄 추가. 검증 4/4 PASS.
+- triage recorded — severity: P1 — make docker-clean-all 실행 시 root 소유 파일(privkeys 등) Permission denied로 마지막 단계 실패 (운영 서버 재현). 사용자 결정: 옵션 A(Makefile sudo rm), 범위 B(docker-clean + docker-clean-all, dev-clean-all 제외), sudo 안내 echo 추가, deployment-guide 트러블슈팅 유지. Lightweight. 1개 파일(Makefile) 수정. 근본 해결(API 비-root)은 별도 hotfix로 미룸.
+Route: lightweight
+- hotfix completed — 2026-04-27 — clean-volumes-sudo — Approved (Makefile 1개 + hotfix story). docker-clean / docker-clean-all에 sudo rm + sudo 안내 echo 적용. 검증 5/5 PASS. dev-clean-all 무변경. 코드 commit(89cceb07a)은 검증 위해 선행 push됨. 후속: deployment-guide 5단계 흐름 갱신 필요성 발견(별도 hotfix로 분리 예정).
