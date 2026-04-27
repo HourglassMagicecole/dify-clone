@@ -40,8 +40,11 @@ docker-first-deploy: init-docker-env
 	@echo ""
 	@echo "📝 Next steps:"
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
-	@echo "   - Access MAI: http://localhost"
-	@echo "   - Access API: http://localhost/v1"
+	@PORT=$$(grep -E '^EXPOSE_NGINX_PORT=' docker/.env 2>/dev/null | cut -d= -f2); \
+	[ -z "$$PORT" ] && PORT=80; \
+	SUFFIX=$$([ "$$PORT" = "80" ] && echo "" || echo ":$$PORT"); \
+	echo "   - Access MAI: http://localhost$$SUFFIX"; \
+	echo "   - Access API: http://localhost$$SUFFIX/v1"
 	@echo "   - On upstream merge or docker/.env.example update, run 'make init-docker-env' separately to sync new keys"
 
 # Start Docker production environment (does NOT run init-docker-env)
@@ -57,8 +60,11 @@ docker-up:
 	@echo ""
 	@echo "📝 Next steps:"
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
-	@echo "   - Access MAI: http://localhost"
-	@echo "   - Access API: http://localhost/v1"
+	@PORT=$$(grep -E '^EXPOSE_NGINX_PORT=' docker/.env 2>/dev/null | cut -d= -f2); \
+	[ -z "$$PORT" ] && PORT=80; \
+	SUFFIX=$$([ "$$PORT" = "80" ] && echo "" || echo ":$$PORT"); \
+	echo "   - Access MAI: http://localhost$$SUFFIX"; \
+	echo "   - Access API: http://localhost$$SUFFIX/v1"
 
 # Build and restart Docker containers (uses cache, fast)
 # 📌 When to use:
@@ -94,7 +100,11 @@ docker-build-no-cache: init-docker-env
 	@echo ""
 	@echo "📝 Next steps:"
 	@echo "   - Check logs: cd docker && docker-compose logs -f"
-	@echo "   - Access MAI: http://localhost"
+	@PORT=$$(grep -E '^EXPOSE_NGINX_PORT=' docker/.env 2>/dev/null | cut -d= -f2); \
+	[ -z "$$PORT" ] && PORT=80; \
+	SUFFIX=$$([ "$$PORT" = "80" ] && echo "" || echo ":$$PORT"); \
+	echo "   - Access MAI: http://localhost$$SUFFIX"; \
+	echo "   - Access API: http://localhost$$SUFFIX/v1"
 
 # Rebuild specific services and restart nginx (for development)
 # Usage: make deploy-api, make deploy-web, make deploy-all

@@ -242,6 +242,8 @@ git pull origin moai-v2
 | `EXPOSE_NGINX_PORT` | `8080` | **호스트의 80은 호스트 nginx가 사용**하므로 변경 필수 |
 | `EXPOSE_NGINX_SSL_PORT` | `8443` | 호스트의 443도 호스트 nginx가 사용. 충돌 방지용 변경 |
 
+> 💡 **두 포트는 `make init-docker-env` 또는 `make docker-first-deploy` 실행 시 대화형으로 묻습니다.** 빈 입력은 default 80/443. 운영 환경에서는 위 표대로 `8080`/`8443`을 입력하세요. 자세한 프롬프트 흐름은 [5단계 — 포트 대화형 입력](#5단계--docker-스택-최초-기동) 참조.
+
 
 ### ⚠️ 절대 주의사항
 
@@ -280,6 +282,15 @@ make docker-first-deploy
 
 1. `docker/init-env.sh` 실행:
    - `SECRET_KEY`, `API_KEY_ENCRYPTION_KEY`, 각종 비밀번호 자동 생성
+   - **호스트 포트 대화형 입력** (Docker nginx의 호스트 노출 포트):
+     ```
+     🌐 호스트 포트 설정 (EXPOSE_NGINX_PORT / EXPOSE_NGINX_SSL_PORT)
+     Enter EXPOSE_NGINX_PORT (default 80): 8080
+     Enter EXPOSE_NGINX_SSL_PORT (default 443): 8443
+     ```
+     - 빈 입력은 default 80/443 적용
+     - 비숫자 또는 1~65535 범위 외 입력 시 재입력 요청
+     - 운영 환경에서는 호스트 nginx와 충돌 회피를 위해 `8080`/`8443`을 명시 입력
    - **관리자 계정 대화형 입력**:
      ```
      관리자 이메일: admin@lcampus.co.kr
@@ -957,3 +968,4 @@ make deploy-all
 | 2026-04-24 | 배포 아키텍처 다이어그램의 nginx 포트 표기 수정 (Docker nginx 컨테이너의 호스트 노출 포트 = 8080 명시). 4단계 사전 수정 안내(.env 미리 만들고 포트 수정) 제거, "init-env.sh 보존 정책" 절로 축약. 5단계에 "nginx 포트 노출 변경" 절 신설(force-recreate 절차 + 운영 중 `make docker-up` 재실행 주의 통합). 사전/사후 두 갈래 안내를 사후 수정 단일 경로로 통합 | — |
 | 2026-04-24 | 4단계의 역할을 "행동 단계"에서 "참고 카탈로그"로 재정의: 제목 → `.env 환경변수 카탈로그 (참고용)`, 첫머리에 "이 단계에서 작업 없음, 5단계에서 실제 수정" 안내 박스. 4단계 내부 절 톤도 행동 → 참고로 조정(`사용자가 직접 수정해야 하는 값` → `5단계에서 변경할 값 미리보기`). 5단계 시작에 4단계 카탈로그 역참조 안내 추가. 단계 번호는 유지 | — |
 | 2026-04-27 | Makefile docker target 정리 hotfix 반영: 5단계 권장 명령을 `make docker-first-deploy`로 교체(init-docker-env + 스택 기동), `docker-up`/`docker-build`는 init을 타지 않도록 의미 변경, 캐시 없는 재빌드 명령 이름을 `docker-build-no-cache`로 통일(구 명칭 → 신규 이름). 4개 명령 차이 비교 표 신설 + 운영 노트(`docker/.env.example` 갱신 시 `make init-docker-env` 별도 실행) 추가. 빠른 참조/체크리스트의 명령어 일관성 보정 | — |
+| 2026-04-27 | `init-docker-env`에 `EXPOSE_NGINX_PORT`/`EXPOSE_NGINX_SSL_PORT` 대화형 입력 추가. 4단계 카탈로그의 두 포트 항목에 "init 실행 시 대화형 입력" 안내 한 줄 추가, 5단계 "이때 일어나는 일" 박스에 포트 프롬프트 예시 추가. 4단계의 "포트 수정 누락 시" 트러블슈팅 블록은 보완 메커니즘으로서 그대로 유지 | — |

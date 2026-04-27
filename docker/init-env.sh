@@ -110,6 +110,52 @@ else
     echo -e "${GREEN}✅ docker/.env 동기화 완료 (SECRET_KEY, API_KEY_ENCRYPTION_KEY, INITIAL_ADMIN_*, 보안 키 보존)${NC}\n"
 fi
 
+# 2-1. 호스트 nginx 포트 설정 (대화형)
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${YELLOW}🌐 호스트 포트 설정 (EXPOSE_NGINX_PORT / EXPOSE_NGINX_SSL_PORT)${NC}"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${YELLOW}호스트 nginx와 충돌하지 않도록 Docker nginx가 노출할 포트를 입력하세요.${NC}"
+echo -e "${YELLOW}빈 입력은 default(80/443)가 적용됩니다.${NC}\n"
+
+# 헬퍼: 포트 입력 + 검증 (1~65535 정수)
+prompt_port() {
+    local KEY_NAME="$1"
+    local DEFAULT_VALUE="$2"
+    local INPUT
+    local RESULT
+    while true; do
+        read -r -p "Enter ${KEY_NAME} (default ${DEFAULT_VALUE}): " INPUT
+        if [ -z "$INPUT" ]; then
+            RESULT="$DEFAULT_VALUE"
+            break
+        elif [[ "$INPUT" =~ ^[0-9]+$ ]] && [ "$INPUT" -ge 1 ] && [ "$INPUT" -le 65535 ]; then
+            RESULT="$INPUT"
+            break
+        else
+            echo -e "${RED}❌ 1~65535 범위의 숫자만 입력 가능합니다. 다시 입력하세요.${NC}"
+        fi
+    done
+    # docker/.env 반영: 라인이 있으면 sed 치환, 없으면 append
+    if grep -q "^${KEY_NAME}=" docker/.env; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^${KEY_NAME}=.*|${KEY_NAME}=${RESULT}|" docker/.env
+        else
+            sed -i "s|^${KEY_NAME}=.*|${KEY_NAME}=${RESULT}|" docker/.env
+        fi
+    else
+        echo "${KEY_NAME}=${RESULT}" >> docker/.env
+    fi
+    # 결과를 호출부에 전달하기 위한 전역 변수
+    PORT_RESULT="$RESULT"
+}
+
+prompt_port "EXPOSE_NGINX_PORT" "80"
+APPLIED_NGINX_PORT="$PORT_RESULT"
+prompt_port "EXPOSE_NGINX_SSL_PORT" "443"
+APPLIED_NGINX_SSL_PORT="$PORT_RESULT"
+
+echo -e "${GREEN}✅ EXPOSE_NGINX_PORT=${APPLIED_NGINX_PORT}, EXPOSE_NGINX_SSL_PORT=${APPLIED_NGINX_SSL_PORT} 적용${NC}\n"
+
 # 3. SECRET_KEY 확인 및 생성
 EXISTING_SECRET=$(grep "^SECRET_KEY=" docker/.env | cut -d'=' -f2-)
 if [ -z "$EXISTING_SECRET" ] || [ "$EXISTING_SECRET" == "sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U" ]; then
