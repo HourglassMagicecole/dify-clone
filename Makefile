@@ -1,9 +1,3 @@
-# Variables
-DOCKER_REGISTRY=langgenius
-WEB_IMAGE=$(DOCKER_REGISTRY)/dify-web
-API_IMAGE=$(DOCKER_REGISTRY)/dify-api
-VERSION=latest
-
 # Default target - show help
 .DEFAULT_GOAL := help
 
@@ -305,41 +299,6 @@ type-check:
 	@uv run --directory api --dev basedpyright
 	@echo "✅ Type check complete"
 
-# Build Docker images
-build-web:
-	@echo "Building web Docker image: $(WEB_IMAGE):$(VERSION)..."
-	docker build -t $(WEB_IMAGE):$(VERSION) ./web
-	@echo "Web Docker image built successfully: $(WEB_IMAGE):$(VERSION)"
-
-build-api:
-	@echo "Building API Docker image: $(API_IMAGE):$(VERSION)..."
-	docker build -t $(API_IMAGE):$(VERSION) ./api
-	@echo "API Docker image built successfully: $(API_IMAGE):$(VERSION)"
-
-# Push Docker images
-push-web:
-	@echo "Pushing web Docker image: $(WEB_IMAGE):$(VERSION)..."
-	docker push $(WEB_IMAGE):$(VERSION)
-	@echo "Web Docker image pushed successfully: $(WEB_IMAGE):$(VERSION)"
-
-push-api:
-	@echo "Pushing API Docker image: $(API_IMAGE):$(VERSION)..."
-	docker push $(API_IMAGE):$(VERSION)
-	@echo "API Docker image pushed successfully: $(API_IMAGE):$(VERSION)"
-
-# Build all images
-build-all: build-web build-api
-
-# Push all images
-push-all: push-web push-api
-
-build-push-api: build-api push-api
-build-push-web: build-web push-web
-
-# Build and push all images
-build-push-all: build-all push-all
-	@echo "All Docker images have been built and pushed."
-
 # Help target
 help:
 	@echo "Development Setup Targets:"
@@ -371,13 +330,6 @@ help:
 	@echo "  make check          - Check code with ruff"
 	@echo "  make lint           - Format and fix code with ruff"
 	@echo "  make type-check     - Run type checking with basedpyright"
-	@echo ""
-	@echo "Docker Build Targets:"
-	@echo "  make build-web      - Build web Docker image"
-	@echo "  make build-api      - Build API Docker image"
-	@echo "  make build-all      - Build all Docker images"
-	@echo "  make push-all       - Push all Docker images"
-	@echo "  make build-push-all - Build and push all Docker images"
 
 # Phony targets
-.PHONY: build-web build-api push-web push-api build-all push-all build-push-all dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-first-deploy docker-up docker-build docker-build-no-cache docker-down docker-restart docker-clean docker-clean-all docker-prune deploy-api deploy-web deploy-all dev-clean dev-clean-all help format check lint type-check
+.PHONY: dev-setup prepare-docker prepare-web prepare-api prepare-web-edu init-docker-env docker-first-deploy docker-up docker-build docker-build-no-cache docker-down docker-restart docker-clean docker-clean-all docker-prune deploy-api deploy-web deploy-all dev-clean dev-clean-all help format check lint type-check
