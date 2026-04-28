@@ -7,11 +7,11 @@
 | Epic | — |
 | Story | — |
 | State | PROJECT_COMPLETE |
-| Plan | _bmad-output/stories/hotfix_20260427_readme-mai-studio-rewrite.md |
+| Plan | — |
 | Mode | semi-auto |
-| Status | Maintenance idle — readme-mai-studio-rewrite Approved 후 PROJECT_COMPLETE 복귀. 누적 unpushed 5 commits 대기 |
+| Status | Maintenance idle — makefile-prune-image-targets Approved 후 PROJECT_COMPLETE 복귀 |
 | Next Action | 사용자 push 확인 또는 다음 hotfix/maintenance 이슈 |
-| Updated | 2026-04-27 15:42 |
+| Updated | 2026-04-28 09:23 |
 
 ## Phase 0 Log
 - P0_INIT — done — 2026-04-08
@@ -89,3 +89,7 @@ Route: lightweight
 - triage recorded — severity: P1 — README가 오리지널 Dify 그대로. 사용자 결정: private 저장소이므로 사내 가이드 톤으로 전체 재작성, 한국어 메인(README.md) + 영어 보조(README/README_EN.md), 기타 다국어 README 12개 + CONTRIBUTING(메인+다국어 11개) 모두 폐기, 자산 없이 텍스트 위주, Community/Security 섹션 제외, LICENSE 보존. 신규 2개 + 삭제 26개(README_KR.md 포함). Lightweight, docs-only.
 Route: lightweight
 - hotfix completed — 2026-04-27 — readme-mai-studio-rewrite — Approved (신규 2개 + 삭제 25개 + hotfix story). 검증 7/7 PASS. 명세-실제 차이 1건(Contributing 명세 12 vs 실제 11, KL 부재) 사전 카운트 오류로 비차단 수용. 다른 .md 깨진 인용 0건.
+- note — 2026-04-27 — git remote URL 변경: `MagicecoleAI/dify-moai-v2` → `MagicecoleAI/mai-studio` (GitHub repo 이름 변경 반영, `git remote set-url origin` 한 줄). 사용자 결정: BUG_TRIAGE 생략(간단 처리), 활성 문서 인용 0건이라 docs 갱신 없음, Phase 0/hotfix 산출물의 historical 인용은 보존, 로컬 디렉토리 이름은 IDE 작업 중이라 변경 안 함. **운영 서버 안내(사용자가 사내 채널로 전달)**: 각 배포 서버에서 `cd /opt/mai-studio && git remote set-url origin https://github.com/MagicecoleAI/mai-studio.git && git remote -v && git fetch --dry-run` 실행. 긴급도 낮음 — GitHub redirect로 이전 URL도 일정 기간 작동.
+- triage recorded — severity: P1 — Makefile line 308-342의 Docker 이미지 build/push 타겟 9개(build-web/build-api/push-web/push-api/build-all/push-all/build-push-api/build-push-web/build-push-all)가 Dify 원본 잔재(`langgenius/dify-web/api`)로 dead. 운영 배포는 `make docker-build-no-cache`(compose 기반)로 일원화되어 사용처 0건. 사용자 결정: 권장안(Q1=B 전체 정리) 채택 — 타겟 본문 + Variables 4줄(line 2-5) + help 섹션 5줄(line 376-380) + .PHONY 7개 토큰 함께 제거. GitHub Actions의 `langgenius` 푸시 워크플로우는 이번 범위 밖(별도 hotfix). 1개 파일 수정.
+Route: lightweight
+- hotfix completed — 2026-04-28 — makefile-prune-image-targets — Approved (Makefile 1개 + hotfix story). diff +1/-49 (4개 hunk: Variables 6줄 + 타겟 본문 35줄 + help 7줄 + .PHONY 7개 토큰). 검증 10/10 PASS. 이슈 없음. CI 워크플로우(`langgenius` 푸시 잔재)는 별도 hotfix로 유지.
