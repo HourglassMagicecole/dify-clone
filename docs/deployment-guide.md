@@ -74,7 +74,7 @@ sudo timedatectl set-timezone Asia/Seoul
 date   # KST 시간 확인
 ```
 
-### 방화벽 정책
+### 방화벽 정책 (firewalld가 비활성화인 경우 무시)
 
 Rocky Linux 9는 **`firewalld`가 기본 활성** 상태로 설치됩니다 (AL2023와 다른 점). AWS 환경이라도 서버 내부의 firewalld가 80/443을 막고 있으면 호스트 nginx로 들어오는 트래픽이 차단됩니다. 반드시 HTTP/HTTPS를 허용해야 합니다.
 
@@ -130,7 +130,7 @@ sudo usermod -aG docker $USER
 # ⚠️ 그룹 변경 적용을 위해 반드시 로그아웃 후 재접속 필요
 ```
 
-### 백업 경로 — 저장소 방식이 불가할 때만
+### 백업 경로 — 저장소 방식이 불가할 때만 사용
 
 위 저장소 설치가 정상 동작하면 Compose v2/Buildx는 이미 함께 설치된 상태입니다. 만약 제한된 환경(오프라인, 프록시, CentOS repo 접근 불가 등)으로 저장소 설치가 불가할 때만 아래 수동 설치를 사용합니다.
 
@@ -272,7 +272,6 @@ make docker-first-deploy
 | `make docker-build` | ❌ 미실행 | `--build`로 항상 빌드 (캐시 사용) | 코드 변경 후 재빌드 + 시작 |
 | `make docker-build-no-cache` | ✅ 실행 | `--no-cache` + `--force-recreate` | 빌드 캐시 손상 시·릴리즈 빌드 |
 
-> ⚠️ **운영 노트** — Dify 업스트림 머지 또는 `docker/.env.example` 갱신 후에는 `make init-docker-env`를 **별도 실행**해 새 환경변수를 `docker/.env`에 동기화하세요. `docker-up`/`docker-build`는 init을 타지 않으므로, 새로 추가된 환경변수가 자동 반영되지 않습니다.
 
 ### 이때 일어나는 일
 
